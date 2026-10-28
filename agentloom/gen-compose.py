@@ -1,0 +1,140 @@
+#!/usr/bin/env python3
+"""agentloom/compose.yaml from this repository's own infra/compose/docker-compose.images.yml.
+
+Upstream's published-images compose, with what AgentLoom for customers decides:
+the app image is BUILT here from this tree (upstream's Dockerfile, then
+agentloom/Dockerfile for the name), sign-in is email and password with open
+sign-up, a bot's computer is E2B's so the docker supervisor is dropped, and
+cloudflared is the only way in.
+
+    python3 agentloom/gen-compose.py <upstream-tag>
+
+Run it after every merge from upstream, and commit what it writes.
+"""
+import re, sys
+from pathlib import Path
+import yaml
+
+HERE = Path(__file__).resolve().parent
+SRC = HERE.parent / "infra" / "compose" / "docker-compose.images.yml"
+DST = HERE / "compose.yaml"
+tag = sys.argv[1]
+HOST = "app.agentloom.com"
+ORIGIN = f"https://{HOST}"
+IMAGE = "agentloom-app:local"
+UPSTREAM_APP = "ghcr.io/elie222/rakazo/app"
+# What this deployment decides. Everything else takes upstream's own default.
+SET = {
+    "RAKAZO_IMAGE": UPSTREAM_APP,
+    "RAKAZO_IMAGE_TAG": tag,
+    "RAKAZO_COMPUTER_IMAGE_TAG": tag,
+    "BETTER_AUTH_URL": ORIGIN,
+    "WEB_ORIGIN": ORIGIN,
+    "API_URL": ORIGIN,
+    "RAKAZO_HOST": HOST,
+    # Customers are never in our IdP: email and password, open sign-up.
+    "AUTH_PASSWORD_ENABLED": "true",
+    "AUTH_BREACHED_PASSWORD_CHECK_ENABLED": "true",
+    "SIGNUPS_ENABLED": "true",
+    # A bot's computer is E2B's, never a container on the host that serves customers.
+    "SANDBOX_PROVIDER": "e2b",
+}
+# Values the deployer holds. Named here, never written.
+SECRET = {"POSTGRES_PASSWORD", "POSTGRES_APP_PASSWORD", "BETTER_AUTH_SECRET", "ENCRYPTION_KEY",
+          "SCREEN_PROXY_SECRET", "SANDBOX_SUPERVISOR_TOKEN", "E2B_API_KEY",
+          "EMAIL_PROVIDER", "EMAIL_API_KEY", "EMAIL_FROM"}
+# The docker computer: the supervisor holds the host's docker socket. Not here.
+DROP = {"supervisor", "computer"}
+REF = re.compile(r"\$\{([A-Za-z_][A-Za-z0-9_]*)(?::([-?])((?:[^{}]|\{[^{}]*\})*))?\}")
+
+
+def sub(s: str) -> str:
+    def one(m):
+        name, op, arg = m.group(1), m.group(2), m.group(3) or ""
+        if name in SECRET:
+            return "${%s}" % name
+        if name in SET:
+            return SET[name]
+        if op == "-":
+            return sub(arg)
+        raise SystemExit(f"unresolved ${{{name}}} in {s!r}")
+    return REF.sub(one, s)
+
+
+doc = yaml.safe_load(SRC.read_text(encoding="utf-8"))  # merge keys expand
+doc.pop("x-app-environment", None)
+for name in DROP:
+    doc["services"].pop(name)
+
+# Upstream's image, built from this tree exactly as its own CI builds it.
+services = {"app-base": {
+    "build": {"context": "..", "dockerfile": "infra/compose/Dockerfile", "args": {"GIT_SHA": tag}},
+    "image": "agentloom-app-base:local",
+    "command": ["true"],
+    "network_mode": "none",
+    "restart": "no",
+}}
+for name, svc in doc["services"].items():
+    deps = svc.get("depends_on")
+    if isinstance(deps, dict):
+        for d in DROP:
+            deps.pop(d, None)
+    elif isinstance(deps, list):
+        svc["depends_on"] = [d for d in deps if d not in DROP]
+    if "image" in svc:
+        svc["image"] = sub(svc["image"])
+        if svc["image"].startswith(UPSTREAM_APP + ":"):
+            svc["image"] = IMAGE
+            # Every app service names the same build; after the first it is all cache.
+            svc["build"] = {"context": ".", "dockerfile": "Dockerfile",
+                            "additional_contexts": {"base": "service:app-base"}}
+            svc["pull_policy"] = "build"
+    env = svc.get("environment") or {}
+    out = {}
+    for k, v in env.items():
+        if k.lower() in {"http_proxy", "https_proxy", "no_proxy"} or k == "SANDBOX_SUPERVISOR_URL":
+            continue
+        if v is None:
+            if k in SET:
+                out[k] = SET[k]
+            elif k in SECRET:
+                out[k] = "${%s}" % k
+            continue  # an optional pass-through nobody sets here
+        v = sub(str(v))
+        if v == "" and k not in SET:
+            continue
+        out[k] = v
+    if env:
+        svc["environment"] = out
+    if "healthcheck" in svc and "test" in svc["healthcheck"]:
+        t = svc["healthcheck"]["test"]
+        svc["healthcheck"]["test"] = sub(t) if isinstance(t, str) else [sub(x) for x in t]
+    svc.pop("ports", None)  # nothing listens on the host's address; cloudflared is the door
+    services[name] = svc
+
+services["cloudflared"] = {
+    "image": "cloudflare/cloudflared:2026.9.1@sha256:b269e8abd07a5bf6f3f4be65d5050b2174eca89c56a0241a8ff32a16aec454e4",
+    "restart": "unless-stopped",
+    "command": ["tunnel", "--no-autoupdate", "run"],
+    "networks": list(services["web"].get("networks") or []),
+    "environment": {"TUNNEL_TOKEN": "${TUNNEL_TOKEN}"},
+    "depends_on": ["web"],
+}
+doc["services"] = services
+
+HEADER = f"""\
+# AgentLoom for customers, published at {ORIGIN} through its own Cloudflare
+# tunnel, whose cloudflared runs here and reaches web:5173. No port is
+# published on the host.
+#
+# Built from this repository: app-base is upstream's infra/compose/Dockerfile,
+# unchanged; agentloom/Dockerfile puts the AgentLoom name on it; api, worker
+# and web all run that one image.
+#
+# Generated by agentloom/gen-compose.py from infra/compose/docker-compose.images.yml
+# (upstream {tag}). Regenerate after every merge from upstream; never hand-edit.
+"""
+with open(DST, "w", encoding="utf-8") as f:
+    f.write(HEADER)
+    yaml.safe_dump(doc, f, sort_keys=False, width=100, default_flow_style=False)
+print(f"wrote {DST.relative_to(HERE.parent)}")
