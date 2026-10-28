@@ -34,8 +34,11 @@ secret goes in the deployer's env before the merge is deployed.
 - **Computers:** E2B (`SANDBOX_PROVIDER=e2b`). The docker supervisor and its docker socket are dropped.
 - **The way in:** cloudflared reaches `web:5173`, and no port is published.
 
-It is deployed by Coolify, with base directory `/` and compose file
-`agentloom/compose.yaml`.
+It is deployed by Coolify, with base directory `/agentloom` and compose file
+`/compose.yaml`. Coolify resolves a build context from the base directory, not
+from the compose file's own directory, so with base `/` the `..` in
+`app-base`'s context points above the repository and the build fails with
+`lstat /artifacts/infra`.
 
 ## Actions
 
