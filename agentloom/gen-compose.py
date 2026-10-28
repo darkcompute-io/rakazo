@@ -85,10 +85,14 @@ for name, svc in doc["services"].items():
         svc["image"] = sub(svc["image"])
         if svc["image"].startswith(UPSTREAM_APP + ":"):
             svc["image"] = IMAGE
-            # Every app service names the same build; after the first it is all cache.
-            svc["build"] = {"context": ".", "dockerfile": "Dockerfile",
-                            "additional_contexts": {"base": "service:app-base"}}
-            svc["pull_policy"] = "build"
+            # api builds the image and the others run it: a build named on every
+            # service exported the same 3.66 GB image three times (about 2 min each).
+            if name == "api":
+                svc["build"] = {"context": ".", "dockerfile": "Dockerfile",
+                                "additional_contexts": {"base": "service:app-base"}}
+                svc["pull_policy"] = "build"
+            else:
+                svc["pull_policy"] = "never"
     env = svc.get("environment") or {}
     out = {}
     for k, v in env.items():
