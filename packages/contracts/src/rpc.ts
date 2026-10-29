@@ -989,6 +989,49 @@ export const appContract = {
       .output(ActionApprovalRuleSchema),
     remove: oc.input(z.object({ id: Id })).output(z.object({ ok: z.literal(true) })),
   },
+  // AgentLoom: Projects are the member's Gitea repositories, kept by their bots.
+  projects: {
+    list: oc.output(
+      z.object({
+        enabled: z.boolean(),
+        projects: z.array(
+          z.object({
+            name: z.string(),
+            description: z.string(),
+            updatedAt: z.string(),
+            empty: z.boolean(),
+          }),
+        ),
+      }),
+    ),
+    get: oc.input(z.object({ name: z.string().min(1).max(100) })).output(
+      z.object({
+        name: z.string(),
+        description: z.string(),
+        updatedAt: z.string(),
+        readme: z.string().nullable(),
+        files: z.array(
+          z.object({ path: z.string(), type: z.enum(["file", "dir"]), size: z.number() }),
+        ),
+        activity: z.array(
+          z.object({ sha: z.string(), message: z.string(), author: z.string(), date: z.string() }),
+        ),
+      }),
+    ),
+    file: oc
+      .input(z.object({ name: z.string().min(1).max(100), path: z.string().min(1).max(1000) }))
+      .output(
+        z.object({
+          path: z.string(),
+          content: z.string(),
+          truncated: z.boolean(),
+          binary: z.boolean(),
+        }),
+      ),
+    download: oc
+      .input(z.object({ name: z.string().min(1).max(100), path: z.string().max(1000).optional() }))
+      .output(z.object({ filename: z.string(), base64: z.string(), mime: z.string() })),
+  },
   autoReview: {
     get: oc.output(ActionAutoReviewSettingsSchema),
     set: oc

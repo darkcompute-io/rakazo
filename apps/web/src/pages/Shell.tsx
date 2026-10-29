@@ -240,6 +240,7 @@ import type { RosterDropTarget } from "./shell/roster-drop";
 import { resolveRosterDrop } from "./shell/roster-drop";
 import { SidebarHeader, useCreateMenu } from "./shell/sidebar-header";
 import { BotsSidebarLayout } from "./shell/sidebar-layout";
+import { SidebarProjects } from "./shell/sidebar-projects";
 import { SidebarRoster } from "./shell/sidebar-roster";
 import { commitSpaceRename, countUnreadChats, sidebarGroupsForSpaces } from "./shell/space-sidebar";
 import { Transcript } from "./shell/transcript";
@@ -3487,6 +3488,9 @@ function SpaceShell() {
               />
             </>
           )}
+          <div className={miniSidebar ? "hidden" : "contents"}>
+            <SidebarProjects />
+          </div>
           <div className={miniSidebar ? "hidden" : "contents"}>
             <ArchivedChats
               archivedBots={archivedBots}

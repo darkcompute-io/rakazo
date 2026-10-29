@@ -62,6 +62,7 @@ import type { McpServerHealthUpdate } from "./mcp-server-health.js";
 import { recordMcpServerHealth } from "./mcp-server-health.js";
 import { isAllowedStdioCommand, McpSession } from "./mcp-transport.js";
 import type { RemoteTransportDependencies } from "./remote-mcp.js";
+import { isDeploymentPrivateMcpEndpoint } from "./remote-mcp.js";
 
 type SessionEntry = {
   session: McpSession;
@@ -1122,7 +1123,9 @@ export class McpConnector implements ConnectorProvider {
         if (!server.endpoint) throw new Error("MCP endpoint is required");
         const endpoint = new URL(server.endpoint);
         const localHttp = endpoint.protocol === "http:" && isLocalMcpHost(endpoint.hostname);
-        const allowPrivateEndpoint = this.options.allowPrivateEndpoint === true;
+        const allowPrivateEndpoint =
+          this.options.allowPrivateEndpoint === true ||
+          isDeploymentPrivateMcpEndpoint(server.endpoint);
         const authProvider =
           !localHttp && this.oauth
             ? await this.oauth.providerFor(server, context, loaded, onPersisted)

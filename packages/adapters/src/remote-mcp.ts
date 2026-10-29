@@ -135,6 +135,24 @@ async function withRemoteMcpClient<T>(
   }
 }
 
+/**
+ * AgentLoom: the exact origins of the deployment's own private MCP servers (the Projects
+ * server beside the app), from AGENTLOOM_PRIVATE_MCP_ORIGINS. They may be reached without
+ * MCP_ALLOW_PRIVATE_ENDPOINT, which would open every private address to every member.
+ */
+export function isDeploymentPrivateMcpEndpoint(endpoint: string): boolean {
+  let origin: string;
+  try {
+    origin = new URL(endpoint).origin;
+  } catch {
+    return false;
+  }
+  return (process.env.AGENTLOOM_PRIVATE_MCP_ORIGINS ?? "")
+    .split(",")
+    .map((entry) => entry.trim().replace(/\/+$/, ""))
+    .some((allowed) => allowed !== "" && allowed === origin);
+}
+
 export async function assertSafeRemoteUrl(
   value: string,
   resolve: ResolveHostname = resolveHostname,

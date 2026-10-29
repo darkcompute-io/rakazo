@@ -3,6 +3,7 @@ import type { McpOAuthBroker, McpOAuthSummary } from "@rakazo/adapters";
 import {
   assertSafeRemoteUrl,
   buildMcpCredentialBlob,
+  isDeploymentPrivateMcpEndpoint,
   mcpServerHealthDto,
   recordMcpServerHealth,
 } from "@rakazo/adapters";
@@ -86,7 +87,7 @@ export async function assertMcpRemoteEndpoint(
   if (!endpoint) return;
   try {
     await assertSafeRemoteUrl(endpoint, deps.remoteConnectors?.resolveHostname, {
-      allowPrivateEndpoint: mayUsePrivateEndpoint(deps),
+      allowPrivateEndpoint: mayUsePrivateEndpoint(deps) || isDeploymentPrivateMcpEndpoint(endpoint),
     });
   } catch (error) {
     throw new ORPCError("BAD_REQUEST", {

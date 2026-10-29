@@ -47,10 +47,24 @@ SET = {
     # fetch to a new site instead of stopping to ask, which a sub-agent cannot do.
     "RAKAZO_AUTO_REVIEW": "true",
 }
+# Projects: Gitea and its MCP server beside the app, on the internal data network only.
+PROJECTS_ENV = {
+    "GITEA_URL": "http://gitea:3000",
+    "GITEA_ADMIN_USER": "agentloom",
+    "GITEA_ADMIN_PASSWORD": "${GITEA_ADMIN_PASSWORD}",
+    "GITEA_MCP_URL": "http://gitea-mcp:8080/mcp",
+    # Only this origin may be a private MCP endpoint; MCP_ALLOW_PRIVATE_ENDPOINT stays off.
+    "AGENTLOOM_PRIVATE_MCP_ORIGINS": "http://gitea-mcp:8080",
+}
+GITEA_IMAGE = "docker.gitea.com/gitea:1.24.6-rootless@sha256:91f2b27e080739f0d19dba716c3214f17257c632cf762e545b44ca577e37052c"
+GITEA_MCP_IMAGE = "docker.gitea.com/gitea-mcp-server@sha256:ccdb5660ecdf54c5e480f10cc8120ba2bf150b582cea8a1974de2e59883582d3"
+# The repo and file tools a bot needs, and nothing else (no pull requests, wiki or Gitea's own
+# kanban "projects", which would be confused with ours). Mirrored in apps/api/src/routes/projects.ts.
+GITEA_TOOLS = "create_repo,list_my_repos,get_repository_tree,get_file_contents,get_dir_contents,create_or_update_file,list_commits"
 # Values the deployer holds. Named here, never written.
 SECRET = {"POSTGRES_PASSWORD", "POSTGRES_APP_PASSWORD", "BETTER_AUTH_SECRET", "ENCRYPTION_KEY",
           "SCREEN_PROXY_SECRET", "SANDBOX_SUPERVISOR_TOKEN",
-          "EMAIL_PROVIDER", "EMAIL_API_KEY", "EMAIL_FROM",
+          "EMAIL_PROVIDER", "EMAIL_API_KEY", "EMAIL_FROM", "GITEA_ADMIN_PASSWORD",
           # The deployment-wide model: a run with no key of its own uses this one.
           "OPENROUTER_API_KEY"}
 # Nothing of upstream's is dropped since computers run here.
@@ -124,7 +138,52 @@ for name, svc in doc["services"].items():
         t = svc["healthcheck"]["test"]
         svc["healthcheck"]["test"] = sub(t) if isinstance(t, str) else [sub(x) for x in t]
     svc.pop("ports", None)  # nothing listens on the host's address; cloudflared is the door
+    if name in ("api", "worker"):
+        svc.setdefault("environment", {}).update(PROJECTS_ENV)
     services[name] = svc
+
+gitea_volumes = ["giteadata:/var/lib/gitea", "giteaconfig:/etc/gitea"]
+gitea_env = {
+    "GITEA__security__INSTALL_LOCK": "true",
+    "GITEA__service__DISABLE_REGISTRATION": "true",
+    "GITEA__service__REQUIRE_SIGNIN_VIEW": "true",
+    "GITEA__database__DB_TYPE": "sqlite3",
+    "GITEA__server__ROOT_URL": "http://gitea:3000/",
+    "GITEA__server__OFFLINE_MODE": "true",
+    "GITEA__repository__DEFAULT_PRIVATE": "private",
+}
+services["gitea"] = {
+    "image": GITEA_IMAGE,
+    "restart": "unless-stopped",
+    "environment": gitea_env,
+    "volumes": gitea_volumes,
+    "networks": ["data"],
+}
+# Makes the admin account the api acts through, once; a rerun finds it and stops.
+services["gitea-init"] = {
+    "image": GITEA_IMAGE,
+    "restart": "no",
+    "environment": {**gitea_env, "GITEA_ADMIN_PASSWORD": "${GITEA_ADMIN_PASSWORD}"},
+    "volumes": gitea_volumes,
+    "networks": ["data"],
+    "depends_on": ["gitea"],
+    "entrypoint": ["/bin/sh", "-c"],
+    "command": [
+        "for i in $$(seq 60); do gitea admin user list >/dev/null 2>&1 && break; sleep 2; done; "
+        "gitea admin user list | grep -qw agentloom || gitea admin user create --admin "
+        "--username agentloom --email admin@agentloom.local --password \"$$GITEA_ADMIN_PASSWORD\" "
+        "--must-change-password=false"
+    ],
+}
+services["gitea-mcp"] = {
+    "image": GITEA_MCP_IMAGE,
+    "restart": "unless-stopped",
+    "command": ["/app/gitea-mcp", "-t", "http", "--port", "8080", "-H", "http://gitea:3000"],
+    "environment": {"GITEA_TOOLS": GITEA_TOOLS},
+    "networks": ["data"],
+    "depends_on": ["gitea"],
+}
+doc.setdefault("volumes", {}).update({"giteadata": None, "giteaconfig": None})
 
 services["cloudflared"] = {
     "image": "cloudflare/cloudflared:2026.9.1@sha256:b269e8abd07a5bf6f3f4be65d5050b2174eca89c56a0241a8ff32a16aec454e4",
