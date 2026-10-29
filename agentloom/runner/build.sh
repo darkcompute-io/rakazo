@@ -41,8 +41,10 @@ echo "$SHA" >"$STATE"
 echo "pushed $IMAGE:${SHA:0:9} in $(($(date +%s) - start))s"
 
 if [ -r /etc/agentloom-build/env ]; then
-  # shellcheck disable=SC1091
-  . /etc/agentloom-build/env
+  # Read as data, never sourced: a Coolify token holds a "|", which a shell would run.
+  while IFS='=' read -r key value; do
+    case "$key" in COOLIFY_URL | COOLIFY_APP | COOLIFY_DEPLOY_TOKEN) printf -v "$key" '%s' "$value" ;; esac
+  done </etc/agentloom-build/env
   if [ -n "${COOLIFY_DEPLOY_TOKEN:-}" ] && [ -n "${COOLIFY_URL:-}" ] && [ -n "${COOLIFY_APP:-}" ]; then
     curl -fsS -m 30 -X POST -H "Authorization: Bearer $COOLIFY_DEPLOY_TOKEN" \
       "$COOLIFY_URL/api/v1/deploy?uuid=$COOLIFY_APP" >/dev/null && echo "deploy requested"
