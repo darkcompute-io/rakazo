@@ -1,0 +1,9 @@
+[Unit]
+Description=Check the agentloom branch every minute
+
+[Timer]
+OnBootSec=2min
+OnUnitInactiveSec=60s
+
+[Install]
+WantedBy=timers.target

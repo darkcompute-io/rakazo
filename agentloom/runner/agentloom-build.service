@@ -1,0 +1,11 @@
+# The local runner for AgentLoom for customers (agentloom/runner/build.sh).
+# Installed on agentloom-build-01 by agentloom/runner/README.md.
+[Unit]
+Description=Build the AgentLoom image when the agentloom branch moves
+After=docker.service network-online.target
+Requires=docker.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/agentloom-build
+TimeoutStartSec=3600
