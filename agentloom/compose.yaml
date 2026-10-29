@@ -82,6 +82,7 @@ services:
       API_URL: https://app.agentloom.com
       SECRET_STORE: encrypted
       INFISICAL_ALLOW_INSECURE_HTTP: 'false'
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY}
       SANDBOX_PROVIDER: e2b
       SANDBOX_SUPERVISOR_TOKEN: ${SANDBOX_SUPERVISOR_TOKEN}
       E2B_API_KEY: ${E2B_API_KEY}
@@ -163,6 +164,7 @@ services:
       API_URL: https://app.agentloom.com
       SECRET_STORE: encrypted
       INFISICAL_ALLOW_INSECURE_HTTP: 'false'
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY}
       SANDBOX_PROVIDER: e2b
       SANDBOX_SUPERVISOR_TOKEN: ${SANDBOX_SUPERVISOR_TOKEN}
       E2B_API_KEY: ${E2B_API_KEY}

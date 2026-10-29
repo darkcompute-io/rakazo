@@ -42,7 +42,9 @@ SET = {
 # Values the deployer holds. Named here, never written.
 SECRET = {"POSTGRES_PASSWORD", "POSTGRES_APP_PASSWORD", "BETTER_AUTH_SECRET", "ENCRYPTION_KEY",
           "SCREEN_PROXY_SECRET", "SANDBOX_SUPERVISOR_TOKEN", "E2B_API_KEY",
-          "EMAIL_PROVIDER", "EMAIL_API_KEY", "EMAIL_FROM"}
+          "EMAIL_PROVIDER", "EMAIL_API_KEY", "EMAIL_FROM",
+          # The deployment-wide model: a run with no key of its own uses this one.
+          "OPENROUTER_API_KEY"}
 # The docker computer: the supervisor holds the host's docker socket. Not here.
 DROP = {"supervisor", "computer"}
 REF = re.compile(r"\$\{([A-Za-z_][A-Za-z0-9_]*)(?::([-?])((?:[^{}]|\{[^{}]*\})*))?\}")
