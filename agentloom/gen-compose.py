@@ -4,7 +4,7 @@
 Upstream's published-images compose, with what AgentLoom for customers decides:
 the app image is BUILT here from this tree (upstream's Dockerfile, then
 agentloom/Dockerfile for the name), sign-in is email and password with open
-sign-up, a bot's computer is E2B's so the docker supervisor is dropped, and
+sign-up, a bot's computer is a container on this host behind Rakazo's egress lock, and
 cloudflared is the only way in.
 
     python3 agentloom/gen-compose.py <upstream-tag>
@@ -36,20 +36,25 @@ SET = {
     "AUTH_PASSWORD_ENABLED": "true",
     "AUTH_BREACHED_PASSWORD_CHECK_ENABLED": "true",
     "SIGNUPS_ENABLED": "true",
-    # A bot's computer is E2B's, never a container on the host that serves customers.
-    "SANDBOX_PROVIDER": "e2b",
+    # A bot's computer is a container on this host, which is a VM (an escape stays in
+    # it), and restricted egress gives computers the public internet and nothing
+    # private: run infra/compose/restrict-computer-egress.sh on the host once.
+    "SANDBOX_PROVIDER": "docker",
+    "SANDBOX_COMPUTER_EGRESS": "restricted",
+    # The host resolves through a private DMZ resolver, which the lock blocks.
+    "SANDBOX_COMPUTER_DNS": "1.1.1.1,9.9.9.9",
     # Auto Review on for everyone who has not chosen: the deployment's model judges a
     # fetch to a new site instead of stopping to ask, which a sub-agent cannot do.
     "RAKAZO_AUTO_REVIEW": "true",
 }
 # Values the deployer holds. Named here, never written.
 SECRET = {"POSTGRES_PASSWORD", "POSTGRES_APP_PASSWORD", "BETTER_AUTH_SECRET", "ENCRYPTION_KEY",
-          "SCREEN_PROXY_SECRET", "SANDBOX_SUPERVISOR_TOKEN", "E2B_API_KEY",
+          "SCREEN_PROXY_SECRET", "SANDBOX_SUPERVISOR_TOKEN",
           "EMAIL_PROVIDER", "EMAIL_API_KEY", "EMAIL_FROM",
           # The deployment-wide model: a run with no key of its own uses this one.
           "OPENROUTER_API_KEY"}
-# The docker computer: the supervisor holds the host's docker socket. Not here.
-DROP = {"supervisor", "computer"}
+# Nothing of upstream's is dropped since computers run here.
+DROP: set[str] = set()
 REF = re.compile(r"\$\{([A-Za-z_][A-Za-z0-9_]*)(?::([-?])((?:[^{}]|\{[^{}]*\})*))?\}")
 
 
@@ -101,7 +106,7 @@ for name, svc in doc["services"].items():
     env = svc.get("environment") or {}
     out = {}
     for k, v in env.items():
-        if k.lower() in {"http_proxy", "https_proxy", "no_proxy"} or k == "SANDBOX_SUPERVISOR_URL":
+        if k.lower() in {"http_proxy", "https_proxy", "no_proxy"}:
             continue
         if v is None:
             if k in SET:

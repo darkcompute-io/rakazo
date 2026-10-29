@@ -43,6 +43,12 @@ services:
       interval: 5s
       timeout: 5s
       retries: 20
+  computer:
+    image: ghcr.io/elie222/rakazo/computer:v0.3.5
+    command:
+    - 'true'
+    network_mode: none
+    restart: 'no'
   data-init:
     image: busybox:1
     command:
@@ -54,6 +60,57 @@ services:
     restart: 'no'
     volumes:
     - appdata:/data
+  supervisor:
+    image: agentloom-app:local
+    restart: unless-stopped
+    command:
+    - pnpm
+    - --filter
+    - '@rakazo/sandbox-supervisor'
+    - start
+    init: true
+    user: root
+    security_opt:
+    - no-new-privileges:true
+    pids_limit: 256
+    mem_limit: 512m
+    environment:
+      MAX_UPLOAD_SIZE_MB: '10'
+      NODE_ENV: production
+      DATA_DIR: /data
+      SUPERVISOR_HOST: 0.0.0.0
+      SUPERVISOR_PORT: '7091'
+      DOCKER_SOCKET: /var/run/docker.sock
+      RAKAZO_COMPUTER_IMAGE: ghcr.io/elie222/rakazo/computer:v0.3.5
+      RAKAZO_COMPUTER_MEMORY: 2g
+      RAKAZO_COMPUTER_CPUS: '2'
+      RAKAZO_COMPUTER_PIDS_LIMIT: '2048'
+      SANDBOX_COMMAND_TIMEOUT_MS: '300000'
+      SANDBOX_SUPERVISOR_TOKEN: ${SANDBOX_SUPERVISOR_TOKEN}
+      SANDBOX_SCREEN_NETWORK: isolated
+      SANDBOX_COMPUTER_EGRESS: restricted
+      SANDBOX_COMPUTER_DNS: 1.1.1.1,9.9.9.9
+      LOG_LEVEL: info
+    volumes:
+    - /var/run/docker.sock:/var/run/docker.sock
+    - appdata:/data
+    networks:
+    - app
+    depends_on:
+      computer:
+        condition: service_completed_successfully
+      data-init:
+        condition: service_completed_successfully
+    healthcheck:
+      test:
+      - CMD
+      - node
+      - -e
+      - fetch('http://127.0.0.1:7091/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))
+      interval: 10s
+      timeout: 5s
+      retries: 20
+    pull_policy: never
   api:
     image: agentloom-app:local
     restart: unless-stopped
@@ -84,9 +141,9 @@ services:
       INFISICAL_ALLOW_INSECURE_HTTP: 'false'
       OPENROUTER_API_KEY: ${OPENROUTER_API_KEY}
       RAKAZO_AUTO_REVIEW: 'true'
-      SANDBOX_PROVIDER: e2b
+      SANDBOX_PROVIDER: docker
+      SANDBOX_SUPERVISOR_URL: http://supervisor:7091
       SANDBOX_SUPERVISOR_TOKEN: ${SANDBOX_SUPERVISOR_TOKEN}
-      E2B_API_KEY: ${E2B_API_KEY}
       CLOUD_AGENT_PROVIDER: none
       DATABASE_MIGRATION_URL: postgres://rakazo:${POSTGRES_PASSWORD}@postgres:5432/rakazo
       API_HOST: 0.0.0.0
@@ -113,6 +170,8 @@ services:
         condition: service_healthy
       data-init:
         condition: service_completed_successfully
+      supervisor:
+        condition: service_healthy
     healthcheck:
       test:
       - CMD
@@ -167,9 +226,9 @@ services:
       INFISICAL_ALLOW_INSECURE_HTTP: 'false'
       OPENROUTER_API_KEY: ${OPENROUTER_API_KEY}
       RAKAZO_AUTO_REVIEW: 'true'
-      SANDBOX_PROVIDER: e2b
+      SANDBOX_PROVIDER: docker
+      SANDBOX_SUPERVISOR_URL: http://supervisor:7091
       SANDBOX_SUPERVISOR_TOKEN: ${SANDBOX_SUPERVISOR_TOKEN}
-      E2B_API_KEY: ${E2B_API_KEY}
       CLOUD_AGENT_PROVIDER: none
     volumes:
     - appdata:/data
@@ -181,6 +240,8 @@ services:
         condition: service_healthy
       data-init:
         condition: service_completed_successfully
+      supervisor:
+        condition: service_healthy
       api:
         condition: service_healthy
     pull_policy: never
