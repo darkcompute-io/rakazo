@@ -12,6 +12,12 @@ export const translateRunError: RunErrorTranslator = (message, values) => {
       return i18n._({ id: "Your Anthropic", message: "Your Anthropic", values });
     case "Your model provider":
       return i18n._({ id: "Your model provider", message: "Your model provider", values });
+    case "This needs a computer, and computers are not set up yet.":
+      return i18n._({
+        id: "This needs a computer, and computers are not set up yet.",
+        message: "This needs a computer, and computers are not set up yet.",
+        values,
+      });
     case "The model provider returned an error.":
       return i18n._({
         id: "The model provider returned an error.",

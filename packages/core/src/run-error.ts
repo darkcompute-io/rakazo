@@ -260,7 +260,10 @@ export function normalizeRunError(
     /insufficient[_ ](?:quota|balance)|credits?|funds|spend|budget|billing|openrouter_key_limit/i.test(
       signals,
     );
-  if (
+  if (/\bComputers unavailable\b/.test(message)) {
+    // AgentLoom: not the model's fault - this deployment has no computers for bots yet.
+    summary = translate("This needs a computer, and computers are not set up yet.");
+  } else if (
     (status === 429 ||
       /rate[_ -]limit|too many requests|resource[_ ]?exhausted|request limit reached/i.test(
         signals,
