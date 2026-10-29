@@ -38,6 +38,9 @@ SET = {
     "SIGNUPS_ENABLED": "true",
     # A bot's computer is E2B's, never a container on the host that serves customers.
     "SANDBOX_PROVIDER": "e2b",
+    # Auto Review on for everyone who has not chosen: the deployment's model judges a
+    # fetch to a new site instead of stopping to ask, which a sub-agent cannot do.
+    "RAKAZO_AUTO_REVIEW": "true",
 }
 # Values the deployer holds. Named here, never written.
 SECRET = {"POSTGRES_PASSWORD", "POSTGRES_APP_PASSWORD", "BETTER_AUTH_SECRET", "ENCRYPTION_KEY",
