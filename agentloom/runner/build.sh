@@ -6,7 +6,8 @@
 #
 # Only this one branch is ever built - never a pull request - so no stranger's
 # code runs here. /etc/agentloom-build/env may hold COOLIFY_URL, COOLIFY_APP and
-# a deploy-only COOLIFY_DEPLOY_TOKEN; without them it builds and pushes only.
+# a deploy-only COOLIFY_DEPLOY_TOKEN, plus COOLIFY_ADDR where the name does not
+# resolve here; without them it builds and pushes only.
 set -euo pipefail
 
 REPO=${AGENTLOOM_REPO:-https://github.com/darkcompute-io/rakazo.git}
@@ -43,10 +44,14 @@ echo "pushed $IMAGE:${SHA:0:9} in $(($(date +%s) - start))s"
 if [ -r /etc/agentloom-build/env ]; then
   # Read as data, never sourced: a Coolify token holds a "|", which a shell would run.
   while IFS='=' read -r key value; do
-    case "$key" in COOLIFY_URL | COOLIFY_APP | COOLIFY_DEPLOY_TOKEN) printf -v "$key" '%s' "$value" ;; esac
+    case "$key" in COOLIFY_URL | COOLIFY_APP | COOLIFY_DEPLOY_TOKEN | COOLIFY_ADDR) printf -v "$key" '%s' "$value" ;; esac
   done </etc/agentloom-build/env
   if [ -n "${COOLIFY_DEPLOY_TOKEN:-}" ] && [ -n "${COOLIFY_URL:-}" ] && [ -n "${COOLIFY_APP:-}" ]; then
-    curl -fsS -m 30 -X POST -H "Authorization: Bearer $COOLIFY_DEPLOY_TOKEN" \
+    # COOLIFY_ADDR pins Coolify's name to its address: this guest resolves through
+    # public DNS, which does not know the plane's internal names.
+    resolve=()
+    [ -n "${COOLIFY_ADDR:-}" ] && resolve=(--resolve "${COOLIFY_URL#https://}:443:$COOLIFY_ADDR")
+    curl -fsS -m 30 "${resolve[@]}" -X POST -H "Authorization: Bearer $COOLIFY_DEPLOY_TOKEN" \
       "$COOLIFY_URL/api/v1/deploy?uuid=$COOLIFY_APP" >/dev/null && echo "deploy requested"
   fi
 fi

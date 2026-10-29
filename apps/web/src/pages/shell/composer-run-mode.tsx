@@ -52,7 +52,7 @@ export function ComposerRunMode({ disabled }: { disabled?: boolean }) {
             size="icon"
             data-testid="composer-run-mode"
             aria-label={justGo ? t`Just go is on` : t`Run mode`}
-            title={justGo ? t`Just go: actions run without asking` : t`Run mode`}
+            title={justGo ? t`Just go is on: bots act without asking` : t`How much bots ask before acting`}
             disabled={disabled || !settings}
             className={`size-8 shrink-0 rounded-full transition-colors ${
               justGo
