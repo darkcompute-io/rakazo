@@ -68,7 +68,9 @@ SECRET = {"POSTGRES_PASSWORD", "POSTGRES_APP_PASSWORD", "BETTER_AUTH_SECRET", "E
           "SCREEN_PROXY_SECRET", "SANDBOX_SUPERVISOR_TOKEN",
           "EMAIL_PROVIDER", "EMAIL_API_KEY", "EMAIL_FROM", "GITEA_ADMIN_PASSWORD",
           # The deployment-wide model: a run with no key of its own uses this one.
-          "OPENROUTER_API_KEY"}
+          "OPENROUTER_API_KEY",
+          # Connect apps: Composio holds each member's app logins (Gmail, Slack, ...).
+          "COMPOSIO_API_KEY"}
 # Nothing of upstream's is dropped since computers run here.
 DROP: set[str] = set()
 REF = re.compile(r"\$\{([A-Za-z_][A-Za-z0-9_]*)(?::([-?])((?:[^{}]|\{[^{}]*\})*))?\}")
