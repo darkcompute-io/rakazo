@@ -43,6 +43,7 @@ import {
   MentionOptionIcon,
   slashActionLabel,
 } from "./composer-mentions";
+import { ComposerRunMode } from "./composer-run-mode";
 import { useComposerLayout } from "./use-composer-layout";
 
 const ATTACHMENT_ACCEPT = [...ATTACHMENT_ALLOWED_MIME_TYPES, ".zip"].join(",");
@@ -838,6 +839,7 @@ export const Composer = memo(function Composer({
             expanded ? "row-start-2" : ""
           }`}
         >
+          {talk.recording?.locked ? null : <ComposerRunMode disabled={disabled} />}
           {talk.recording?.locked ? (
             <HoldToTalkControls talk={talk} />
           ) : running ? (
