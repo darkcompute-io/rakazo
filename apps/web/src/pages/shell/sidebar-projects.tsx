@@ -9,8 +9,19 @@ import {
   DialogTitle,
 } from "@rakazo/ui-web/components/ui/dialog";
 import { useQuery } from "@tanstack/react-query";
-import { ChevronDown, ChevronRight, Download, FileText, Folder, FolderOpen } from "lucide-react";
-import { useMemo, useState } from "react";
+import {
+  Check,
+  ChevronDown,
+  ChevronRight,
+  Copy,
+  Download,
+  FileText,
+  FileType,
+  Folder,
+  FolderOpen,
+  Printer,
+} from "lucide-react";
+import { useMemo, useRef, useState } from "react";
 import { useSpaceQueries } from "../../lib/query";
 import { useSpaceRpc } from "../../lib/space-rpc";
 import { errorText } from "../../lib/user-error";
@@ -110,12 +121,19 @@ function ProjectDialog({ name, onClose }: { name: string | null; onClose: () => 
     [project.data],
   );
 
-  async function download(one?: string) {
+  const rendered = useRef<HTMLDivElement>(null);
+  const [copied, setCopied] = useState(false);
+
+  async function download(one?: string, format?: "docx") {
     if (!name || busy) return;
     setBusy(true);
     setError(null);
     try {
-      const result = await rpc.projects.download({ name, ...(one ? { path: one } : {}) });
+      const result = await rpc.projects.download({
+        name,
+        ...(one ? { path: one } : {}),
+        ...(format ? { format } : {}),
+      });
       saveFile(result.filename, result.base64, result.mime);
     } catch (err) {
       setError(errorText(err, t`Could not download`));
@@ -127,6 +145,44 @@ function ProjectDialog({ name, onClose }: { name: string | null; onClose: () => 
   const showing = path ?? "README.md";
   const body = path ? file.data : null;
   const markdown = showing.toLowerCase().endsWith(".md");
+  const text = path ? (body && !body.binary ? body.content : null) : (project.data?.readme ?? null);
+
+  async function copy() {
+    if (text === null) return;
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch (err) {
+      setError(errorText(err, t`Could not copy`));
+    }
+  }
+
+  /** PDF the way a browser makes one: the rendered file in a print view. */
+  function print() {
+    const html = rendered.current?.innerHTML;
+    if (!html) return;
+    const view = window.open("", "_blank", "noopener=no,width=900,height=1000");
+    if (!view) {
+      setError(t`Allow pop-ups to save as PDF.`);
+      return;
+    }
+    const doc = view.document;
+    doc.title = showing.replace(/\.[^.]+$/, "");
+    const style = doc.createElement("style");
+    style.textContent =
+      "body{font:15px/1.6 -apple-system,Segoe UI,Inter,sans-serif;color:#111;max-width:760px;margin:40px auto;padding:0 24px}" +
+      "h1,h2,h3{line-height:1.25}table{border-collapse:collapse;width:100%;margin:12px 0}" +
+      "th,td{border:1px solid #ccc;padding:6px 8px;text-align:left;font-size:13px}th{background:#f3f3f1}" +
+      "pre,code{font-family:Menlo,Consolas,monospace;background:#f3f3f1;border-radius:4px}pre{padding:10px;white-space:pre-wrap}" +
+      "a{color:#3b4bd8}button,svg{display:none}@page{margin:18mm}";
+    doc.head.appendChild(style);
+    const main = doc.createElement("main");
+    main.innerHTML = html;
+    doc.body.appendChild(main);
+    view.focus();
+    setTimeout(() => view.print(), 250);
+  }
 
   return (
     <Dialog
@@ -209,18 +265,57 @@ function ProjectDialog({ name, onClose }: { name: string | null; onClose: () => 
             <div className="flex items-center justify-between gap-3 border-b border-border px-5 py-2.5">
               <span className="truncate text-[13px] text-muted-foreground">{showing}</span>
               {files.some((entry) => entry.path === showing) ? (
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  disabled={busy}
-                  onClick={() => void download(showing)}
+                <div
+                  className="flex shrink-0 items-center gap-0.5"
+                  data-testid="project-file-actions"
                 >
-                  <Download size={14} />
-                  <Trans>Download</Trans>
-                </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    disabled={text === null}
+                    onClick={() => void copy()}
+                    title={t`Copy`}
+                  >
+                    {copied ? <Check size={14} /> : <Copy size={14} />}
+                    {copied ? <Trans>Copied</Trans> : <Trans>Copy</Trans>}
+                  </Button>
+                  {markdown ? (
+                    <>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        disabled={busy}
+                        onClick={() => void download(showing, "docx")}
+                        title={t`Download as a Word document`}
+                      >
+                        <FileType size={14} />
+                        <Trans>Word</Trans>
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={print}
+                        title={t`Print or save as PDF`}
+                      >
+                        <Printer size={14} />
+                        <Trans>PDF</Trans>
+                      </Button>
+                    </>
+                  ) : null}
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    disabled={busy}
+                    onClick={() => void download(showing)}
+                    title={t`Download the file as it is`}
+                  >
+                    <Download size={14} />
+                    <Trans>Download</Trans>
+                  </Button>
+                </div>
               ) : null}
             </div>
-            <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4 text-[14px]">
+            <div ref={rendered} className="min-h-0 flex-1 overflow-y-auto px-5 py-4 text-[14px]">
               {path ? (
                 file.isPending ? (
                   <p className="text-muted-foreground">

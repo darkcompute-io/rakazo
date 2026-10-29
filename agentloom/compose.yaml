@@ -298,6 +298,9 @@ services:
       GITEA__server__ROOT_URL: http://gitea:3000/
       GITEA__server__OFFLINE_MODE: 'true'
       GITEA__repository__DEFAULT_PRIVATE: private
+      GITEA__repository__DISABLE_MIGRATIONS: 'true'
+      GITEA__mirror__ENABLED: 'false'
+      GITEA__webhook__ALLOWED_HOST_LIST: loopback
     volumes: &id001
     - giteadata:/var/lib/gitea
     - giteaconfig:/etc/gitea
@@ -314,6 +317,9 @@ services:
       GITEA__server__ROOT_URL: http://gitea:3000/
       GITEA__server__OFFLINE_MODE: 'true'
       GITEA__repository__DEFAULT_PRIVATE: private
+      GITEA__repository__DISABLE_MIGRATIONS: 'true'
+      GITEA__mirror__ENABLED: 'false'
+      GITEA__webhook__ALLOWED_HOST_LIST: loopback
       GITEA_ADMIN_PASSWORD: ${GITEA_ADMIN_PASSWORD}
     volumes: *id001
     networks:

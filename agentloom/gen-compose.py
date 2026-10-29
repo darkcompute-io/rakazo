@@ -151,6 +151,11 @@ gitea_env = {
     "GITEA__server__ROOT_URL": "http://gitea:3000/",
     "GITEA__server__OFFLINE_MODE": "true",
     "GITEA__repository__DEFAULT_PRIVATE": "private",
+    # Coolify adds every service to its own network too, so Gitea can reach out at the
+    # network level; close every way it would: migrations, mirrors and webhooks.
+    "GITEA__repository__DISABLE_MIGRATIONS": "true",
+    "GITEA__mirror__ENABLED": "false",
+    "GITEA__webhook__ALLOWED_HOST_LIST": "loopback",
 }
 services["gitea"] = {
     "image": GITEA_IMAGE,

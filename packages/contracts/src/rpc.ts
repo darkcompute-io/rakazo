@@ -1029,7 +1029,14 @@ export const appContract = {
         }),
       ),
     download: oc
-      .input(z.object({ name: z.string().min(1).max(100), path: z.string().max(1000).optional() }))
+      .input(
+        z.object({
+          name: z.string().min(1).max(100),
+          path: z.string().max(1000).optional(),
+          /** docx: a Markdown file as a Word document. */
+          format: z.enum(["original", "docx"]).optional(),
+        }),
+      )
       .output(z.object({ filename: z.string(), base64: z.string(), mime: z.string() })),
   },
   autoReview: {

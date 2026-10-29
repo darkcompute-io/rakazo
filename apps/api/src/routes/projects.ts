@@ -7,6 +7,7 @@ import { createHash, randomBytes } from "node:crypto";
 import { ORPCError } from "@orpc/server";
 import type { Actor } from "@rakazo/contracts";
 import { McpServerConfigInput } from "@rakazo/contracts";
+import { markdownToDocx } from "../markdown-docx.js";
 import type { RouterContext } from "./context.js";
 
 const SLUG = "projects";
@@ -302,6 +303,19 @@ export function projectsRoutes(ctx: RouterContext) {
             });
         if (!response.ok) throw new ORPCError("NOT_FOUND", { message: "Nothing to download yet." });
         const bytes = Buffer.from(await response.arrayBuffer());
+        if (one && input.format === "docx") {
+          if (!/\.(md|markdown|txt)$/i.test(input.path!)) {
+            throw new ORPCError("BAD_REQUEST", {
+              message: "Only a text or Markdown file becomes a Word document.",
+            });
+          }
+          const base = (input.path!.split("/").pop() ?? "document").replace(/\.[^.]+$/, "");
+          return {
+            filename: `${base}.docx`,
+            base64: (await markdownToDocx(bytes.toString("utf8"), base)).toString("base64"),
+            mime: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+          };
+        }
         if (bytes.length > MAX_DOWNLOAD_BYTES) {
           throw new ORPCError("PAYLOAD_TOO_LARGE", { message: "Too large to download here." });
         }
