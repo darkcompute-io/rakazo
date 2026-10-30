@@ -274,6 +274,8 @@ services:
       RAKAZO_HOST: agentloom.corp.darkcompute.io
       RAKAZO_IMAGE_TAG: v0.3.5
       SCREEN_PROXY_SECRET: ${SCREEN_PROXY_SECRET}
+      RAKAZO_CSP_SCRIPT_SRC: https://a.darkcompute.io
+      RAKAZO_CSP_CONNECT_SRC: https://a.darkcompute.io
     networks:
     - app
     depends_on:

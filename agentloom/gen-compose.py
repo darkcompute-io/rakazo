@@ -40,6 +40,7 @@ COMMON = {
     "RAKAZO_AUTO_REVIEW": "true",
     # Umami: the tag agentloom/Dockerfile adds loads from and posts to this origin,
     # and the app's CSP allows nothing outside 'self' unless named here.
+    # Both instances: the image is one, and its data-domains counts app.agentloom.com only.
     "RAKAZO_CSP_SCRIPT_SRC": "https://a.darkcompute.io",
     "RAKAZO_CSP_CONNECT_SRC": "https://a.darkcompute.io",
 }
