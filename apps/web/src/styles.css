@@ -23,6 +23,28 @@ body,
     env(safe-area-inset-left);
 }
 
+/* The app is one screen, like a native app: the page itself never scrolls, bounces or
+   pans; only the panes inside it do. */
+html,
+body {
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
+/* On a phone the screen is what is left above the keyboard (lib/app-height.ts). */
+#root {
+  height: var(--app-height, 100%);
+}
+
+/* iOS zooms the whole page in when a field under 16px takes focus, and stays zoomed. */
+@media (pointer: coarse) {
+  input,
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
+}
+
 /* Switching spaces in place (lib/space-switch.ts): the sidebar holds still while the
    conversation crossfades, instead of the whole screen redrawing. */
 .rk-space-switching [data-space-switch="sidebar"] {

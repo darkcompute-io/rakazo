@@ -7,6 +7,7 @@ import { BrowserRouter, useLocation } from "react-router-dom";
 import { App } from "./App";
 import { DesktopUpdatesProvider } from "./components/DesktopUpdates";
 import { I18nBootstrap } from "./components/I18nBootstrap";
+import { installAppHeight } from "./lib/app-height";
 import { applyUiDirection } from "./lib/apply-ui-direction";
 import { clientUpdates } from "./lib/client-update";
 import { reportCaughtReactError } from "./lib/monitoring";
@@ -22,6 +23,7 @@ markOnce("rk:renderer:module-evaluated");
 installPreloadRecovery();
 clientUpdates().install();
 registerServiceWorker();
+installAppHeight();
 applyUiDirection(resolveUiLocale());
 applyUiAppearance();
 
