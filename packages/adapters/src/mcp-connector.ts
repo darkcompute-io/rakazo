@@ -4,8 +4,10 @@ import { join } from "node:path";
 import { UnauthorizedError } from "@modelcontextprotocol/sdk/client/auth.js";
 import { StreamableHTTPError } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import {
+  OAuthError,
   ServerError,
   TemporarilyUnavailableError,
+  TooManyRequestsError,
 } from "@modelcontextprotocol/sdk/server/auth/errors.js";
 import type {
   AdapterContext,
@@ -18,22 +20,23 @@ import type {
 import { SecretStoreUnavailableError } from "@rakazo/adapter-kit";
 import type { McpOAuthEnvField } from "@rakazo/contracts";
 import {
-  isLocalMcpHost,
+  isLocalhostOrLoopbackIp,
   mcpOAuthEnvReferences,
   resolveMcpOAuthEnv,
   resolveMcpOAuthFileTemplate,
 } from "@rakazo/contracts";
 import type { McpServer, PrismaClient, ThreadEvents } from "@rakazo/db";
+import { availableInSpace, itemSecretIn } from "@rakazo/db";
 import { getLogger } from "@rakazo/logging";
 import { sanitizedError } from "@rakazo/logging/monitoring";
 import { catalogToolPrefix } from "./approval-effect.js";
+import { composioToolBatch } from "./composio-batch.js";
 import {
   combineSignals,
   redactConnectorPayload,
   sanitizeConnectorError,
 } from "./connector-safety.js";
 import { credentialDigest } from "./credential-digest.js";
-import { appendToolCompletionAudit } from "./executor.js";
 import {
   CATALOG_EXECUTE,
   catalogEntries,
@@ -60,9 +63,10 @@ import {
 } from "./mcp-package-installer.js";
 import type { McpServerHealthUpdate } from "./mcp-server-health.js";
 import { recordMcpServerHealth } from "./mcp-server-health.js";
-import { isAllowedStdioCommand, McpSession } from "./mcp-transport.js";
+import { McpSession, mcpStdioRefusal } from "./mcp-transport.js";
 import type { RemoteTransportDependencies } from "./remote-mcp.js";
-import { isDeploymentPrivateMcpEndpoint } from "./remote-mcp.js";
+import { ConnectorRedirectError, isDeploymentPrivateMcpEndpoint } from "./remote-mcp.js";
+import { appendToolCompletionAudit } from "./tool-completion-audit.js";
 
 type SessionEntry = {
   session: McpSession;
@@ -140,11 +144,27 @@ function expectedFailure(error: unknown, depth = 0): ExpectedFailure | undefined
   if (error instanceof McpConnectFailure) return error.expected;
   if (error instanceof McpReauthorizationRequiredError || error instanceof UnauthorizedError)
     return "reconnect";
-  if (error instanceof StreamableHTTPError && (error.code === 401 || error.code === 403))
-    return "reconnect";
+  if (error instanceof StreamableHTTPError) {
+    if (error.code === 408 || error.code === 429) return "unreachable";
+    // A 4xx or a non-MCP body (often an HTML page) means the endpoint is not an MCP server.
+    if (error.code === -1 || (error.code !== undefined && error.code >= 400 && error.code < 500))
+      return "reconnect";
+  }
+  if (error instanceof ConnectorRedirectError) return "reconnect";
   // The server's own OAuth endpoint failed or is overloaded; it usually recovers by itself.
-  if (error instanceof ServerError || error instanceof TemporarilyUnavailableError)
+  if (
+    error instanceof ServerError ||
+    error instanceof TemporarilyUnavailableError ||
+    error instanceof TooManyRequestsError
+  )
     return "unreachable";
+  // The authorization server refused our client or grant, or cannot register a client at
+  // all; the user signs in again or enters a pre-registered client.
+  if (
+    error instanceof OAuthError ||
+    error.message === "Incompatible auth server: does not support dynamic client registration"
+  )
+    return "reconnect";
   const code = (error as { code?: unknown }).code;
   if (code === "ENOTFOUND") return "reconnect";
   if (typeof code === "string" && UNREACHABLE_CODES.has(code)) return "unreachable";
@@ -379,10 +399,7 @@ export class McpConnector implements ConnectorProvider {
   async discoverTools(context: AdapterContext): Promise<ConnectorTool[]> {
     const tools = await this.authorizedTools(context);
     if (tools.length <= DIRECT_TOOL_LIMIT) return tools;
-    // The catalog wrappers must not be named `mcp_*`: Anthropic rejects Claude Code OAuth
-    // requests that carry a tool whose name starts with "mcp_" (single underscore) with a
-    // misleading "You're out of extra usage" 400, on every model. Direct MCP tools are
-    // `mcp__server__tool` (double underscore) and are accepted; keep the wrappers off "mcp_".
+    // Keep wrappers off "mcp_": see lazyCatalogTools.
     return lazyCatalogTools(catalogToolPrefix("mcp"), "mcp", "MCP", catalogEntries(tools));
   }
 
@@ -390,6 +407,12 @@ export class McpConnector implements ConnectorProvider {
     call: ConnectorCall,
     context: AdapterContext,
   ): Promise<{ call: ConnectorCall; tool: ConnectorTool } | undefined> {
+    if (!call.route && call.tool.startsWith("mcp__")) {
+      return resolveCatalogCall(
+        { ...call, args: { id: call.tool, arguments: call.args } },
+        catalogEntries(await this.authorizedTools(context)),
+      );
+    }
     // Wrappers have no resourceId; real tools always do.
     if (call.route?.resourceId || call.route?.toolName !== CATALOG_EXECUTE) return undefined;
     return resolveCatalogCall(call, catalogEntries(await this.authorizedTools(context)));
@@ -402,7 +425,8 @@ export class McpConnector implements ConnectorProvider {
         botId: context.botId,
         spaceId: context.spaceId,
         userId: context.userId,
-        server: { enabled: true },
+        // A server no longer available in this space stays assigned but unused until it is again.
+        server: { enabled: true, ...availableInSpace(context) },
       },
       include: { server: true },
     });
@@ -464,6 +488,7 @@ export class McpConnector implements ConnectorProvider {
               description: tool.description ?? tool.name,
               inputSchema: tool.inputSchema as Record<string, unknown>,
               readOnly: tool.annotations?.readOnlyHint,
+              batch: composioToolBatch(tool.name),
               route: {
                 connectorId: "mcp",
                 resourceId: assignment.serverId,
@@ -602,7 +627,7 @@ export class McpConnector implements ConnectorProvider {
         serverId: call.route.resourceId,
         spaceId: context.spaceId,
         userId: context.userId,
-        server: { enabled: true },
+        server: { enabled: true, ...availableInSpace(context) },
       },
       include: { server: true },
     });
@@ -972,11 +997,7 @@ export class McpConnector implements ConnectorProvider {
     try {
       const secret = server.secretId
         ? await this.prisma.secret.findFirst({
-            where: {
-              id: server.secretId,
-              spaceId: context.spaceId,
-              userId: context.userId,
-            },
+            where: { id: server.secretId, ...itemSecretIn(context) },
           })
         : null;
       let ref = secret?.ciphertext;
@@ -1001,12 +1022,11 @@ export class McpConnector implements ConnectorProvider {
       };
       let accessTokenExpiresAtMs: number | undefined;
       if (server.transport === "stdio") {
-        if (!this.options.stdioEnabled) throw new Error("MCP stdio is disabled");
         const command = String(server.command ?? "");
-        const allowedCommands = this.options.allowedCommands ?? [];
         // The allowlist names the configured launcher (`npx`), checked before any install.
-        if (!isAllowedStdioCommand(command, allowedCommands))
-          throw new Error("MCP stdio command is not in the configured allowlist");
+        // Only a deployment change or an edit to the server fixes a refusal, so wait for one.
+        const refusal = mcpStdioRefusal(command, this.options);
+        if (refusal) throw new McpConnectFailure(refusal, "reconnect");
         const npx = parseNpxLaunch(command, args);
         let installedBin: InstalledMcpBin | undefined;
         if (npx) {
@@ -1115,14 +1135,15 @@ export class McpConnector implements ConnectorProvider {
           args: npx ? npx.binArgs : args,
           installedBin,
           env: launchEnv,
-          allowedCommands,
+          allowedCommands: this.options.allowedCommands ?? [],
           signal: context.signal,
           timeoutMs: this.options.startupTimeoutMs ?? DEFAULT_MCP_STDIO_STARTUP_TIMEOUT_MS,
         });
       } else {
         if (!server.endpoint) throw new Error("MCP endpoint is required");
         const endpoint = new URL(server.endpoint);
-        const localHttp = endpoint.protocol === "http:" && isLocalMcpHost(endpoint.hostname);
+        const localHttp =
+          endpoint.protocol === "http:" && isLocalhostOrLoopbackIp(endpoint.hostname);
         const allowPrivateEndpoint =
           this.options.allowPrivateEndpoint === true ||
           isDeploymentPrivateMcpEndpoint(server.endpoint);

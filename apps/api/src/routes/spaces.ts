@@ -17,6 +17,8 @@ import {
   SpaceDeletionInProgressError,
   SpaceLimitError,
   SpaceNotFoundError,
+  setSpaceSettingOverride,
+  spaceSettingOverrides,
 } from "@rakazo/db";
 import type { RouterDeps } from "../router.js";
 import { listRoutinesDto } from "../routines.js";
@@ -46,6 +48,14 @@ async function asMemberOf<T>(
 export function spacesRoutes(ctx: RouterContext) {
   const { deps, repos, groupRepos, authed } = ctx;
   return {
+    spaceSettings: {
+      overrides: authed.spaceSettings.overrides.handler(({ context }) =>
+        spaceSettingOverrides(deps.prisma, context.actor),
+      ),
+      setOverride: authed.spaceSettings.setOverride.handler(({ context, input }) =>
+        setSpaceSettingOverride(deps.prisma, context.actor, input.setting, input.enabled),
+      ),
+    },
     spaces: {
       list: authed.spaces.list.handler(async ({ context }) =>
         spaceNavigationDto(deps, context.actor, repos, groupRepos),
@@ -285,8 +295,9 @@ async function memberSpaceNavigation(
           parentBotId: bot.parentBotId,
           spaceId: bot.spaceId,
           name: bot.name,
-          title: bot.title,
+          title: "",
           color: bot.color,
+          avatarSet: bot.avatarSet,
           notifyOnFinish: bot.notifyOnFinish,
           pinned: bot.pinned,
           sectionId: bot.sectionId,

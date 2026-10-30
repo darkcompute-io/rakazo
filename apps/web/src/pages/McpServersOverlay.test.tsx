@@ -13,6 +13,14 @@ const api = vi.hoisted(() => ({
   mcp: { servers: mocks, assignments: { all: access.all, replace: access.replace } },
   bots: { list: access.bots },
 }));
+// One space, so no "Available in" choice appears.
+vi.mock("../components/integrations/space-availability", () => ({
+  AvailabilityControl: () => null,
+  AvailabilityLabel: () => null,
+  reachesOtherSpaces: () => false,
+  useOwnSpaces: () => [],
+}));
+
 vi.mock("../lib/rpc", () => ({
   rpc: api,
   rpcForSpace: () => api,
@@ -83,10 +91,14 @@ beforeEach(() => {
   access.bots.mockReset().mockResolvedValue([]);
 });
 
-function overlay(editServerId?: string) {
+function overlay(editServerId?: string, stdioEnabled = true) {
   return (
     <QueryClientProvider client={client}>
-      <McpServersOverlay editServerId={editServerId} onClose={() => {}} />
+      <McpServersOverlay
+        editServerId={editServerId}
+        stdioEnabled={stdioEnabled}
+        onClose={() => {}}
+      />
     </QueryClientProvider>
   );
 }
@@ -101,6 +113,35 @@ function server(id: string, status = "unknown") {
     enabled: true,
   } as McpServer;
 }
+
+it("offers stdio only where the deployment runs it, and still shows existing stdio servers", async () => {
+  mocks.list
+    .mockReset()
+    .mockResolvedValue([
+      { ...server("files"), args: [], envKeys: [], fileKeys: [], headerKeys: [] },
+    ]);
+  const host = document.createElement("div");
+  const root = createRoot(host);
+  try {
+    await act(async () => root.render(overlay(undefined, false)));
+    await vi.waitFor(() => expect(host.textContent).toContain("files"));
+    expect(host.textContent).not.toContain("STDIO");
+
+    // Editing an existing stdio server keeps its tab until the edit ends.
+    await act(async () => root.render(overlay("files", false)));
+    await vi.waitFor(() => expect(host.textContent).toContain("STDIO"));
+    const cancel = Array.from(host.querySelectorAll("button")).find(
+      (item) => item.textContent === "Cancel",
+    );
+    await act(async () => cancel?.click());
+    expect(host.textContent).not.toContain("STDIO");
+
+    await act(async () => root.render(overlay()));
+    expect(host.textContent).toContain("STDIO");
+  } finally {
+    await act(async () => root.unmount());
+  }
+});
 
 it("keeps each concurrent connection test busy until its own request finishes", async () => {
   const servers = ["one", "two"].map(

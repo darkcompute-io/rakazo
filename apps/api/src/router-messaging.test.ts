@@ -2,9 +2,9 @@ import { RPCHandler } from "@orpc/server/fetch";
 import type { Actor } from "@rakazo/contracts";
 import type { PrismaClient } from "@rakazo/db";
 import { describe, expect, it, vi } from "vitest";
-import { createRouter, type RouterDeps } from "./router.js";
+import type { RouterDeps } from "./router.js";
+import { createRouter } from "./router.js";
 
-/** Prisma filters the handlers use when scoping memberships to the caller. */
 type MembershipWhere = { id?: string; identityId?: { in: string[] } };
 
 const identity = {
@@ -271,6 +271,7 @@ function messagingDeps(
     messaging: {
       enabled: overrides.enabled ?? true,
       providers: ["sendblue"],
+      addresses: { sendblue: "+15550001111" },
       openSignup: false,
     },
     dataDir: "/tmp/rakazo-router-test",
@@ -304,7 +305,7 @@ async function call(handler: RPCHandler<never>, actor: Actor, path: string, body
 }
 
 describe("messaging.status", () => {
-  it("reports enablement, providers, and the caller's linked identities", async () => {
+  it("reports enablement, providers, line addresses, and the caller's linked identities", async () => {
     const { handler, actor } = messagingDeps({ enabled: true });
     const response = await call(handler, actor, "messaging/status");
     expect(response.status).toBe(200);
@@ -312,6 +313,7 @@ describe("messaging.status", () => {
       json: {
         enabled: true,
         providers: ["sendblue"],
+        addresses: { sendblue: "+15550001111" },
         openSignup: false,
         identities: [
           {
@@ -330,7 +332,13 @@ describe("messaging.status", () => {
     const { handler, actor } = messagingDeps({ identity: null });
     const response = await call(handler, actor, "messaging/status");
     await expect(response.json()).resolves.toEqual({
-      json: { enabled: true, providers: ["sendblue"], openSignup: false, identities: [] },
+      json: {
+        enabled: true,
+        providers: ["sendblue"],
+        addresses: { sendblue: "+15550001111" },
+        openSignup: false,
+        identities: [],
+      },
     });
   });
 });

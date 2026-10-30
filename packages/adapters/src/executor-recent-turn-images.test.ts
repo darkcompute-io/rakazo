@@ -35,6 +35,9 @@ type RunHooks = {
   computerLeaseRenewal?: () => Promise<boolean>;
   /** The model lists the computer's files before answering, which starts the computer. */
   useComputer?: boolean;
+  trigger?: string;
+  /** A reply bound to this run as steering, claimed before any tool runs. */
+  steeringBlocks?: MessageBlock[];
 };
 
 function deferred<T>(): Deferred<T> {
@@ -102,7 +105,7 @@ async function runWithModel(
     spaceId: "space-1",
     userId: "user-1",
     status: "queued",
-    trigger: "user",
+    trigger: hooks?.trigger ?? "user",
     leaseFence: 0,
   };
   const get = vi.fn(async () => new Uint8Array([1, 2, 3, 4]));
@@ -112,6 +115,7 @@ async function runWithModel(
   });
   const releaseScreen = vi.fn(async (..._args: unknown[]) => undefined);
   let request: AgentRunRequest | undefined;
+  let steering: Awaited<ReturnType<NonNullable<AgentRunRequest["claimSteering"]>>> = [];
   const runtimeRun = vi.fn(async function* (next: AgentRunRequest) {
     request = next;
     if (hooks?.runtimeGate) {
@@ -126,6 +130,7 @@ async function runWithModel(
       ).onModelChange;
       await onModelChange?.(switchModel.provider, switchModel.modelId);
     }
+    if (hooks?.steeringBlocks) steering = (await next.claimSteering?.([])) ?? [];
     if (hooks?.useComputer) {
       const executeTool = (
         next as AgentRunRequest & {
@@ -147,6 +152,7 @@ async function runWithModel(
         return { count: 1 };
       }),
     },
+    chatGroup: { findMany: vi.fn(async () => []) },
     bot: {
       findUniqueOrThrow: vi.fn(async () => ({
         id: run.botId,
@@ -182,22 +188,24 @@ async function runWithModel(
         args.where?.threadId ? historyMessages() : [],
       ),
       findUnique: vi.fn(async () => null),
+      // A claimed steering reply looks up the message it quotes; this one quotes nothing.
+      findFirst: vi.fn(async () => null),
     },
     task: { findUniqueOrThrow: vi.fn(async () => ({ id: run.taskId, prompt: "Look again" })) },
     computer: { updateMany: vi.fn(async () => ({ count: 1 })) },
     connection: { findMany: vi.fn(async () => []) },
-    spaceModelPreference: {
+    userModelPreference: {
       findFirst: vi.fn<(...args: unknown[]) => Promise<Record<string, unknown> | null>>(
         async () => null,
       ),
     },
     secret: { findFirst: vi.fn(async () => null) },
     userModelCredential: { findFirst: vi.fn(async () => null) },
-    spaceModelRoleChoice: {
+    userModelRoleChoice: {
       findMany: vi.fn(async ({ where }: { where: { role: string } }) => {
         if (where.role !== "main") return [];
         // The run reads its main model first and its fallbacks just before the model call.
-        if (backupReadFails && prisma.spaceModelRoleChoice.findMany.mock.calls.length > 1)
+        if (backupReadFails && prisma.userModelRoleChoice.findMany.mock.calls.length > 1)
           throw new Error("Backup list unavailable");
         return switchModel ? [{ ...switchModel, position: 1, thinkingLevel: null }] : [];
       }),
@@ -210,16 +218,17 @@ async function runWithModel(
       })),
     },
     taughtSkill: { findMany: vi.fn(async () => []) },
-    agentSecret: { findMany: vi.fn(async () => []) },
-    botSecret: { findMany: vi.fn(async () => []) },
+    vaultCredential: { findMany: vi.fn(async () => []) },
     agentSkill: { findMany: vi.fn(async () => []) },
     scratchpadItem: { findMany: vi.fn(async () => []) },
     externalEffect: { findMany: vi.fn(async () => []) },
-    actionApprovalRule: { findMany: vi.fn(async () => []) },
-    actionAutoReviewPreference: { findUnique: vi.fn(async () => null) },
+    spaceSettingOverride: { findUnique: async () => null },
+    userActionApprovalRule: { findMany: vi.fn(async () => []) },
+    userActionAutoReviewPreference: { findUnique: vi.fn(async () => null) },
     artifact: {
       findMany: vi.fn(async () => [
         { id: "art-1", storageKey: "shot.png", size: 4, mimeType: "image/png", name: "shot.png" },
+        { id: "art-2", storageKey: "reply.png", size: 4, mimeType: "image/png", name: "reply.png" },
       ]),
     },
   };
@@ -247,7 +256,22 @@ async function runWithModel(
     memory: { read: async () => ({ documents: [] }) },
     memoryProviders: { resolve: async () => null },
     artifacts: { get },
-    events: { append: vi.fn(async () => undefined), finalizeRun },
+    events: {
+      append: vi.fn(async () => undefined),
+      finalizeRun,
+      claimSteering: vi.fn(async ({ seenIds }: { seenIds: string[] }) =>
+        hooks?.steeringBlocks && !seenIds.includes("reply-steering")
+          ? [
+              {
+                id: "reply-steering",
+                messageId: "reply",
+                text: "Here it is",
+                blocks: hooks.steeringBlocks,
+              },
+            ]
+          : [],
+      ),
+    },
     jobs: { enqueue: vi.fn(async () => undefined) },
     notifications: hooks?.notificationGate ? { send: notificationSend } : undefined,
     secrets: [],
@@ -262,6 +286,7 @@ async function runWithModel(
   if (!request) throw new Error("runtime was not called");
   return {
     request,
+    steering,
     get,
     writeFile,
     exportWorkspace,
@@ -310,6 +335,34 @@ describe("recent turn images follow model vision", () => {
     expect(exportWorkspace).not.toHaveBeenCalled();
   });
 
+  it("lists and copies a file reply bound to a resumed routine", async () => {
+    // "Send as file" stores the picture as a file block; a routine reads no thread history.
+    const { request, steering, writeFile } = await runWithModel(
+      TEXT_ONLY_MODEL,
+      undefined,
+      false,
+      false,
+      true,
+      {
+        useComputer: true,
+        trigger: "routine",
+        steeringBlocks: [
+          { kind: "text", text: "Here it is" },
+          { kind: "file", artifactId: "art-2", name: "reply.png", mimeType: "image/png", size: 4 },
+        ],
+      },
+    );
+
+    expect(request.currentRunRequiresImageInput).toBeFalsy();
+    expect(steering).toHaveLength(1);
+    expect(steering[0]?.text).toContain('"attachments/art-2.png"');
+    expect(steering[0]?.images).toBeUndefined();
+    expect(writeFile.mock.calls.map(([, file]) => file)).toContainEqual({
+      path: "attachments/art-2.png",
+      content: new Uint8Array([1, 2, 3, 4]),
+    });
+  });
+
   it("attaches an earlier turn's image for a model that can see it", async () => {
     const { request, get } = await runWithModel(VISION_MODEL);
 
@@ -326,15 +379,15 @@ describe("recent turn images follow model vision", () => {
     const { prisma, request } = await runWithModel(TEXT_ONLY_MODEL, undefined, true);
     expect(request.fallbackModels).toEqual([]);
     expect(request.resolveFallbackModel).toBeUndefined();
-    expect(prisma.spaceModelRoleChoice.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({ where: { userId: "user-1", spaceId: "space-1", role: "main" } }),
+    expect(prisma.userModelRoleChoice.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { userId: "user-1", role: "main" } }),
     );
   });
 
   it("does not read or configure backups for scripted runs", async () => {
     const { prisma, request } = await runWithModel(TEXT_ONLY_MODEL, undefined, false, true);
     // Only the main model itself is read.
-    expect(prisma.spaceModelRoleChoice.findMany).toHaveBeenCalledTimes(1);
+    expect(prisma.userModelRoleChoice.findMany).toHaveBeenCalledTimes(1);
     expect(request.fallbackModels).toEqual([]);
     expect(request.resolveFallbackModel).toBeUndefined();
   });
@@ -345,7 +398,7 @@ describe("recent turn images follow model vision", () => {
     expect(request.model.apiKey).toBe("fake-deployment-key");
     const resolve = request.resolveFallbackModel;
     if (!resolve) throw new Error("Backup resolver is missing");
-    prisma.spaceModelPreference.findFirst.mockResolvedValue({
+    prisma.userModelPreference.findFirst.mockResolvedValue({
       modelId: backup.modelId,
       thinkingLevel: null,
       credential: {
@@ -363,10 +416,9 @@ describe("recent turn images follow model vision", () => {
       await expect(resolve(backup.provider, backup.modelId)).rejects.toThrow(
         "Backup model credential is no longer available",
       );
-      expect(prisma.spaceModelPreference.findFirst).toHaveBeenCalledWith(
+      expect(prisma.userModelPreference.findFirst).toHaveBeenCalledWith(
         expect.objectContaining({
           where: {
-            spaceId: "space-1",
             userId: "user-1",
             modelId: backup.modelId,
             credential: { provider: backup.provider },
@@ -403,9 +455,9 @@ describe("recent turn images follow model vision", () => {
       secretId: "work-secret",
       createdAt: new Date(0),
       updatedAt: new Date(0),
-      preferences: [],
+      userPreferences: [],
     } as never);
-    prisma.spaceModelPreference.findFirst.mockClear();
+    prisma.userModelPreference.findFirst.mockClear();
     // The same model without its connection is not a configured backup.
     await expect(resolve(backup.provider, backup.modelId)).rejects.toThrow(
       "Backup model is not selected",
@@ -418,7 +470,7 @@ describe("recent turn images follow model vision", () => {
         where: { id: "work-credential", userId: "user-1", provider: backup.provider },
       }),
     );
-    expect(prisma.spaceModelPreference.findFirst).not.toHaveBeenCalled();
+    expect(prisma.userModelPreference.findFirst).not.toHaveBeenCalled();
     expect(prisma.secret.findFirst).toHaveBeenCalledWith({
       where: { id: "work-secret", userId: "user-1", spaceId: null },
     });

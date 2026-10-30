@@ -8,13 +8,17 @@ const workflowText = readFileSync(path.join(workflowsDir, "publish-server-image.
 const publisherDir = path.resolve(workflowsDir, "../actions/publish-image");
 const publisherText = readFileSync(path.join(publisherDir, "action.yml"), "utf8");
 interface WorkflowStep {
+  id?: string;
+  if?: string;
   uses?: string;
+  "continue-on-error"?: boolean;
   run?: string;
   with?: Record<string, unknown>;
 }
 interface WorkflowJob {
   if?: string;
   needs?: string | string[];
+  outputs?: Record<string, string>;
   uses?: string;
   "runs-on"?: string;
   permissions?: Record<string, string>;
@@ -64,7 +68,6 @@ describe("server image publish workflow", () => {
     const publish = workflow.jobs.publish;
     expect(publish.needs).toEqual(["build"]);
     expect(publish.if).toContain("needs.build.result == 'success'");
-    expect(publish.if).toContain("vars.DEPOT_PROJECT_ID == ''");
     expect(publish.steps.some((step) => step.uses === publicationAction)).toBe(true);
     expect(publish.permissions?.attestations).toBe("write");
     expect(workflowText).toContain("push-by-digest=true");
@@ -81,23 +84,41 @@ describe("server image publish workflow", () => {
   it("builds on Depot only when the repository names a project, and never for pull requests", () => {
     const depot = workflow.jobs["build-depot"];
     expect(depot.if).toBe("github.event_name != 'pull_request' && vars.DEPOT_PROJECT_ID != ''");
-    expect(workflow.jobs.build.if).toBe(
-      "github.event_name != 'pull_request' && vars.DEPOT_PROJECT_ID == ''",
-    );
+    expect(workflow.jobs.build.if).toContain("github.event_name != 'pull_request'");
+    expect(workflow.jobs.build.if).toContain("vars.DEPOT_PROJECT_ID == ''");
     expect(depot.permissions?.["id-token"]).toBe("write");
     // biome-ignore lint/suspicious/noTemplateCurlyInString: this is the literal workflow expression
     expect(workflowText).toContain("project: ${{ vars.DEPOT_PROJECT_ID }}");
   });
 
+  it("rebuilds on GitHub's runners when a Depot build fails", () => {
+    const depot = workflow.jobs["build-depot"];
+    const build = depot.steps.find((step) => step.uses?.startsWith("depot/build-push-action@"));
+    expect(build?.id).toBe("build");
+    expect(build?.["continue-on-error"]).toBe(true);
+    // Every step after the Depot build either reports its outcome or runs only on success.
+    const after = depot.steps.slice(depot.steps.indexOf(build as WorkflowStep) + 1);
+    for (const step of after.filter((step) => step.id !== "depot")) {
+      expect(step.if).toContain("steps.build.outcome == 'success'");
+    }
+    expect(Object.keys(depot.outputs ?? {}).sort()).toEqual(["app", "computer", "updater"]);
+    const fallback = workflow.jobs.build;
+    expect(fallback.needs).toEqual(["build-depot"]);
+    expect(fallback.if).toContain("!cancelled()");
+    expect(fallback.if).toContain("contains(needs.build-depot.outputs.*, 'failed')");
+  });
+
   it("checks credentials before publishing Depot tags or making native digests available", () => {
     const nativeSteps = workflow.jobs.build.steps;
     const nativeScan = nativeSteps.findIndex((step) =>
-      step.run?.includes('check-image.sh "$IMAGE" "$PLATFORM"'),
+      step.run?.includes("check-image.sh /tmp/rootfs.tar"),
     );
     const upload = nativeSteps.findIndex((step) =>
       step.uses?.startsWith("actions/upload-artifact@"),
     );
     expect(nativeScan).toBeGreaterThanOrEqual(0);
+    const nativeBuild = nativeSteps.find((step) => step.id === "build");
+    expect(nativeBuild?.with?.outputs).toContain("type=tar,dest=/tmp/rootfs.tar");
     expect(upload).toBeGreaterThan(nativeScan);
     const depotSteps = workflow.jobs["build-depot"].steps;
     const depotScan = depotSteps.findIndex((step) => step.run?.includes("check-image.sh"));
@@ -114,13 +135,9 @@ describe("server image publish workflow", () => {
     expect(publish?.uses).toBe("./.github/workflows/publish-server-image.yml");
     expect(publish?.if).toBe("github.event_name == 'push' && github.ref == 'refs/heads/main'");
     expect(ci.jobs["deploy-production"]?.needs).toEqual([
-      "lint",
       "check",
-      "build",
       "test",
       "test-integration",
-      "test-postgres-upgrade",
-      "test-e2e",
       "publish-server-image",
     ]);
   });
@@ -140,6 +157,23 @@ describe("server image publish workflow", () => {
     ]) {
       expect(job?.concurrency?.queue).toBe("max");
       expect(job?.concurrency?.["cancel-in-progress"]).toBe(false);
+    }
+  });
+
+  it("lets only the newest waiting main revision replace a queued one, never a running one", () => {
+    const locks = ["check", "test", "test-integration", "test-e2e", "publish-server-image"].map(
+      (name) => ci.jobs[name]?.concurrency,
+    );
+    expect(new Set(locks.map((lock) => lock?.group)).size).toBe(locks.length);
+    for (const lock of locks) {
+      expect(lock?.group).toMatch(/main/);
+      expect(lock?.queue).toBeUndefined();
+      expect(lock?.["cancel-in-progress"]).toBeUndefined();
+    }
+    // Release prerequisites start with their run, so they reach these locks in push order and an
+    // older revision cannot replace a newer one that is already waiting.
+    for (const name of ["check", "test", "test-integration", "publish-server-image"]) {
+      expect(ci.jobs[name]?.needs, name).toBeUndefined();
     }
   });
 

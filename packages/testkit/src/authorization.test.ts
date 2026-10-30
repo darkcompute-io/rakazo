@@ -7,6 +7,7 @@ import {
   FakeComposioClient,
   PrismaPushTokenStore,
 } from "@rakazo/adapters";
+import type { createApp } from "@rakazo/api/app";
 import type { appContract, Space, SpaceNavigation } from "@rakazo/contracts";
 import {
   claimSpaceDeletionForMember,
@@ -17,9 +18,9 @@ import {
   renewSpaceDeletionClaim,
   runAsSystem,
   runAsTenant,
+  setSpaceSettingOverride,
 } from "@rakazo/db";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
-import type { createApp } from "../../../apps/api/src/app.ts";
 import type { BotIntroHarness } from "./discard-bot-intro.js";
 import { discardBotIntroFromCreate } from "./discard-bot-intro.js";
 import { sessionCookieHeader } from "./index.js";
@@ -55,7 +56,7 @@ describeWithDatabase("API authorization and resource isolation", () => {
   const dataDir = mkdtempSync(path.join(tmpdir(), "rakazo-authz-"));
 
   beforeAll(async () => {
-    const { createApp } = await import("../../../apps/api/src/app.ts");
+    const { createApp } = await import("@rakazo/api/app");
     handles = await createApp({
       databaseUrl: process.env.DATABASE_URL!,
       encryptionKey,
@@ -75,6 +76,63 @@ describeWithDatabase("API authorization and resource isolation", () => {
   afterAll(async () => {
     await handles?.stop();
     rmSync(dataDir, { recursive: true, force: true });
+  });
+
+  it("batches routine mentions with the same user, space and archive isolation as per-bot reads", async () => {
+    const owner = await signup(app, `routine-mentions-owner-${stamp}@rakazo.test`, "Owner");
+    const peer = await signup(app, `routine-mentions-peer-${stamp}@rakazo.test`, "Peer");
+    const ownerActor = await rpc<Actor>(app, owner, "me");
+    const peerActor = await rpc<Actor>(app, peer, "me");
+    const space = await db.space.findUniqueOrThrow({ where: { id: ownerActor.spaceId } });
+    await db.member.deleteMany({ where: { userId: peerActor.userId } });
+    await db.member.create({
+      data: {
+        id: `mention-member-${stamp}`,
+        organizationId: space.organizationId,
+        userId: peerActor.userId,
+        role: "member",
+        createdAt: new Date(),
+      },
+    });
+    const own = await rpc<Bot>(app, owner, "bots/create", botInput("Own"), space.id);
+    const other = await rpc<Bot>(app, peer, "bots/create", botInput("Peer"), space.id);
+    const archived = await rpc<Bot>(app, owner, "bots/create", botInput("Archived"), space.id);
+    const second = await rpc<Space>(app, owner, "spaces/create", { name: "Second" });
+    const cross = await rpc<Bot>(app, owner, "bots/create", botInput("Cross"), second.id);
+    for (const [cookie, bot, targetSpace] of [
+      [owner, own, space.id],
+      [peer, other, space.id],
+      [owner, archived, space.id],
+      [owner, cross, second.id],
+    ] as const) {
+      await rpc(app, cookie, "routines/create", routineInput(bot.id), targetSpace);
+    }
+    await rpc(app, owner, "bots/archive", { botId: archived.id }, space.id);
+    const botIds = [own.id, other.id, archived.id, cross.id, "missing-bot"];
+    const ownRows = await rpc<unknown[]>(app, owner, "routines/list", { botId: own.id }, space.id);
+    expect(await rpc(app, owner, "routines/listForMentions", { botIds }, space.id)).toEqual([
+      { botId: own.id, routines: ownRows },
+    ]);
+    const peerRows = await rpc<unknown[]>(
+      app,
+      peer,
+      "routines/list",
+      { botId: other.id },
+      space.id,
+    );
+    expect(await rpc(app, peer, "routines/listForMentions", { botIds }, space.id)).toEqual([
+      { botId: other.id, routines: peerRows },
+    ]);
+    const crossRows = await rpc<unknown[]>(
+      app,
+      owner,
+      "routines/list",
+      { botId: cross.id },
+      second.id,
+    );
+    expect(await rpc(app, owner, "routines/listForMentions", { botIds }, second.id)).toEqual([
+      { botId: cross.id, routines: crossRows },
+    ]);
   });
 
   it("rejects unauthenticated calls to every protected RPC family", async () => {
@@ -159,6 +217,7 @@ describeWithDatabase("API authorization and resource isolation", () => {
       ["memory/update", { documentId: "missing-memory", content: "Nope" }],
       ["memory/exportMarkdown", {}],
       ["routines/list", { botId: "missing-bot" }],
+      ["routines/listForMentions", { botIds: ["missing-bot"] }],
       ["routines/create", routineInput("missing-bot")],
       ["routines/update", { routineId: "missing-routine", name: "Nope" }],
       ["routines/remove", { routineId: "missing-routine" }],
@@ -198,9 +257,10 @@ describeWithDatabase("API authorization and resource isolation", () => {
       ["connections/revoke", { connectionId: "missing-connection" }],
       ["approvalRules/list"],
       [
-        "approvalRules/set",
-        { effect: "require_approval", matchKind: "category", matchValue: "email" },
+        "approvalRules/preview",
+        { id: "missing-rule", effect: "remove", sample: { tools: [{ name: "send_email" }] } },
       ],
+      ["approvalRules/set", { effect: "deny", matchKind: "tool", matchValue: "gmail_send_email" }],
       ["approvalRules/remove", { id: "missing-rule" }],
       ["artifacts/list", { botId: "missing-bot" }],
       ["usage/list"],
@@ -791,9 +851,9 @@ describeWithDatabase("API authorization and resource isolation", () => {
     expect(await rpc<unknown[]>(app, member, "approvalRules/list")).toEqual([]);
 
     const memberRule = await rpc<{ id: string }>(app, member, "approvalRules/set", {
-      effect: "require_approval",
-      matchKind: "category",
-      matchValue: "email",
+      effect: "deny",
+      matchKind: "tool",
+      matchValue: "gmail_send_email",
     });
     expect(await rpc<Array<{ id: string }>>(app, owner, "approvalRules/list")).toEqual([
       expect.objectContaining({ id: ownerRule.id }),
@@ -802,9 +862,27 @@ describeWithDatabase("API authorization and resource isolation", () => {
       expect.objectContaining({ id: memberRule.id }),
     ]);
 
+    const candidate = {
+      scope: "account",
+      id: ownerRule.id,
+      effect: "deny",
+      sample: { tools: [{ name: "destination.write" }] },
+    };
+    expect(await rpc(app, owner, "approvalRules/preview", candidate)).toEqual({
+      before: "always_allow",
+      after: "deny",
+    });
+    const foreignPreview = await raw(app, member, "approvalRules/preview", candidate);
+    expect(foreignPreview.status).toBe(404);
+    expect(
+      await rpc<Array<{ id: string; effect: string }>>(app, owner, "approvalRules/list"),
+    ).toEqual([expect.objectContaining({ id: ownerRule.id, effect: "always_allow" })]);
+
     await rpc(app, member, "approvalRules/remove", { id: ownerRule.id });
     expect(
-      await asSystem(handles.prisma).actionApprovalRule.findUnique({ where: { id: ownerRule.id } }),
+      await asSystem(handles.prisma).userActionApprovalRule.findUnique({
+        where: { id: ownerRule.id },
+      }),
     ).not.toBeNull();
   });
 
@@ -983,7 +1061,7 @@ describeWithDatabase("API authorization and resource isolation", () => {
     ).resolves.toBe(32);
   });
 
-  it("reuses provider credentials and copies their selections into a new Space", async () => {
+  it("reuses provider credentials and selections in a new Space", async () => {
     const cookie = await signup(app, `space-provider-copy-${stamp}@rakazo.test`, "Provider Copy");
     const actor = await rpc<Actor>(app, cookie, "me");
     const model = await rpc<ModelCredential>(app, cookie, "models/connect", {
@@ -999,14 +1077,8 @@ describeWithDatabase("API authorization and resource isolation", () => {
 
     const created = await rpc<Space>(app, cookie, "spaces/create", { name: "Copied defaults" });
     const [modelPreference, voicePreference] = await Promise.all([
-      db.spaceModelPreference.findUnique({
-        where: {
-          spaceId_userId_credentialId: {
-            spaceId: created.id,
-            userId: actor.userId,
-            credentialId: model.id,
-          },
-        },
+      db.userModelPreference.findUnique({
+        where: { userId_credentialId: { userId: actor.userId, credentialId: model.id } },
       }),
       db.spaceVoicePreference.findUnique({
         where: {
@@ -1020,13 +1092,21 @@ describeWithDatabase("API authorization and resource isolation", () => {
     ]);
 
     expect(modelPreference).toMatchObject({ modelId: "copy/model" });
-    // The new Space starts on the member's main model.
+    // The new Space follows the member's main model without a copy of its own.
     await expect(
       rpc<ModelRoleSettings>(app, cookie, "models/role", { role: "main" }, created.id),
     ).resolves.toMatchObject({
       primary: { provider: "copy-provider", modelId: "copy/model", credentialId: model.id },
     });
-    expect(voicePreference).toMatchObject({ voiceId: voice.voiceId, isDefault: true });
+    await expect(
+      db.spaceModelRoleChoice.count({ where: { spaceId: created.id, userId: actor.userId } }),
+    ).resolves.toBe(0);
+    // The new Space follows the account's voice instead of copying it.
+    expect(voicePreference).toBeNull();
+    await expect(rpc(app, cookie, "voice/status", undefined, created.id)).resolves.toMatchObject({
+      voiceId: voice.voiceId,
+    });
+    await setSpaceSettingOverride(db, { spaceId: created.id, userId: actor.userId }, "voice", true);
     await rpc(
       app,
       cookie,
@@ -1035,16 +1115,13 @@ describeWithDatabase("API authorization and resource isolation", () => {
       created.id,
     );
     await expect(
-      db.spaceVoicePreference.findUniqueOrThrow({
-        where: {
-          spaceId_userId_credentialId: {
-            spaceId: actor.spaceId,
-            userId: actor.userId,
-            credentialId: voice.id,
-          },
-        },
+      db.userVoicePreference.findUniqueOrThrow({
+        where: { userId_credentialId: { userId: actor.userId, credentialId: voice.id } },
       }),
     ).resolves.toMatchObject({ voiceId: voice.voiceId, isDefault: true });
+    await expect(rpc(app, cookie, "voice/status")).resolves.toMatchObject({
+      voiceId: voice.voiceId,
+    });
     await expect(
       db.spaceVoicePreference.findUniqueOrThrow({
         where: {
@@ -1064,7 +1141,7 @@ describeWithDatabase("API authorization and resource isolation", () => {
     );
   });
 
-  it("shares model credentials while keeping defaults private to each space", async () => {
+  it("shares model credentials and the main model across spaces until one customizes it", async () => {
     const cookie = await signup(app, `model-defaults-${stamp}@rakazo.test`, "Model Defaults");
     const actor = await rpc<Actor>(app, cookie, "me");
     const support = await rpc<Space>(app, cookie, "spaces/create", { name: "Support models" });
@@ -1120,11 +1197,33 @@ describeWithDatabase("API authorization and resource isolation", () => {
       {},
       support.id,
     );
+    // The other Space follows the account's main model.
     expect(supportCredentials).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ id: connectedA.id, provider: "provider-a", isDefault: false }),
+        expect.objectContaining({ id: connectedA.id, provider: "provider-a", isDefault: true }),
       ]),
     );
+    await expectSpaceModelDefault(support.id, "provider-a", "a/rotated");
+    await rpc(
+      app,
+      cookie,
+      "models/setDefault",
+      { provider: "provider-a", modelId: "a/shared" },
+      support.id,
+    );
+    await expectSpaceModelDefault(support.id, "provider-a", "a/shared");
+    await expectSpaceModelDefault(actor.spaceId, "provider-a", "a/shared");
+
+    // A customized Space starts from the account's models and then keeps its own.
+    await expect(
+      rpc(
+        app,
+        cookie,
+        "spaceSettings/setOverride",
+        { setting: "models", enabled: true },
+        support.id,
+      ),
+    ).resolves.toEqual(["models"]);
     await rpc(
       app,
       cookie,
@@ -1133,7 +1232,15 @@ describeWithDatabase("API authorization and resource isolation", () => {
       support.id,
     );
     await expectSpaceModelDefault(support.id, "provider-a", "a/support");
-    await expectSpaceModelDefault(actor.spaceId, "provider-a", "a/rotated");
+    await expectSpaceModelDefault(actor.spaceId, "provider-a", "a/shared");
+    const accountFromSupport = await rpc<ModelRoleSettings>(
+      app,
+      cookie,
+      "models/role",
+      { role: "main", scope: "account" },
+      support.id,
+    );
+    expect(accountFromSupport.primary).toMatchObject({ modelId: "a/shared" });
 
     const connectedB = await rpc<ModelCredential>(app, cookie, "models/connect", {
       provider: "provider-b",
@@ -1153,6 +1260,18 @@ describeWithDatabase("API authorization and resource isolation", () => {
     await rpc(app, cookie, "models/setDefault", { provider: "provider-a", modelId: "a/three" });
     await expectSpaceModelDefault(actor.spaceId, "provider-a", "a/three");
     await expectSpaceModelDefault(support.id, "provider-a", "a/support");
+
+    // Using the defaults again drops the Space's copy.
+    await expect(
+      rpc(
+        app,
+        cookie,
+        "spaceSettings/setOverride",
+        { setting: "models", enabled: false },
+        support.id,
+      ),
+    ).resolves.toEqual([]);
+    await expectSpaceModelDefault(support.id, "provider-a", "a/three");
     const listed = await rpc<ModelCredential[]>(app, cookie, "models/credentials");
     expect(JSON.stringify(listed)).not.toContain("fake-provider-a-key");
     expect(JSON.stringify(listed)).not.toContain("fake-provider-b-key");
@@ -1883,13 +2002,8 @@ describeWithDatabase("API authorization and resource isolation", () => {
         updatedAt: new Date("2026-02-02T00:00:00.000Z"),
       },
     });
-    await db.spaceModelPreference.create({
-      data: {
-        spaceId: actor.spaceId,
-        userId: actor.userId,
-        credentialId: older.id,
-        modelId: "older/model",
-      },
+    await db.userModelPreference.create({
+      data: { userId: actor.userId, credentialId: older.id, modelId: "older/model" },
     });
 
     await rpc(app, cookie, "models/setDefault", {
@@ -1897,8 +2011,8 @@ describeWithDatabase("API authorization and resource isolation", () => {
       modelId: "newer/selected",
     });
 
-    const preferences = await db.spaceModelPreference.findMany({
-      where: { userId: actor.userId, spaceId: actor.spaceId },
+    const preferences = await db.userModelPreference.findMany({
+      where: { userId: actor.userId },
     });
     const main = await rpc<ModelRoleSettings>(app, cookie, "models/role", { role: "main" });
     expect(main.primary).toMatchObject({ modelId: "newer/selected", credentialId: older.id });

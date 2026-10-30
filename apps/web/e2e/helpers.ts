@@ -3,7 +3,9 @@ import { expect, test } from "@playwright/test";
 import { signupRequiresEmailVerification } from "@rakazo/core";
 
 export function isRealSandboxProvider(provider = process.env.SANDBOX_PROVIDER) {
-  return provider === "e2b" || provider === "daytona" || provider === "boat";
+  return (
+    provider === "e2b" || provider === "novita" || provider === "daytona" || provider === "boat"
+  );
 }
 
 export function realSandboxTimeout(real: number, emulated: number) {
@@ -89,19 +91,18 @@ export async function signupThroughForm(
   if (testInfo) await captureScreenshot(page, testInfo, "01-sign-up");
   await page.getByPlaceholder("Your name").fill(name);
   await page.getByPlaceholder("Your email address").fill(email);
-  await showPasswordForm(page);
   await page.getByPlaceholder("Password").fill(password);
   await page.getByRole("button", { name: "Create account" }).click();
 }
 
-/** With email delivery the auth form opens on the emailed-code flow; switch to the password form. */
-export async function showPasswordForm(page: Page) {
-  const usePassword = page.getByRole("button", { name: "Use password" });
-  await expect(usePassword.or(page.getByPlaceholder("Password"))).toBeVisible();
-  if (await usePassword.isVisible()) await usePassword.click();
+/** Open Advanced through its trigger, preserving an already-expanded section. */
+/** Opens Integrations' add menu and picks one of its custom sources. */
+export async function openIntegrationsAdd(page: Page, item: string) {
+  const dialog = page.getByRole("dialog", { name: "Integrations", exact: true });
+  await dialog.getByRole("button", { name: "Add custom", exact: true }).click();
+  await page.getByRole("menuitem", { name: item, exact: true }).click();
 }
 
-/** Open Advanced through its trigger, preserving an already-expanded section. */
 export async function expandAdvancedSection(section: Locator) {
   const trigger = section.getByRole("button", { name: "Advanced", exact: true });
   if ((await trigger.getAttribute("aria-expanded")) === "false") await trigger.click();
@@ -175,7 +176,6 @@ export async function openNewSpace(page: Page) {
   await page.getByTestId("create-new-space").click();
 }
 
-/** Open the create dialog from the + picker, name the bot, and wait for the new chat. */
 export async function createBotFromPicker(
   page: Page,
   { name = "New Bot" }: { name?: string } = {},
@@ -189,7 +189,6 @@ export async function createBotFromPicker(
   await expect(page.getByTestId("side-panel")).toHaveAttribute("data-panel", "closed");
 }
 
-/** Open the user Settings overlay, optionally switching to a sidebar section. */
 export async function openUserSettings(
   page: Page,
   section?:
@@ -197,6 +196,8 @@ export async function openUserSettings(
     | "models"
     | "memory"
     | "voice"
+    | "vault"
+    | "wallet"
     | "usage"
     | "computer"
     | "billing"
@@ -273,7 +274,6 @@ export async function pickReopenedModel(page: Page, model?: string) {
   await expect(search).toBeHidden();
 }
 
-/** Opens "Manage X" from a model row's options menu and returns the connection dialog. */
 export async function manageModelConnection(
   page: Page,
   provider: string,
@@ -290,7 +290,6 @@ export async function manageModelConnection(
   return dialog;
 }
 
-/** Create a named bot via RPC for test setup (skips the + picker). */
 export async function createNamedBot(
   page: Page,
   name: string,

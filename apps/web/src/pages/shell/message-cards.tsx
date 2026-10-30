@@ -5,6 +5,7 @@ import { Button, Dialog, DialogClose, DialogContent, DialogTitle } from "@rakazo
 import { X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { BuiCard, SuccessPop } from "../../components/ai/primitives";
+import { OptionRow } from "../../components/OptionRow";
 import type { ArtifactTarget } from "../../lib/artifact-open";
 import { chartViewport } from "../../lib/chart-viewport";
 import { connectMcpOauth } from "../../lib/mcp-connect";
@@ -60,7 +61,7 @@ export function ChoiceCard({
 
   return (
     <div className="flex justify-start">
-      <div className="relative w-[420px] max-w-full rounded-[20px] bg-card px-[18px] py-[14px]">
+      <BuiCard className="relative w-[420px] max-w-full px-[18px] py-[14px]">
         {!block.answerId ? (
           <Button
             variant="ghost"
@@ -79,34 +80,22 @@ export function ChoiceCard({
         {block.subtitle ? (
           <div className="mt-0.5 text-[13px] text-foreground/75">{block.subtitle}</div>
         ) : null}
-        <div className="mt-3 space-y-2">
-          {block.options
-            .filter((option) => !block.answerId || option.id === block.answerId)
-            .map((option) => (
-              <button
-                key={option.id}
-                type="button"
-                disabled={Boolean(block.answerId) || pending}
-                onClick={() => void choose(option.id)}
-                className={`flex w-full items-center gap-3 rounded-xl px-3.5 py-3 text-start text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card disabled:opacity-60 ${block.answerId ? "bg-foreground/10" : "bg-background enabled:hover:bg-foreground/5 enabled:active:bg-foreground/15"}`}
-              >
-                <span className="grid h-[24px] w-[24px] shrink-0 place-items-center rounded-[7px] bg-card text-[12.5px] leading-none font-medium text-foreground/75">
-                  {option.letter}
-                </span>
-                <span
-                  className={`flex-1 text-[15px] leading-[1.35] ${block.answerId ? "text-foreground/75" : "text-foreground"}`}
-                >
-                  <OnboardingFocusOptionLabel
-                    id={option.id}
-                    label={option.label}
-                    question={block.question}
-                  />
-                </span>
-                {block.answerId === option.id ? (
-                  <span className="text-foreground/75">✓</span>
-                ) : null}
-              </button>
-            ))}
+        <div className="mt-2.5 space-y-0.5">
+          {block.options.map((option) => (
+            <OptionRow
+              key={option.id}
+              letter={option.letter}
+              selected={block.answerId === option.id}
+              disabled={Boolean(block.answerId) || pending}
+              onClick={() => void choose(option.id)}
+            >
+              <OnboardingFocusOptionLabel
+                id={option.id}
+                label={option.label}
+                question={block.question}
+              />
+            </OptionRow>
+          ))}
         </div>
         {error ? <p className="mt-2 text-xs text-destructive">{error}</p> : null}
         {onImportAgent && !block.answerId && block.question === FOCUS_QUESTION ? (
@@ -118,7 +107,7 @@ export function ChoiceCard({
             <Trans>Import an agent</Trans>
           </Button>
         ) : null}
-      </div>
+      </BuiCard>
     </div>
   );
 }
@@ -412,7 +401,7 @@ export function McpApprovalCard({
     }
   }
 
-  const summary = endpoint ?? `stdio · ${transport}`;
+  const summary = endpoint ?? `stdio (${transport})`;
   return (
     <BuiCard data-testid="mcp-approval-card" className="w-full min-w-0 max-w-xl p-4">
       <div className="flex items-center gap-2">
@@ -448,7 +437,7 @@ export function McpApprovalCard({
       ) : null}
       {state === "connected" ? (
         <div className="mt-3">
-          <SuccessPop label={t`Connected. Its tools are available from your next message.`} />
+          <SuccessPop label={t`Connected`} />
         </div>
       ) : null}
       {state === "dismissed" ? (
@@ -569,7 +558,7 @@ export function ArtifactImage({
           <img src={src} alt={name} className="max-h-48 w-full object-cover" />
         </button>
       ) : (
-        <div className="rounded-[20px] border border-border bg-muted px-4 py-3 text-[14px] text-muted-foreground">
+        <div className="rounded-[20px] bg-muted px-4 py-3 text-[14px] text-muted-foreground">
           {name}
         </div>
       )}

@@ -1,4 +1,3 @@
-import { rm } from "node:fs/promises";
 import type {
   AdapterContext,
   AgentHomeStore,
@@ -6,7 +5,7 @@ import type {
   JobPublisher,
   SandboxProvider,
 } from "@rakazo/adapter-kit";
-import { destroyBot, resolveAgentHomePath, toComputerRef } from "@rakazo/adapters";
+import { destroyBot, removeAgentHome, toComputerRef } from "@rakazo/adapters";
 import type { Actor } from "@rakazo/contracts";
 import type { PrismaClient } from "@rakazo/db";
 import {
@@ -14,12 +13,14 @@ import {
   deleteClaimedSpaceForMember,
   listClaimedSpaceBots,
   listClaimedSpaceComputers,
+  recordComputerRunEnd,
   releaseSpaceDeletionClaim,
   renewSpaceDeletionClaim,
   SPACE_DELETION_CLAIM_TIMEOUT_MS,
   SpaceDeletionInProgressError,
 } from "@rakazo/db";
 import { getLogger } from "@rakazo/logging";
+import { rehomeItemsLeaving } from "./availability.js";
 
 /** Bound for one bot or sandbox teardown. Providers may ignore the abort signal,
  * so without a deadline a hung destroy would keep the deletion claim renewed
@@ -41,13 +42,8 @@ export type SpaceDeletionDeps = {
   messagingInstallations?: Parameters<typeof destroyBot>[0]["messagingInstallations"];
 };
 
-/** Delete one of the actor's Spaces with everything in it; the owner-only rules live in the db layer.
- *
- * Runs in the request: each bot goes through `destroyBot` (runs, routines, sandbox,
- * files, sessions, artifacts, memories), then leftover team sandboxes, then the
- * Space row, whose cascade removes groups, threads, memories, preferences and
- * memberships. A worker that dies mid-way leaves the Space claimed; after the
- * claim goes stale, deleting again resumes from what is left. */
+/** The owner-only rules live in the db layer. A worker that dies mid-way leaves the Space
+ * claimed; after the claim goes stale, deleting again resumes from what is left. */
 export async function deleteSpaceWithContent(
   deps: SpaceDeletionDeps,
   actor: Pick<Actor, "spaceId" | "userId">,
@@ -159,6 +155,7 @@ export async function deleteSpaceWithContent(
         },
         data: { state: "stopped", providerRef: null },
       });
+      await recordComputerRunEnd(deps.prisma, computer, "deleted");
     }
     await assertClaim();
     claimActive = false;
@@ -166,16 +163,12 @@ export async function deleteSpaceWithContent(
       clearInterval(claimRenewal);
       claimRenewal = null;
     }
+    await rehomeItemsLeaving(deps.prisma, spaceId);
     const deleted = await deleteClaimedSpaceForMember(deps.prisma, claimedInput);
     // Rows are gone; leftover stored files are unreachable, so cleanup failures only log.
     const cleanup = await Promise.allSettled([
       ...deleted.artifactKeys.map((storageKey) => deps.artifacts.remove(storageKey, context())),
-      ...deleted.homeKeys.map((homeKey) =>
-        rm(resolveAgentHomePath(deps.home, homeKey, deps.dataDir), {
-          recursive: true,
-          force: true,
-        }),
-      ),
+      ...deleted.homeKeys.map((homeKey) => removeAgentHome(deps.home, homeKey, deps.dataDir)),
     ]);
     for (const result of cleanup) {
       if (result.status === "rejected") getLogger().error("space file cleanup", result.reason);

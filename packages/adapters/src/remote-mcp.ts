@@ -1,23 +1,28 @@
 import { lookup } from "node:dns/promises";
 import type { LookupFunction } from "node:net";
-import { isIP } from "node:net";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import type { RequestOptions } from "@modelcontextprotocol/sdk/shared/protocol.js";
 import type { Tool } from "@modelcontextprotocol/sdk/types.js";
 import type { ConnectorTool } from "@rakazo/adapter-kit";
-import { isCloudMetadataHost, isLocalMcpHost, isPrivateNetworkHost } from "@rakazo/contracts";
+import {
+  ipVersion,
+  isCloudMetadataAddress,
+  isCloudMetadataHost,
+  isInternalHostname,
+  isLinkLocalAddress,
+  isLocalhostOrLoopbackIp,
+  isLoopbackAddress,
+  isNonPublicAddress,
+  normalizeHost,
+} from "@rakazo/contracts";
 import { Agent } from "undici";
+import { composioToolBatch } from "./composio-batch.js";
 import { combineSignals } from "./connector-safety.js";
+import type { ResolvedAddress, ResolveHostname } from "./network-address.js";
 import {
   createAddressCheckedLookup,
   egressRefused,
-  isCloudMetadataAddress,
-  isLinkLocalAddress,
-  isLoopbackAddress,
-  isPrivateAddress,
-  type ResolvedAddress,
-  type ResolveHostname,
   withPinnedDnsLookup,
 } from "./network-address.js";
 import { dispatcherFetch, fetchPairedWithDispatcher } from "./undici-fetch.js";
@@ -45,6 +50,13 @@ export interface RemoteMcpOptions extends RemoteTransportDependencies, RemoteUrl
   signal?: AbortSignal;
 }
 
+export class ConnectorRedirectError extends Error {
+  constructor() {
+    super("Connector redirects are not allowed");
+    this.name = "ConnectorRedirectError";
+  }
+}
+
 export interface SafeRemoteFetch {
   (input: string | URL | Request, init?: RequestInit): Promise<Response>;
   close(): Promise<void>;
@@ -60,6 +72,7 @@ export async function listRemoteMcpTools(options: RemoteMcpOptions): Promise<Con
       description: tool.description ?? tool.title ?? tool.name,
       inputSchema: tool.inputSchema,
       readOnly: tool.annotations?.readOnlyHint,
+      batch: composioToolBatch(tool.name),
     })),
   );
 }
@@ -178,7 +191,7 @@ async function inspectSafeRemoteUrl(
   if (url.username || url.password) throw new Error("Connector URL must not contain credentials");
   if (url.hash) throw new Error("Connector URL must not contain a fragment");
   const hostname = url.hostname.replace(/^\[|\]$/g, "");
-  if (isBlockedRemoteHostname(hostname))
+  if (isCloudMetadataHost(hostname))
     throw egressRefused(hostname, new Error("Connector URL targets a private host"));
   // Loopback is a private endpoint too: only the private-endpoint escape reaches it.
   const allowPrivate = policy.allowPrivateEndpoint === true;
@@ -190,7 +203,7 @@ async function inspectSafeRemoteUrl(
     throw egressRefused(hostname, new Error("Connector URL targets a private host"));
   }
   const literal = literalAddresses(hostname);
-  if (url.protocol === "http:" && isLocalMcpHost(hostname)) {
+  if (url.protocol === "http:" && isLocalhostOrLoopbackIp(hostname)) {
     return { url, addresses: literal ?? [] };
   }
   const addresses = literal ?? (await resolve(hostname));
@@ -199,7 +212,7 @@ async function inspectSafeRemoteUrl(
   } catch (error) {
     throw egressRefused(hostname, error);
   }
-  if (url.protocol === "http:" && addresses.some((entry) => !isPrivateAddress(entry.address))) {
+  if (url.protocol === "http:" && addresses.some((entry) => !isNonPublicAddress(entry.address))) {
     throw new Error("Connector URL must use HTTPS");
   }
   return { url, addresses };
@@ -212,7 +225,7 @@ function requestInitWithHost(url: URL, init: RequestInit): RequestInit {
 }
 
 function literalAddresses(hostname: string): ResolvedAddress[] | undefined {
-  const family = isIP(hostname);
+  const family = ipVersion(hostname);
   if (family === 0) return undefined;
   return [{ address: hostname, family }];
 }
@@ -249,7 +262,7 @@ export function createSafeRemoteFetch(
       });
     }
     if (response.status >= 300 && response.status < 400) {
-      throw new Error("Connector redirects are not allowed");
+      throw new ConnectorRedirectError();
     }
     return response;
   };
@@ -262,16 +275,15 @@ function assertPrivateAddresses(addresses: ResolvedAddress[]): void {
   if (addresses.length === 0) {
     throw new Error("Private fetch URL did not resolve to any address");
   }
+  // The classifiers read IPv4-mapped forms (dotted or hex) themselves, so
+  // ::ffff:a9fe:a9fe stays blocked as metadata.
   if (
-    addresses.some((entry) => {
-      // Normalise IPv4-mapped IPv6 forms (e.g. ::ffff:169.254.170.2) so the
-      // link-local and metadata checks cannot be bypassed by their mapped
-      // representation. Cloud metadata endpoints stay blocked.
-      const address = entry.address.replace(/^::ffff:/i, "");
-      if (isCloudMetadataAddress(address)) return true;
-      if (isLinkLocalAddress(address)) return true;
-      return !isPrivateAddress(address);
-    })
+    addresses.some(
+      ({ address }) =>
+        isCloudMetadataAddress(address) ||
+        isLinkLocalAddress(address) ||
+        !isNonPublicAddress(address),
+    )
   ) {
     throw new Error("Private fetch URL resolved to a non-private address");
   }
@@ -349,7 +361,10 @@ export function createSafeLookup(
   policy: RemoteUrlPolicy = {},
 ): LookupFunction {
   return createAddressCheckedLookup(resolve, (addresses, hostname) => {
-    if (policy.allowPrivateEndpoint === true && isLocalMcpHost(hostname.replace(/^\[|\]$/g, ""))) {
+    if (
+      policy.allowPrivateEndpoint === true &&
+      isLocalhostOrLoopbackIp(hostname.replace(/^\[|\]$/g, ""))
+    ) {
       assertLoopbackAddresses(addresses);
       return;
     }
@@ -357,32 +372,12 @@ export function createSafeLookup(
   });
 }
 
-/** Tailscale MagicDNS names (*.ts.net) are public DNS names, not private IP literals. */
-function isTailscaleMagicDnsHostname(hostname: string): boolean {
-  const normalized = hostname.toLowerCase().replace(/\.$/, "");
-  return normalized === "ts.net" || normalized.endsWith(".ts.net");
-}
-
-function isBlockedRemoteHostname(hostname: string): boolean {
-  const normalized = hostname.toLowerCase().replace(/\.$/, "");
-  if (isCloudMetadataHost(normalized)) return true;
-  // Mapped and embedded forms, including IMDS IPv6.
-  return isIP(normalized) !== 0 && isCloudMetadataAddress(normalized);
-}
-
-/** Loopback, RFC1918/ULA literals, Docker Desktop, and typical LAN DNS suffixes. */
+/** Reserved local names (localhost, .local, .internal, Docker Desktop) and non-public literals. */
 export function isPrivateRemoteMcpHostname(hostname: string): boolean {
-  const normalized = hostname
-    .toLowerCase()
-    .replace(/^\[|\]$/g, "")
-    .replace(/\.$/, "");
-  if (isTailscaleMagicDnsHostname(normalized)) return false;
-  if (isPrivateNetworkHost(normalized)) return true;
+  const normalized = normalizeHost(hostname);
   return (
-    normalized === "host.docker.internal" ||
-    normalized.endsWith(".localhost") ||
-    normalized.endsWith(".internal") ||
-    (isIP(normalized) !== 0 && isPrivateAddress(normalized))
+    isInternalHostname(normalized) ||
+    (ipVersion(normalized) !== 0 && isNonPublicAddress(normalized))
   );
 }
 
@@ -412,8 +407,8 @@ function assertUnmixedAddresses(addresses: ResolvedAddress[]): void {
   ) {
     throw new Error("Connector URL resolves to a private address");
   }
-  const hasPrivate = addresses.some((entry) => isPrivateAddress(entry.address));
-  const hasPublic = addresses.some((entry) => !isPrivateAddress(entry.address));
+  const hasPrivate = addresses.some((entry) => isNonPublicAddress(entry.address));
+  const hasPublic = addresses.some((entry) => !isNonPublicAddress(entry.address));
   if (hasPrivate && hasPublic) {
     throw new Error("Connector URL resolves to a private address");
   }
@@ -426,7 +421,7 @@ function assertPublicAddresses(addresses: ResolvedAddress[]): void {
   }
   if (
     addresses.some(
-      (entry) => isCloudMetadataAddress(entry.address) || isPrivateAddress(entry.address),
+      (entry) => isCloudMetadataAddress(entry.address) || isNonPublicAddress(entry.address),
     )
   ) {
     throw new Error("Connector URL resolves to a private address");

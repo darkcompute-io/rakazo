@@ -7,22 +7,24 @@ name: publish-server-image
 # receiving package-publish authority.
 #
 # Published builds run on Depot when the DEPOT_PROJECT_ID repository variable names a project, and
-# on GitHub's runners otherwise (forks). Pull requests never use Depot.
+# on GitHub's runners otherwise (forks) or when a Depot build fails. Pull requests never use Depot.
 on:
   push:
     tags: ["v*"]
   workflow_call:
+  # Only what the image definitions consume directly. A source change that breaks the app's build
+  # fails ci.yml's production builds first, and main still builds every image before it deploys.
   pull_request:
     paths:
       - ".dockerignore"
+      - ".npmrc"
       - ".github/workflows/publish-server-image.yml"
       - ".github/actions/publish-image/**"
-      - "apps/**"
       - "infra/compose/**"
-      - "infra/sandboxes/computer/**"
+      - "infra/sandboxes/**"
       - "infra/updater/**"
-      - "packages/**"
-      - "package.json"
+      - "patches/**"
+      - "**/package.json"
       - "pnpm-lock.yaml"
       - "pnpm-workspace.yaml"
   workflow_dispatch:
@@ -99,7 +101,11 @@ jobs:
 
   build:
     name: Build ${{ matrix.name }} ${{ matrix.arch }}
-    if: github.event_name != 'pull_request' && vars.DEPOT_PROJECT_ID == ''
+    # A Depot outage must not block deploys, so any failed Depot build rebuilds every image here.
+    if: >-
+      !cancelled() && github.event_name != 'pull_request' &&
+      (vars.DEPOT_PROJECT_ID == '' || contains(needs.build-depot.outputs.*, 'failed'))
+    needs: [build-depot]
     # Each architecture builds natively on its own runner and pushes by digest only.
     # No QEMU: GitHub hosts native arm64 runners, and emulated arm64 took hours for the
     # desktop-sized computer image. See docs/self-host.md (Published images and tags).
@@ -154,7 +160,10 @@ jobs:
           platforms: linux/${{ matrix.arch }}
           labels: ${{ steps.meta.outputs.labels }}
           # A fork can publish only to its own namespace; no credential can redirect this value.
-          outputs: type=image,name=ghcr.io/${{ github.repository }}/${{ matrix.name }},push-by-digest=true,name-canonical=true,push=true
+          # The app's filesystem is also written locally so the credential scan needs no registry pull.
+          outputs: |
+            type=image,name=ghcr.io/${{ github.repository }}/${{ matrix.name }},push-by-digest=true,name-canonical=true,push=true
+            ${{ matrix.name == 'app' && 'type=tar,dest=/tmp/rootfs.tar' || '' }}
           # GET /health can report the exact source commit without a deployment-supplied override.
           build-args: ${{ matrix.name == 'app' && format('GIT_SHA={0}', github.sha) || '' }}
           cache-from: type=gha,scope=${{ matrix.name }}-${{ matrix.arch }}
@@ -164,10 +173,7 @@ jobs:
       # Before any tag points at it: the untagged digest is unreachable without this run's output.
       - name: Check the app image ships no credentials
         if: matrix.name == 'app'
-        env:
-          IMAGE: ghcr.io/${{ github.repository }}/app@${{ steps.build.outputs.digest }}
-          PLATFORM: linux/${{ matrix.arch }}
-        run: bash infra/compose/check-image.sh "$IMAGE" "$PLATFORM"
+        run: bash infra/compose/check-image.sh /tmp/rootfs.tar
       - name: Record the architecture digest
         env:
           DIGEST: ${{ steps.build.outputs.digest }}
@@ -195,6 +201,11 @@ jobs:
       # Depot authenticates the build with the workflow's OIDC token; no Depot secret exists.
       id-token: write
       attestations: write
+    # Each image reports its own key; the fallback build reads them all.
+    outputs:
+      app: ${{ steps.depot.outputs.app }}
+      updater: ${{ steps.depot.outputs.updater }}
+      computer: ${{ steps.depot.outputs.computer }}
     concurrency:
       group: publish-image-${{ github.ref }}-${{ matrix.name }}
       cancel-in-progress: false
@@ -231,6 +242,7 @@ jobs:
           tags: type=sha,prefix=sha-
       - id: build
         uses: depot/build-push-action@98e78adca7817480b8185f474a400b451d74e287 # v1.18.0
+        continue-on-error: true
         with:
           project: ${{ vars.DEPOT_PROJECT_ID }}
           context: ${{ matrix.context }}
@@ -242,8 +254,15 @@ jobs:
           build-args: ${{ matrix.name == 'app' && format('GIT_SHA={0}', github.sha) || '' }}
           provenance: mode=max
           sbom: true
+      - id: depot
+        env:
+          IMAGE: ${{ matrix.name }}
+          OUTCOME: ${{ steps.build.outcome }}
+        run: |
+          [[ "$OUTCOME" == success ]] || echo "::warning::Depot could not build ${IMAGE}; building on GitHub's runners instead."
+          echo "${IMAGE}=$([[ "$OUTCOME" == success ]] && echo built || echo failed)" >> "$GITHUB_OUTPUT"
       - name: Check the app image ships no credentials
-        if: matrix.name == 'app'
+        if: matrix.name == 'app' && steps.build.outcome == 'success'
         env:
           IMAGE: ghcr.io/${{ github.repository }}/app@${{ steps.build.outputs.digest }}
         # Exporting a filesystem needs no emulation, so one runner checks both platforms.
@@ -253,6 +272,7 @@ jobs:
             bash infra/compose/check-image.sh "$IMAGE" "$platform"
           done
       - name: Record the image digest
+        if: steps.build.outcome == 'success'
         env:
           DIGEST: ${{ steps.build.outputs.digest }}
           BUILD_ID: ${{ steps.build.outputs.build-id }}
@@ -263,7 +283,8 @@ jobs:
           mkdir -p /tmp/digests
           touch "/tmp/digests/${DIGEST#sha256:}"
           echo "Built ${IMAGE} on Depot (build ${BUILD_ID}): ${DIGEST}" >> "$GITHUB_STEP_SUMMARY"
-      - uses: ./.github/actions/publish-image
+      - if: steps.build.outcome == 'success'
+        uses: ./.github/actions/publish-image
         with:
           image: ghcr.io/${{ github.repository }}/${{ matrix.name }}
           digests-directory: /tmp/digests
@@ -272,8 +293,7 @@ jobs:
     name: Publish ${{ matrix.name }} image
     # Native GitHub builds still need to combine their two architecture artifacts.
     if: >-
-      !cancelled() && github.event_name != 'pull_request' &&
-      vars.DEPOT_PROJECT_ID == '' && needs.build.result == 'success'
+      !cancelled() && github.event_name != 'pull_request' && needs.build.result == 'success'
     needs: [build]
     runs-on: ubuntu-latest
     timeout-minutes: 15

@@ -13,7 +13,7 @@ import {
   verifyCatalogProviderApiKey,
   verifyOpenAiCompatibleApiKey,
 } from "@rakazo/adapters";
-import type { Actor, ModelConnectInput, ThinkingLevel } from "@rakazo/contracts";
+import type { Actor, ModelConnectInput, SettingsScope, ThinkingLevel } from "@rakazo/contracts";
 import {
   canonicalPiProviderId,
   OPENAI_COMPATIBLE_PROVIDER_ID,
@@ -26,8 +26,9 @@ import {
   findNewestUserModelCredential,
   getModelRole,
   modelCredentialProviderFilter,
+  modelRoleTarget,
   Prisma,
-  saveSpaceModelPreference,
+  saveModelPreference,
   writeModelRole,
 } from "@rakazo/db";
 import { mayUsePrivateEndpoint } from "./mcp-servers.js";
@@ -98,11 +99,13 @@ type ModelCredentialInput = {
   label?: string;
   modelId?: string;
   thinkingLevel?: string | null;
-  /** False keeps another connection as the space default. */
+  /** False keeps the current main model. */
   makeDefault?: boolean;
+  /** Which copy of the member's models makeDefault sets; omitted means the one that applies. */
+  scope?: SettingsScope;
   supportsImages?: boolean;
   signal?: AbortSignal;
-  /** Becomes the main model only while the space has none. */
+  /** Becomes the main model only while there is none. */
   keepExistingDefault?: boolean;
 };
 
@@ -236,7 +239,8 @@ async function writeModelCredential(
       : defaultModel
         ? clampCatalogThinkingLevel(input.thinkingLevel, allowedThinking)
         : null;
-  const mainRole = await getModelRole(tx, actor, "main");
+  const target = await modelRoleTarget(tx, actor, input.scope);
+  const mainRole = await getModelRole(tx, target, "main");
   const runsMain = mainRole.primary?.credentialId === credential.id;
   // Only an explicit main-model connect changes a role. Omitted means yes for older apps.
   const becomesMain =
@@ -246,7 +250,7 @@ async function writeModelCredential(
   // A main-model connect keeps the effort its model already had.
   const ownThinking = becomesMain
     ? ((
-        await writeModelRole(tx, actor, "main", {
+        await writeModelRole(tx, target, "main", {
           primary: {
             provider: input.provider,
             modelId: defaultModel!,
@@ -258,7 +262,7 @@ async function writeModelCredential(
     : (thinkingLevel ?? null);
   // The connection's own model; a save for another purpose keeps the one running chat.
   if (becomesMain || !runsMain)
-    await saveSpaceModelPreference(tx, actor, credential.id, defaultModel, ownThinking);
+    await saveModelPreference(tx, actor, credential.id, defaultModel, ownThinking);
   throwIfAborted(input.signal);
   if (existing) {
     await deleteUnreferencedCredentialSecret(tx, {
@@ -312,11 +316,9 @@ export function createModelConnector(deps: RouterDeps, codexCatalog: CodexLiveCa
           try {
             previousPlaintext = await deps.secrets.load(secret.ciphertext, credential.secretId);
           } catch (error) {
-            // Explicit key replacement must still succeed when the prior
-            // ciphertext is unreadable. For OpenAI-compatible connections,
-            // omit visionModelIds so a partial one-model list does not wipe
-            // other enabled models; DB supportsImages + defaultModel remain
-            // the legacy fallback.
+            // Explicit key replacement must still succeed when the prior ciphertext is
+            // unreadable. Omitting visionModelIds keeps a partial one-model list from
+            // wiping other enabled models.
             if (input.apiKey === undefined) throw error;
             if (input.provider === OPENAI_COMPATIBLE_PROVIDER_ID) {
               omitVisionModelIds = true;
@@ -340,6 +342,22 @@ export function createModelConnector(deps: RouterDeps, codexCatalog: CodexLiveCa
           deps.modelConnectionFetch,
           signal,
         );
+        const saved = parseModelSecret(plaintext);
+        const modelId =
+          usableModelId(input.modelId) ?? defaultCatalogModelId(input.provider, plaintext);
+        if (saved.kind === "api_key" && modelId && deps.modelConnectionCheck) {
+          await deps.modelConnectionCheck(
+            {
+              provider: input.provider,
+              id: modelId,
+              apiKey: saved.key,
+              accountId: saved.accountId,
+              gatewayId: saved.gatewayId,
+              maxTokens: saved.maxTokens,
+            },
+            { fetch: deps.modelConnectionFetch, signal },
+          );
+        }
       }
     } catch (error) {
       throw new ORPCError("BAD_REQUEST", {
@@ -347,11 +365,9 @@ export function createModelConnector(deps: RouterDeps, codexCatalog: CodexLiveCa
       });
     }
     if (input.provider === OPENAI_COMPATIBLE_PROVIDER_ID) {
-      // Limits: this runs before persistModelCredential's transaction. A pin saved in
-      // between can fall outside the stored list and then fails at run time with
-      // "Unknown model for that provider". Closing it needs every pin write (bots,
-      // routines, backups) serializable. Concurrent saves of the same connection are
-      // last-write-wins, as before this list existed, so one save's ticks can be dropped.
+      // Known race: this runs before persistModelCredential's transaction, so a pin saved in
+      // between can fall outside the stored list and fail at run time. Concurrent saves of
+      // the same connection are last-write-wins.
       const saved = parseModelSecret(plaintext);
       if (credential)
         await assertNoDanglingModelPins(deps, actor, credential, saved, input.modelId ?? "");
@@ -378,6 +394,7 @@ export function createModelConnector(deps: RouterDeps, codexCatalog: CodexLiveCa
         thinkingLevel:
           input.provider === OPENAI_COMPATIBLE_PROVIDER_ID ? undefined : input.thinkingLevel,
         makeDefault: input.makeDefault,
+        scope: input.scope,
         supportsImages: input.supportsImages,
         signal,
       },

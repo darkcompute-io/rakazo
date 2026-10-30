@@ -5,16 +5,19 @@ import {
   OPENAI_COMPATIBLE_PROVIDER_ID,
 } from "@rakazo/contracts";
 import { popularModelProvidersFirst } from "@rakazo/core";
+import { fetchFresh } from "@rakazo/core/query";
 import { isCancelledError, useQuery } from "@tanstack/react-query";
 import type { Href } from "expo-router";
-import { useFocusEffect, useRouter } from "expo-router";
+import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ActivityIndicator, ScrollView, StyleSheet, Text } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { LoadFailure } from "../../components/load-failure";
 import { ModelProviders } from "../../components/model-providers";
 import type { ConnectableProvider, ModelConnectIntent } from "../../components/model-role-settings";
 import { ModelRoleSettings } from "../../components/model-role-settings";
-import type { MobileMe, MobileModel, MobileModelCredential } from "../../lib/api";
+import type { MobileModel, MobileModelCredential } from "../../lib/api";
+// Connections belong to the account, so renaming and removing them go to the selected Space.
 import { rpc } from "../../lib/api";
 import { mobileTokens } from "../../lib/appearance";
 import { useI18n } from "../../lib/i18n";
@@ -23,29 +26,42 @@ import { closeModelConnection, openModelConnection } from "../../lib/model-conne
 import type { ModelPickerRequest } from "../../lib/model-picker-selection";
 import { closeModelPicker, openModelPicker } from "../../lib/model-picker-selection";
 import { native, useThemedStyles } from "../../lib/native";
-import { fetchFresh, queryClient, rpcQuery } from "../../lib/query";
+import { queryClient, rpcQuery } from "../../lib/query";
+import { settingsTarget } from "../../lib/settings-target";
 import { useSideInsets } from "../../lib/side-insets";
 import { errorText } from "../../lib/user-error";
 
 const noModels: MobileModel[] = [];
 const noCredentials: MobileModelCredential[] = [];
 
-/** The main and approval model lists; connecting a provider opens its own screen. */
+/**
+ * The main and approval model lists; connecting a provider opens its own screen. Opened with a
+ * Space, it edits that Space's override instead of the account's.
+ */
 export default function Models() {
+  const params = useLocalSearchParams<{ spaceId?: string }>();
+  const target = useMemo(() => settingsTarget(params.spaceId), [params.spaceId]);
+  // A Space's override is read from that Space even when another one is selected.
+  const spaceId = target.scope === "space" ? target.spaceId : undefined;
   const sideInsets = useSideInsets();
   const styles = useThemedStyles(createModelsStyles);
   const router = useRouter();
   const { t } = useI18n();
-  const me = useQuery({ ...rpcQuery<MobileMe>("me"), enabled: false }, queryClient).data ?? null;
+  const me =
+    useQuery({ ...rpcQuery("me", undefined, spaceId), enabled: false }, queryClient).data ?? null;
   const catalog =
-    useQuery({ ...rpcQuery<MobileModel[]>("models/list"), enabled: false }, queryClient).data ??
-    noModels;
+    useQuery({ ...rpcQuery("models/list", undefined, spaceId), enabled: false }, queryClient)
+      .data ?? noModels;
   const credentials =
     useQuery(
-      { ...rpcQuery<MobileModelCredential[]>("models/credentials"), enabled: false },
+      {
+        ...rpcQuery("models/credentials", undefined, spaceId),
+        enabled: false,
+      },
       queryClient,
     ).data ?? noCredentials;
   const [error, setError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const openedRef = useRef(false);
   const pickerRequestRef = useRef<string | null>(null);
   const connectionRequestRef = useRef<string | null>(null);
@@ -64,17 +80,22 @@ export default function Models() {
     async (reuse = false) => {
       try {
         await Promise.all([
-          fetchFresh(rpcQuery<MobileMe>("me"), { reuse }),
-          fetchFresh(rpcQuery<MobileModel[]>("models/list"), { reuse }),
-          fetchFresh(rpcQuery<MobileModelCredential[]>("models/credentials"), { reuse }),
+          fetchFresh(queryClient, rpcQuery("me", undefined, spaceId), { reuse }),
+          fetchFresh(queryClient, rpcQuery("models/list", undefined, spaceId), {
+            reuse,
+          }),
+          fetchFresh(queryClient, rpcQuery("models/credentials", undefined, spaceId), {
+            reuse,
+          }),
         ]);
-        setError(null);
+        setLoadError(null);
       } catch (err) {
         // A newer read replaced this one and reports for both.
-        if (!isCancelledError(err)) setError(errorText(err, t("Could not load model settings")));
+        if (!isCancelledError(err))
+          setLoadError(errorText(err, t("Could not load model settings")));
       }
     },
-    [t],
+    [spaceId, t],
   );
 
   useFocusEffect(
@@ -116,6 +137,7 @@ export default function Models() {
       provider: provider.id,
       baseUrl: provider.baseUrl,
       credentialId: null,
+      target,
       ...intent,
     });
   const manage = (credential: MobileModelCredential) =>
@@ -124,6 +146,7 @@ export default function Models() {
         provider: credential.provider,
         credentialId: credential.id,
         makeDefault: false,
+        target,
       }),
     );
 
@@ -180,6 +203,7 @@ export default function Models() {
               baseUrl: provider.baseUrl,
               credentialId: null,
               makeDefault: false,
+              target,
             })
           : undefined;
       },
@@ -197,7 +221,7 @@ export default function Models() {
   }
 
   // Only the first visit waits; a revisit paints what it saw last and refreshes behind it.
-  if (!me && !error) {
+  if (!me && !loadError) {
     return (
       <SafeAreaView edges={["bottom"]} style={[styles.screen, styles.centered]}>
         <ActivityIndicator color={native.secondaryLabel} />
@@ -205,6 +229,8 @@ export default function Models() {
     );
   }
 
+  const failure = error ?? loadError;
+  const shownError = error ?? (me ? loadError : null);
   const shared = {
     credentials,
     providers,
@@ -212,6 +238,9 @@ export default function Models() {
     pickerRoute,
     connectRoute,
     onManage: manage,
+    userId: me?.userId ?? "",
+    spaceId: target.scope === "space" ? target.spaceId : (me?.spaceId ?? ""),
+    scope: target.scope,
   };
   return (
     <SafeAreaView edges={["bottom"]} style={styles.screen}>
@@ -220,17 +249,24 @@ export default function Models() {
         contentContainerStyle={styles.content}
         contentInsetAdjustmentBehavior="automatic"
       >
-        {error ? (
+        {failure && !me ? (
+          <LoadFailure
+            message={failure}
+            onRetry={() => {
+              setError(null);
+              setLoadError(null);
+              void load();
+            }}
+          />
+        ) : shownError ? (
           <Text accessibilityRole="alert" style={styles.error}>
-            {error}
+            {shownError}
           </Text>
         ) : null}
         {me ? (
           <>
             <ModelRoleSettings
               {...shared}
-              userId={me.userId}
-              spaceId={me.spaceId}
               modelRole="main"
               title={t("Main model")}
               defaultLabel={t("Choose a model")}
@@ -238,34 +274,35 @@ export default function Models() {
             />
             <ModelRoleSettings
               {...shared}
-              userId={me.userId}
-              spaceId={me.spaceId}
               modelRole="approval"
               title={t("Approval model")}
               defaultLabel={t("Choose a model")}
             />
-            <ModelProviders
-              catalog={catalog}
-              credentials={credentials}
-              onManage={manage}
-              onAdd={addProvider}
-              onRename={(credential, label) =>
-                void changeConnection(
-                  () => rpc("models/rename", { credentialId: credential.id, label }),
-                  t("Could not update name"),
-                )
-              }
-              onDisconnect={(credential) =>
-                void changeConnection(
-                  () =>
-                    rpc("models/disconnect", {
-                      provider: credential.provider,
-                      credentialId: credential.id,
-                    }),
-                  t("Could not disconnect this provider"),
-                )
-              }
-            />
+            {/* Connections are the account's in every Space, so a Space's override lists only its models. */}
+            {target.scope === "account" ? (
+              <ModelProviders
+                catalog={catalog}
+                credentials={credentials}
+                onManage={manage}
+                onAdd={addProvider}
+                onRename={(credential, label) =>
+                  void changeConnection(
+                    () => rpc("models/rename", { credentialId: credential.id, label }),
+                    t("Could not update name"),
+                  )
+                }
+                onDisconnect={(credential) =>
+                  void changeConnection(
+                    () =>
+                      rpc("models/disconnect", {
+                        provider: credential.provider,
+                        credentialId: credential.id,
+                      }),
+                    t("Could not disconnect this provider"),
+                  )
+                }
+              />
+            ) : null}
           </>
         ) : null}
       </ScrollView>

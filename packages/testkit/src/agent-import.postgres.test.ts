@@ -120,7 +120,7 @@ describeIntegration("agent import", () => {
   const dataDir = mkdtempSync(path.join(tmpdir(), "rakazo-agent-import-"));
 
   beforeAll(async () => {
-    const { createApp } = await import("../../../apps/api/src/app.ts");
+    const { createApp } = await import("@rakazo/api/app");
     const handles = await createApp({
       databaseUrl: process.env.DATABASE_URL!,
       dataDir,
@@ -428,8 +428,11 @@ describeIntegration("agent import", () => {
     expect(await db.mcpServer.count({ where: owner })).toBe(0);
     expect(await db.routine.count({ where: owner })).toBe(0);
 
+    // The space follows the account's models, so the main model is the account's.
     const mainModel = () =>
-      db.spaceModelRoleChoice.findMany({ where: { ...owner, role: "main", position: 0 } });
+      db.userModelRoleChoice.findMany({
+        where: { userId: owner.userId, role: "main", position: 0 },
+      });
     expect((await mainModel()).map((row) => row.credentialId)).toEqual([existing.id]);
 
     const response = await raw(app, cookie, "bots/importCreate", {
@@ -722,7 +725,6 @@ describeIntegration("agent import", () => {
     });
     expect(await rpc(app, cookie, "bots/importInfo", { botId: firstBot.id })).toBeNull();
 
-    // The user edits one imported skill and one imported space memory document.
     const garden = await db.agentSkill.findFirstOrThrow({ where: { ...owner, name: "garden" } });
     await rpc(app, cookie, "agentSkills/update", {
       skillId: garden.id,
@@ -2067,7 +2069,6 @@ describeIntegration("agent import", () => {
       where: { id: shared.id },
       select: { organizationId: true },
     });
-    // The second member, added as the authorization tests add one.
     const member = await signup(app, `import-shared-member-${stamp}@rakazo.test`, "Member");
     const memberActor = await rpc<{ userId: string }>(app, member, "me");
     await db.member.deleteMany({ where: { userId: memberActor.userId } });
