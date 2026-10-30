@@ -88,12 +88,18 @@ CORP_SECRET = {"OIDC_CLIENT_ID", "OIDC_CLIENT_SECRET", "WATCH_DB_PASSWORD", "WAT
 REGISTRY_KEYS = {"id", "name", "description", "endpoint", "open", "icon", "askWrites"}
 
 
-def registry(path: Path) -> list:
-    """The instance's one-click apps (packages/core agentloom-registry.ts). Closed key set,
-    https only, ids unique: a bad file stops the generator rather than shipping half a list."""
-    if not path.exists():
-        return []
-    entries = yaml.safe_load(path.read_text(encoding="utf-8")) or []
+def registry(path: Path) -> dict:
+    """The instance's one-click apps (packages/core agentloom-registry.ts): a title, where
+    "Request a connector" posts (a capture API; its token is AGENTLOOM_CONNECTOR_REQUEST_TOKEN),
+    and the apps. Closed key sets, https only,
+    ids unique: a bad file stops the generator rather than shipping half a list."""
+    doc = (yaml.safe_load(path.read_text(encoding="utf-8")) if path.exists() else None) or {}
+    extra = set(doc) - {"title", "request_url", "apps"}
+    if extra:
+        raise SystemExit(f"{path}: unknown keys {sorted(extra)}")
+    if "request_url" in doc and not str(doc["request_url"]).startswith("https://"):
+        raise SystemExit(f"{path}: request_url must be https")
+    entries = doc.get("apps") or []
     seen = set()
     for e in entries:
         extra = set(e) - REGISTRY_KEYS
@@ -107,7 +113,7 @@ def registry(path: Path) -> list:
         for k in ("endpoint", "open", "icon"):
             if k in e and not str(e[k]).startswith("https://"):
                 raise SystemExit(f"{path}: {e['id']}: {k} must be https")
-    return entries
+    return {"title": doc.get("title") or "Apps", "requestUrl": doc.get("request_url"), "apps": entries}
 REF = re.compile(r"\$\{([A-Za-z_][A-Za-z0-9_]*)(?::([-?])((?:[^{}]|\{[^{}]*\})*))?\}")
 
 
@@ -161,9 +167,14 @@ def build(host: str, sets: dict, dst: Path, header: str, corp: bool) -> None:
             svc["healthcheck"]["test"] = sub(t) if isinstance(t, str) else [sub(x) for x in t]
         svc.pop("ports", None)  # nothing listens on the host's address but the door below
         if name in ("api", "worker"):
-            apps = registry(dst.parent / "registry.yaml")
+            reg = registry(dst.parent / "registry.yaml")
+            apps = reg["apps"]
             env = svc.setdefault("environment", {})
-            env["AGENTLOOM_REGISTRY"] = json.dumps(apps, separators=(",", ":"))
+            env["AGENTLOOM_REGISTRY"] = json.dumps({"title": reg["title"], "apps": apps},
+                                                   separators=(",", ":"))
+            if name == "api" and reg["requestUrl"]:
+                env["AGENTLOOM_CONNECTOR_REQUEST_URL"] = reg["requestUrl"]
+                env["AGENTLOOM_CONNECTOR_REQUEST_TOKEN"] = "${AGENTLOOM_CONNECTOR_REQUEST_TOKEN}"
             if corp:
                 # Only these origins may be a private MCP endpoint; MCP_ALLOW_PRIVATE_ENDPOINT
                 # stays off. Each registry app is on CORP too, so its origin joins them.

@@ -1,11 +1,15 @@
-// AgentLoom: the apps an instance offers with one click, the "Darkcompute" section of
-// Integrations. Each instance has its own list (agentloom/registry.yaml for DMZ,
+// AgentLoom: the apps an instance offers with one click, its own titled section at the top
+// of Integrations, with a way to ask for one it lacks. Each instance has its own file (agentloom/registry.yaml for DMZ,
 // agentloom/corp/registry.yaml for CORP), which agentloom/gen-compose.py writes into the
 // compose as AGENTLOOM_REGISTRY, so one image serves both.
 //
 // Each app's /api/mcp takes the member's own authentik token, asked for through the
 // instance's pre-registered client (AGENTLOOM_MCP_CLIENT_ID/_SECRET), so a bot can do
-// only what that person can. askWrites: a tool not declared read-only asks a person in every mode, Just go included.
+// only what that person can. askWrites: a tool not declared read-only asks a person in
+// every mode, Just go included.
+//
+// AGENTLOOM_REGISTRY is { title, apps: [...] }; a bare list is read as apps. "Request a
+// connector" posts to AGENTLOOM_CONNECTOR_REQUEST_URL (apps/api/src/routes/registry.ts).
 
 export type RegistryEntry = {
   id: string;
@@ -24,20 +28,31 @@ export function registrySlug(id: string): string {
   return `dc-${id}`;
 }
 
-let cached: { raw: string | undefined; entries: RegistryEntry[] } | undefined;
+export type RegistryInfo = {
+  /** The section's heading, e.g. "Darkcompute apps". */
+  title: string;
+  entries: RegistryEntry[];
+};
 
-/** The instance's entries; a malformed entry is dropped, never half-used. */
-export function registryEntries(
+let cached: { raw: string | undefined; info: RegistryInfo } | undefined;
+
+/** The instance's registry; a malformed entry is dropped, never half-used. */
+export function registryInfo(
   raw: string | undefined = globalThis.process?.env?.AGENTLOOM_REGISTRY,
-): RegistryEntry[] {
-  if (cached && cached.raw === raw) return cached.entries;
+): RegistryInfo {
+  if (cached && cached.raw === raw) return cached.info;
   let parsed: unknown = [];
   try {
     parsed = raw ? JSON.parse(raw) : [];
   } catch {
     parsed = [];
   }
-  const entries = (Array.isArray(parsed) ? parsed : []).flatMap((e): RegistryEntry[] => {
+  const doc: Record<string, unknown> =
+    parsed && typeof parsed === "object" && !Array.isArray(parsed)
+      ? (parsed as Record<string, unknown>)
+      : { apps: parsed };
+  const apps = Array.isArray(doc.apps) ? doc.apps : [];
+  const entries = apps.flatMap((e): RegistryEntry[] => {
     if (!e || typeof e !== "object") return [];
     const r = e as Record<string, unknown>;
     const id = typeof r.id === "string" ? r.id : "";
@@ -56,8 +71,17 @@ export function registryEntries(
       },
     ];
   });
-  cached = { raw, entries };
-  return entries;
+  const info: RegistryInfo = {
+    title:
+      typeof doc.title === "string" && doc.title.trim() ? doc.title.trim().slice(0, 60) : "Apps",
+    entries,
+  };
+  cached = { raw, info };
+  return info;
+}
+
+export function registryEntries(raw?: string): RegistryEntry[] {
+  return (raw === undefined ? registryInfo() : registryInfo(raw)).entries;
 }
 
 /** A call into an askWrites entry's tool that is not declared read-only. */

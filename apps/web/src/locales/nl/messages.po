@@ -430,6 +430,10 @@ msgstr ""
 msgid "A command's output"
 msgstr "De uitvoer van een commando"
 
+#: src/pages/shell/composer-run-mode.tsx
+msgid "A model checks each new action instead of asking you."
+msgstr ""
+
 #. placeholder {0}: oauth.verificationUri.replace(/^https:\/\//, "")
 #: src/pages/model-settings/connection-controls.tsx
 #: src/pages/Onboarding.tsx
@@ -495,6 +499,7 @@ msgid "Activity"
 msgstr "Activiteit"
 
 #: src/components/integrations/plugin-marketplace.tsx
+#: src/components/integrations/RegistrySection.tsx
 #: src/pages/McpServersOverlay.tsx
 #: src/pages/PluginsOverlay.tsx
 #: src/pages/ScratchpadSection.tsx
@@ -617,11 +622,13 @@ msgid "Add workspace"
 msgstr "Werkruimte toevoegen"
 
 #: src/components/integrations/plugin-marketplace.tsx
+#: src/components/integrations/RegistrySection.tsx
 #: src/pages/PluginsOverlay.tsx
 msgid "Added"
 msgstr "Toegevoegd"
 
 #: src/components/integrations/plugin-marketplace.tsx
+#: src/components/integrations/RegistrySection.tsx
 #: src/pages/McpServersOverlay.tsx
 #: src/pages/PluginsOverlay.tsx
 msgid "Adding…"
@@ -663,6 +670,10 @@ msgstr "De volledige ${0} gaat naar modelgebruik."
 #: src/pages/shell/agent-import.tsx
 msgid "All bots"
 msgstr "Alle bots"
+
+#: src/pages/shell/composer-run-mode.tsx
+msgid "All confirmations"
+msgstr ""
 
 #: src/components/integrations/space-availability.tsx
 msgid "All spaces"
@@ -741,6 +752,10 @@ msgstr "{site} altijd openen"
 msgid "An API key is stored for this provider, not a subscription sign-in."
 msgstr "Voor deze aanbieder is een API-sleutel opgeslagen, geen abonnementsaanmelding."
 
+#: src/components/integrations/RegistrySection.tsx
+msgid "An app or tool you need here"
+msgstr ""
+
 #: src/pages/memory-providers/HonchoSettingsForm.tsx
 msgid "An existing Honcho peer to read from. Rakazo never writes to it."
 msgstr "Een bestaande Honcho-peer om uit te lezen. Rakazo schrijft er nooit naar."
@@ -812,6 +827,10 @@ msgstr "API-sleutelheader"
 msgid "API keys"
 msgstr "API-sleutels"
 
+#: src/components/integrations/RegistrySection.tsx
+msgid "App or tool, e.g. Jira"
+msgstr ""
+
 #: src/pages/AccountSettingsOverlay.tsx
 msgid "Appearance"
 msgstr "Weergave"
@@ -878,6 +897,7 @@ msgid "Artifacts"
 msgstr "Artefacten"
 
 #: src/components/ApprovalRulesSettings.tsx
+#: src/pages/shell/composer-run-mode.tsx
 msgid "Ask"
 msgstr "Vragen"
 
@@ -937,6 +957,7 @@ msgid "Authorize this server so agents can use its tools. A popup opens."
 msgstr "Autoriseer deze server zodat agents zijn tools kunnen gebruiken. Er wordt een pop-up geopend."
 
 #: src/components/ApprovalRulesSettings.tsx
+#: src/pages/shell/composer-run-mode.tsx
 msgid "Auto"
 msgstr "Auto"
 
@@ -1076,8 +1097,16 @@ msgstr ""
 msgid "Bots"
 msgstr "Bots"
 
+#: src/pages/shell/composer-run-mode.tsx
+msgid "Bots act without asking."
+msgstr ""
+
 #: src/components/ModelCredits.tsx
 msgid "Bots and browser automation"
+msgstr ""
+
+#: src/pages/shell/composer-run-mode.tsx
+msgid "Bots ask before actions they have not done before."
 msgstr ""
 
 #: src/pages/Paywall.tsx
@@ -1139,6 +1168,7 @@ msgstr "Kan afbeeldingen niet lezen"
 #: src/components/AskCard.tsx
 #: src/components/ComputerMaintenanceActions.tsx
 #: src/components/integrations/plugin-marketplace.tsx
+#: src/components/integrations/RegistrySection.tsx
 #: src/components/markdown-link-prompt.tsx
 #: src/components/PasskeySettings.tsx
 #: src/components/SpaceMembersSettings.tsx
@@ -1698,7 +1728,9 @@ msgid "Continue to checkout"
 msgstr ""
 
 #. placeholder {0}: reset.sso.name
+#. placeholder {0}: ssoOnly.name
 #: src/pages/Auth.tsx
+#: src/pages/Welcome.tsx
 msgid "Continue with {0}"
 msgstr "Doorgaan met {0}"
 
@@ -1755,6 +1787,10 @@ msgstr "Kosten"
 #: src/pages/ScratchpadSection.tsx
 msgid "Could not add"
 msgstr "Toevoegen mislukt"
+
+#: src/components/integrations/RegistrySection.tsx
+msgid "Could not add it"
+msgstr ""
 
 #: src/pages/McpServersOverlay.tsx
 msgid "Could not add MCP server"
@@ -1845,6 +1881,7 @@ msgstr "Verbinden met het computerscherm mislukt"
 #: src/lib/user-error.ts
 #: src/pages/Auth.tsx
 #: src/pages/shell/use-computer.tsx
+#: src/pages/Welcome.tsx
 msgid "Could not continue"
 msgstr "Doorgaan mislukt"
 
@@ -2141,6 +2178,7 @@ msgstr "Routine uitvoeren mislukt"
 #: src/pages/KnowledgeSection.tsx
 #: src/pages/McpServersOverlay.tsx
 #: src/pages/shell/bot-panel.tsx
+#: src/pages/shell/composer-run-mode.tsx
 #: src/pages/shell/dialogs.tsx
 #: src/pages/shell/use-space-roster.ts
 msgid "Could not save"
@@ -2194,6 +2232,10 @@ msgstr "Deze keuze opslaan mislukt"
 #: src/pages/PluginsOverlay.tsx
 msgid "Could not search catalog"
 msgstr "Catalogus doorzoeken mislukt"
+
+#: src/components/integrations/RegistrySection.tsx
+msgid "Could not send it"
+msgstr ""
 
 #: src/pages/Auth.tsx
 msgid "Could not send reset email"
@@ -2631,10 +2673,6 @@ msgstr "Docker is geconfigureerd, maar computers reageren niet. Controleer of de
 msgid "Docker limits access to your computer for added security. Using {hostLabel} lets bots work with your local files and tools."
 msgstr "Docker beperkt de toegang tot je computer voor extra veiligheid. Met {hostLabel} kunnen bots met je lokale bestanden en tools werken."
 
-#: src/components/SidebarFooter.tsx
-msgid "Docs"
-msgstr "Documentatie"
-
 #: src/pages/KnowledgeSection.tsx
 msgid "Document changed. Reopen to edit the latest version."
 msgstr "Het document is gewijzigd. Open het opnieuw om de nieuwste versie te bewerken."
@@ -3038,10 +3076,6 @@ msgstr "Algemeen"
 msgid "Get a free month for each friend who starts a trial."
 msgstr "Krijg een gratis maand voor elke vriend die een proefperiode start."
 
-#: src/components/SidebarFooter.tsx
-msgid "Get the mobile app"
-msgstr "De mobiele app downloaden"
-
 #: src/components/ComputerUpdateProgress.tsx
 msgid "Getting ready"
 msgstr "Aan het voorbereiden"
@@ -3159,6 +3193,10 @@ msgstr ""
 
 #: src/components/SignupSurvey.tsx
 msgid "How did you hear about us?"
+msgstr ""
+
+#: src/pages/shell/composer-run-mode.tsx
+msgid "How much bots ask before acting"
 msgstr ""
 
 #: src/pages/RoutineSchedule.tsx
@@ -3369,6 +3407,18 @@ msgstr "Naar het nieuwste springen"
 #: src/pages/shell/chat-context.tsx
 msgid "Jump to replied message: {excerpt}"
 msgstr "Spring naar het beantwoorde bericht: {excerpt}"
+
+#: src/pages/shell/composer-run-mode.tsx
+msgid "Just go"
+msgstr ""
+
+#: src/pages/shell/composer-run-mode.tsx
+msgid "Just go is on"
+msgstr ""
+
+#: src/pages/shell/composer-run-mode.tsx
+msgid "Just go is on: bots act without asking"
+msgstr ""
 
 #: src/lib/relative-time.ts
 msgid "just now"
@@ -4171,6 +4221,10 @@ msgstr "Niet gebruikt door Rakazo"
 msgid "Not working"
 msgstr "Werkt niet"
 
+#: src/components/integrations/RegistrySection.tsx
+msgid "Nothing here yet. Ask for the app you need."
+msgstr ""
+
 #: src/pages/KnowledgeSection.tsx
 msgid "Nothing remembered yet"
 msgstr "Nog niets onthouden"
@@ -4236,6 +4290,10 @@ msgstr "op dag {day} om {time}"
 msgid "on the 1st at {0}"
 msgstr "op de 1e om {0}"
 
+#: src/components/integrations/RegistrySection.tsx
+msgid "Once it is added it shows here for everyone."
+msgstr ""
+
 #: src/lib/cron.ts
 msgid "One-time"
 msgstr "Eenmalig"
@@ -4252,7 +4310,9 @@ msgstr ""
 msgid "Open"
 msgstr "Openen"
 
+#. placeholder {0}: entry.name
 #. placeholder {0}: headerName(group)
+#: src/components/integrations/RegistrySection.tsx
 #: src/pages/shell/sidebar-roster.tsx
 msgid "Open {0}"
 msgstr "{0} openen"
@@ -4901,6 +4961,10 @@ msgstr "Antwoord geannuleerd"
 msgid "Replying to {0}"
 msgstr "Antwoordt op {0}"
 
+#: src/components/integrations/RegistrySection.tsx
+msgid "Request a connector"
+msgstr ""
+
 #: src/lib/user-error.ts
 msgid "Request a new code"
 msgstr "Vraag een nieuwe code aan"
@@ -5048,6 +5112,10 @@ msgstr "Uitvoeren om"
 #: src/pages/RoutineRunHistory.tsx
 msgid "Run history"
 msgstr "Rungeschiedenis"
+
+#: src/pages/shell/composer-run-mode.tsx
+msgid "Run mode"
+msgstr ""
 
 #: src/pages/shell/use-routine-editor.ts
 msgid "Run time must be in the future."
@@ -5278,6 +5346,10 @@ msgstr "Verzenden"
 msgid "Send recording"
 msgstr "Opname verzenden"
 
+#: src/components/integrations/RegistrySection.tsx
+msgid "Send request"
+msgstr ""
+
 #: src/pages/Auth.tsx
 msgid "Send reset link"
 msgstr "Herstellingslink verzenden"
@@ -5287,11 +5359,16 @@ msgid "Send with Enter"
 msgstr "Verzenden met Enter"
 
 #: src/components/AskCard.tsx
+#: src/components/integrations/RegistrySection.tsx
 msgid "Sending…"
 msgstr "Bezig met verzenden…"
 
 #: src/components/AskCard.tsx
 msgid "Sent"
+msgstr ""
+
+#: src/components/integrations/RegistrySection.tsx
+msgid "Sent to the team."
 msgstr ""
 
 #: src/pages/RoutineEditor.tsx
@@ -5418,6 +5495,7 @@ msgstr "Aanmelden"
 
 #: src/components/AccountAccess.tsx
 #: src/components/ConfirmIdentityDialog.tsx
+#: src/components/integrations/RegistrySection.tsx
 #: src/lib/passkeys.ts
 #: src/lib/user-error.ts
 #: src/pages/model-settings/connection-controls.tsx
@@ -5453,6 +5531,14 @@ msgstr "Registreren"
 
 #: src/components/integrations/plugin-marketplace.tsx
 msgid "Sign-in cancelled. Try again."
+msgstr ""
+
+#: src/components/integrations/RegistrySection.tsx
+msgid "Signed in as you"
+msgstr ""
+
+#: src/components/integrations/RegistrySection.tsx
+msgid "Signed in as you · changes ask first"
 msgstr ""
 
 #: src/components/VaultSettings.tsx
@@ -5933,6 +6019,11 @@ msgstr "Het contextvenster van dit model is te klein. Kies een ander model."
 msgid "This month"
 msgstr "Deze maand"
 
+#. js-lingui-explicit-id
+#: src/lib/run-error.ts
+msgid "This needs a computer, and computers are not set up yet."
+msgstr ""
+
 #: src/components/AccountAccess.tsx
 msgid "This permanently deletes your account and data."
 msgstr "Hiermee worden je account en gegevens definitief verwijderd."
@@ -6405,6 +6496,10 @@ msgstr "Waarmee wil je dat ik begin?"
 #: src/components/teach/TeachComputerOverlay.tsx
 msgid "What result will you demonstrate?"
 msgstr "Welk resultaat ga je aantonen?"
+
+#: src/components/integrations/RegistrySection.tsx
+msgid "What should a bot do there? (optional)"
+msgstr ""
 
 #: src/pages/RoutineEditor.tsx
 msgid "What should this routine do each time it runs?"

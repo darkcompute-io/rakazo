@@ -178,8 +178,10 @@ services:
       EMAIL_PROVIDER: ${EMAIL_PROVIDER}
       EMAIL_API_KEY: ${EMAIL_API_KEY}
       EMAIL_FROM: ${EMAIL_FROM}
-      AGENTLOOM_REGISTRY: '[{"id":"tasks","name":"Tasks","endpoint":"https://tasks.corp.darkcompute.io/api/mcp","open":"https://tasks.corp.darkcompute.io","description":"The
-        team''s tasks, triage and goals, as you."}]'
+      AGENTLOOM_REGISTRY: '{"title":"Darkcompute apps","apps":[{"id":"tasks","name":"Tasks","endpoint":"https://tasks.corp.darkcompute.io/api/mcp","open":"https://tasks.corp.darkcompute.io","description":"The
+        team''s tasks, triage and goals, as you."}]}'
+      AGENTLOOM_CONNECTOR_REQUEST_URL: https://tasks.corp.darkcompute.io/api/capture
+      AGENTLOOM_CONNECTOR_REQUEST_TOKEN: ${AGENTLOOM_CONNECTOR_REQUEST_TOKEN}
       AGENTLOOM_PRIVATE_MCP_ORIGINS: https://agents.corp.darkcompute.io,https://tasks.corp.darkcompute.io
       AGENTLOOM_MCP_CLIENT_ID: ${AGENTLOOM_MCP_CLIENT_ID}
       AGENTLOOM_MCP_CLIENT_SECRET: ${AGENTLOOM_MCP_CLIENT_SECRET}
@@ -251,8 +253,8 @@ services:
       CLOUD_AGENT_PROVIDER: none
       PAYMENT_WALLET_PROVIDER: none
       COMPOSIO_API_KEY: ${COMPOSIO_API_KEY}
-      AGENTLOOM_REGISTRY: '[{"id":"tasks","name":"Tasks","endpoint":"https://tasks.corp.darkcompute.io/api/mcp","open":"https://tasks.corp.darkcompute.io","description":"The
-        team''s tasks, triage and goals, as you."}]'
+      AGENTLOOM_REGISTRY: '{"title":"Darkcompute apps","apps":[{"id":"tasks","name":"Tasks","endpoint":"https://tasks.corp.darkcompute.io/api/mcp","open":"https://tasks.corp.darkcompute.io","description":"The
+        team''s tasks, triage and goals, as you."}]}'
       AGENTLOOM_PRIVATE_MCP_ORIGINS: https://agents.corp.darkcompute.io,https://tasks.corp.darkcompute.io
     volumes:
     - appdata:/data

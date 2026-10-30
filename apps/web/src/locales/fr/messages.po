@@ -430,6 +430,10 @@ msgstr ""
 msgid "A command's output"
 msgstr "La sortie d’une commande"
 
+#: src/pages/shell/composer-run-mode.tsx
+msgid "A model checks each new action instead of asking you."
+msgstr ""
+
 #. placeholder {0}: oauth.verificationUri.replace(/^https:\/\//, "")
 #: src/pages/model-settings/connection-controls.tsx
 #: src/pages/Onboarding.tsx
@@ -495,6 +499,7 @@ msgid "Activity"
 msgstr "Activité"
 
 #: src/components/integrations/plugin-marketplace.tsx
+#: src/components/integrations/RegistrySection.tsx
 #: src/pages/McpServersOverlay.tsx
 #: src/pages/PluginsOverlay.tsx
 #: src/pages/ScratchpadSection.tsx
@@ -617,11 +622,13 @@ msgid "Add workspace"
 msgstr "Ajouter un espace de travail"
 
 #: src/components/integrations/plugin-marketplace.tsx
+#: src/components/integrations/RegistrySection.tsx
 #: src/pages/PluginsOverlay.tsx
 msgid "Added"
 msgstr "Ajouté"
 
 #: src/components/integrations/plugin-marketplace.tsx
+#: src/components/integrations/RegistrySection.tsx
 #: src/pages/McpServersOverlay.tsx
 #: src/pages/PluginsOverlay.tsx
 msgid "Adding…"
@@ -663,6 +670,10 @@ msgstr "La totalité des ${0} sert à l’utilisation des modèles."
 #: src/pages/shell/agent-import.tsx
 msgid "All bots"
 msgstr "Tous les bots"
+
+#: src/pages/shell/composer-run-mode.tsx
+msgid "All confirmations"
+msgstr ""
 
 #: src/components/integrations/space-availability.tsx
 msgid "All spaces"
@@ -741,6 +752,10 @@ msgstr "Toujours ouvrir {site}"
 msgid "An API key is stored for this provider, not a subscription sign-in."
 msgstr "Une clé API est enregistrée pour ce fournisseur, et non une connexion par abonnement."
 
+#: src/components/integrations/RegistrySection.tsx
+msgid "An app or tool you need here"
+msgstr ""
+
 #: src/pages/memory-providers/HonchoSettingsForm.tsx
 msgid "An existing Honcho peer to read from. Rakazo never writes to it."
 msgstr "Un pair Honcho existant à consulter. Rakazo n’y écrit jamais."
@@ -812,6 +827,10 @@ msgstr "En-tête de clé API"
 msgid "API keys"
 msgstr "Clés API"
 
+#: src/components/integrations/RegistrySection.tsx
+msgid "App or tool, e.g. Jira"
+msgstr ""
+
 #: src/pages/AccountSettingsOverlay.tsx
 msgid "Appearance"
 msgstr "Apparence"
@@ -878,6 +897,7 @@ msgid "Artifacts"
 msgstr "Artefacts"
 
 #: src/components/ApprovalRulesSettings.tsx
+#: src/pages/shell/composer-run-mode.tsx
 msgid "Ask"
 msgstr "Demander"
 
@@ -937,6 +957,7 @@ msgid "Authorize this server so agents can use its tools. A popup opens."
 msgstr "Autorisez ce serveur pour que les agents puissent utiliser ses outils. Une fenêtre contextuelle s'ouvre."
 
 #: src/components/ApprovalRulesSettings.tsx
+#: src/pages/shell/composer-run-mode.tsx
 msgid "Auto"
 msgstr "Auto"
 
@@ -1076,8 +1097,16 @@ msgstr ""
 msgid "Bots"
 msgstr "Bots"
 
+#: src/pages/shell/composer-run-mode.tsx
+msgid "Bots act without asking."
+msgstr ""
+
 #: src/components/ModelCredits.tsx
 msgid "Bots and browser automation"
+msgstr ""
+
+#: src/pages/shell/composer-run-mode.tsx
+msgid "Bots ask before actions they have not done before."
 msgstr ""
 
 #: src/pages/Paywall.tsx
@@ -1139,6 +1168,7 @@ msgstr "Ne peut pas lire les images"
 #: src/components/AskCard.tsx
 #: src/components/ComputerMaintenanceActions.tsx
 #: src/components/integrations/plugin-marketplace.tsx
+#: src/components/integrations/RegistrySection.tsx
 #: src/components/markdown-link-prompt.tsx
 #: src/components/PasskeySettings.tsx
 #: src/components/SpaceMembersSettings.tsx
@@ -1698,7 +1728,9 @@ msgid "Continue to checkout"
 msgstr ""
 
 #. placeholder {0}: reset.sso.name
+#. placeholder {0}: ssoOnly.name
 #: src/pages/Auth.tsx
+#: src/pages/Welcome.tsx
 msgid "Continue with {0}"
 msgstr "Continuer avec {0}"
 
@@ -1755,6 +1787,10 @@ msgstr "Coût"
 #: src/pages/ScratchpadSection.tsx
 msgid "Could not add"
 msgstr "Impossible d'ajouter"
+
+#: src/components/integrations/RegistrySection.tsx
+msgid "Could not add it"
+msgstr ""
 
 #: src/pages/McpServersOverlay.tsx
 msgid "Could not add MCP server"
@@ -1845,6 +1881,7 @@ msgstr "Impossible de se connecter à l'écran de l'ordinateur"
 #: src/lib/user-error.ts
 #: src/pages/Auth.tsx
 #: src/pages/shell/use-computer.tsx
+#: src/pages/Welcome.tsx
 msgid "Could not continue"
 msgstr "Impossible de continuer"
 
@@ -2141,6 +2178,7 @@ msgstr "Impossible d'exécuter la routine"
 #: src/pages/KnowledgeSection.tsx
 #: src/pages/McpServersOverlay.tsx
 #: src/pages/shell/bot-panel.tsx
+#: src/pages/shell/composer-run-mode.tsx
 #: src/pages/shell/dialogs.tsx
 #: src/pages/shell/use-space-roster.ts
 msgid "Could not save"
@@ -2194,6 +2232,10 @@ msgstr "Impossible d'enregistrer ce choix"
 #: src/pages/PluginsOverlay.tsx
 msgid "Could not search catalog"
 msgstr "Impossible de rechercher dans le catalogue"
+
+#: src/components/integrations/RegistrySection.tsx
+msgid "Could not send it"
+msgstr ""
 
 #: src/pages/Auth.tsx
 msgid "Could not send reset email"
@@ -2631,10 +2673,6 @@ msgstr ""
 msgid "Docker limits access to your computer for added security. Using {hostLabel} lets bots work with your local files and tools."
 msgstr "Docker limite l'accès à votre ordinateur pour une sécurité renforcée. Utiliser {hostLabel} permet aux bots de travailler avec vos fichiers et outils locaux."
 
-#: src/components/SidebarFooter.tsx
-msgid "Docs"
-msgstr "Documentation"
-
 #: src/pages/KnowledgeSection.tsx
 msgid "Document changed. Reopen to edit the latest version."
 msgstr "Le document a changé. Rouvrez-le pour modifier la dernière version."
@@ -3038,10 +3076,6 @@ msgstr "Général"
 msgid "Get a free month for each friend who starts a trial."
 msgstr "Obtenez un mois gratuit pour chaque ami qui commence un essai."
 
-#: src/components/SidebarFooter.tsx
-msgid "Get the mobile app"
-msgstr "Obtenir l’application mobile"
-
 #: src/components/ComputerUpdateProgress.tsx
 msgid "Getting ready"
 msgstr "Préparation en cours"
@@ -3159,6 +3193,10 @@ msgstr ""
 
 #: src/components/SignupSurvey.tsx
 msgid "How did you hear about us?"
+msgstr ""
+
+#: src/pages/shell/composer-run-mode.tsx
+msgid "How much bots ask before acting"
 msgstr ""
 
 #: src/pages/RoutineSchedule.tsx
@@ -3369,6 +3407,18 @@ msgstr "Aller au plus récent"
 #: src/pages/shell/chat-context.tsx
 msgid "Jump to replied message: {excerpt}"
 msgstr "Aller au message cité : {excerpt}"
+
+#: src/pages/shell/composer-run-mode.tsx
+msgid "Just go"
+msgstr ""
+
+#: src/pages/shell/composer-run-mode.tsx
+msgid "Just go is on"
+msgstr ""
+
+#: src/pages/shell/composer-run-mode.tsx
+msgid "Just go is on: bots act without asking"
+msgstr ""
 
 #: src/lib/relative-time.ts
 msgid "just now"
@@ -4171,6 +4221,10 @@ msgstr "Non utilisé par Rakazo"
 msgid "Not working"
 msgstr "Ne fonctionne pas"
 
+#: src/components/integrations/RegistrySection.tsx
+msgid "Nothing here yet. Ask for the app you need."
+msgstr ""
+
 #: src/pages/KnowledgeSection.tsx
 msgid "Nothing remembered yet"
 msgstr "Rien n'est mémorisé pour le moment"
@@ -4236,6 +4290,10 @@ msgstr "le {day} à {time}"
 msgid "on the 1st at {0}"
 msgstr "le 1er à {0}"
 
+#: src/components/integrations/RegistrySection.tsx
+msgid "Once it is added it shows here for everyone."
+msgstr ""
+
 #: src/lib/cron.ts
 msgid "One-time"
 msgstr "Ponctuel"
@@ -4252,7 +4310,9 @@ msgstr ""
 msgid "Open"
 msgstr "Ouvrir"
 
+#. placeholder {0}: entry.name
 #. placeholder {0}: headerName(group)
+#: src/components/integrations/RegistrySection.tsx
 #: src/pages/shell/sidebar-roster.tsx
 msgid "Open {0}"
 msgstr "Ouvrir {0}"
@@ -4901,6 +4961,10 @@ msgstr ""
 msgid "Replying to {0}"
 msgstr ""
 
+#: src/components/integrations/RegistrySection.tsx
+msgid "Request a connector"
+msgstr ""
+
 #: src/lib/user-error.ts
 msgid "Request a new code"
 msgstr "Demandez un nouveau code"
@@ -5048,6 +5112,10 @@ msgstr "Exécuter à"
 #: src/pages/RoutineRunHistory.tsx
 msgid "Run history"
 msgstr "Historique des exécutions"
+
+#: src/pages/shell/composer-run-mode.tsx
+msgid "Run mode"
+msgstr ""
 
 #: src/pages/shell/use-routine-editor.ts
 msgid "Run time must be in the future."
@@ -5278,6 +5346,10 @@ msgstr "L'envoyer"
 msgid "Send recording"
 msgstr "Envoyer l’enregistrement"
 
+#: src/components/integrations/RegistrySection.tsx
+msgid "Send request"
+msgstr ""
+
 #: src/pages/Auth.tsx
 msgid "Send reset link"
 msgstr "Envoyer le lien de réinitialisation"
@@ -5287,11 +5359,16 @@ msgid "Send with Enter"
 msgstr "Envoyer avec Entrée"
 
 #: src/components/AskCard.tsx
+#: src/components/integrations/RegistrySection.tsx
 msgid "Sending…"
 msgstr "Envoi en cours…"
 
 #: src/components/AskCard.tsx
 msgid "Sent"
+msgstr ""
+
+#: src/components/integrations/RegistrySection.tsx
+msgid "Sent to the team."
 msgstr ""
 
 #: src/pages/RoutineEditor.tsx
@@ -5418,6 +5495,7 @@ msgstr "Se connecter"
 
 #: src/components/AccountAccess.tsx
 #: src/components/ConfirmIdentityDialog.tsx
+#: src/components/integrations/RegistrySection.tsx
 #: src/lib/passkeys.ts
 #: src/lib/user-error.ts
 #: src/pages/model-settings/connection-controls.tsx
@@ -5453,6 +5531,14 @@ msgstr "S'inscrire"
 
 #: src/components/integrations/plugin-marketplace.tsx
 msgid "Sign-in cancelled. Try again."
+msgstr ""
+
+#: src/components/integrations/RegistrySection.tsx
+msgid "Signed in as you"
+msgstr ""
+
+#: src/components/integrations/RegistrySection.tsx
+msgid "Signed in as you · changes ask first"
 msgstr ""
 
 #: src/components/VaultSettings.tsx
@@ -5933,6 +6019,11 @@ msgstr "La fenêtre de contexte de ce modèle est trop petite. Choisissez un aut
 msgid "This month"
 msgstr "Ce mois-ci"
 
+#. js-lingui-explicit-id
+#: src/lib/run-error.ts
+msgid "This needs a computer, and computers are not set up yet."
+msgstr ""
+
 #: src/components/AccountAccess.tsx
 msgid "This permanently deletes your account and data."
 msgstr "Cela supprime définitivement votre compte et vos données."
@@ -6405,6 +6496,10 @@ msgstr "Que voulez-vous que je fasse en premier ?"
 #: src/components/teach/TeachComputerOverlay.tsx
 msgid "What result will you demonstrate?"
 msgstr "Quel résultat allez-vous démontrer ?"
+
+#: src/components/integrations/RegistrySection.tsx
+msgid "What should a bot do there? (optional)"
+msgstr ""
 
 #: src/pages/RoutineEditor.tsx
 msgid "What should this routine do each time it runs?"

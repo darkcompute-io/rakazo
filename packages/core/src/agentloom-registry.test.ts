@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { type ActionApprovalResolved, planActionGate } from "./action-approval.js";
-import { registryAlwaysAsks, registryEntries, registrySlug } from "./agentloom-registry.js";
+import {
+  registryAlwaysAsks,
+  registryEntries,
+  registryInfo,
+  registrySlug,
+} from "./agentloom-registry.js";
 
 const RAW = JSON.stringify([
   {
@@ -27,6 +32,13 @@ describe("AgentLoom registry", () => {
     expect(registryEntries(RAW).map((e) => e.id)).toEqual(["tasks", "proxmox"]);
     expect(registryEntries("not json")).toEqual([]);
     expect(registryEntries(undefined)).toEqual([]);
+  });
+
+  it("reads the titled form", () => {
+    const doc = JSON.stringify({ title: "Darkcompute apps", apps: JSON.parse(RAW) });
+    expect(registryInfo(doc).title).toBe("Darkcompute apps");
+    expect(registryInfo(doc).entries.map((e) => e.id)).toEqual(["tasks", "proxmox"]);
+    expect(registryInfo("[]")).toMatchObject({ title: "Apps", entries: [] });
   });
 
   it("slugs a registry app apart from the member's own connections", () => {

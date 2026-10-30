@@ -171,7 +171,7 @@ services:
       EMAIL_PROVIDER: ${EMAIL_PROVIDER}
       EMAIL_API_KEY: ${EMAIL_API_KEY}
       EMAIL_FROM: ${EMAIL_FROM}
-      AGENTLOOM_REGISTRY: '[]'
+      AGENTLOOM_REGISTRY: '{"title":"AgentLoom apps","apps":[]}'
     volumes:
     - appdata:/data
     networks:
@@ -240,7 +240,7 @@ services:
       CLOUD_AGENT_PROVIDER: none
       PAYMENT_WALLET_PROVIDER: none
       COMPOSIO_API_KEY: ${COMPOSIO_API_KEY}
-      AGENTLOOM_REGISTRY: '[]'
+      AGENTLOOM_REGISTRY: '{"title":"AgentLoom apps","apps":[]}'
     volumes:
     - appdata:/data
     networks:

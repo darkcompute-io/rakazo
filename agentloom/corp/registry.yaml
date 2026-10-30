@@ -1,15 +1,21 @@
-# agentloom.corp's one-click apps: the top of Integrations. gen-compose.py writes this into
-# the compose as AGENTLOOM_REGISTRY (packages/core/src/agentloom-registry.ts reads it).
+# agentloom.corp's own apps: a titled section at the top of Integrations, ending in
+# "Request a connector". gen-compose.py writes this into the compose as AGENTLOOM_REGISTRY
+# (packages/core/src/agentloom-registry.ts reads it).
 #
 # Each app's /api/mcp takes the member's own authentik token (provider agentloom-mcp), so a
 # bot can do only what that person can. Before an app is listed it vendors darkcompute
 # agentkit >= 0.3.0 person.mjs and sets MCP_OIDC_ISSUER/_AUDIENCE/_GROUPS.
 # askWrites: every tool not declared read-only asks a person, Just go included.
 #
-# Keys are a closed set (id, name, description, endpoint, open, icon, askWrites);
-# gen-compose.py stops on anything else.
-- id: tasks
-  name: Tasks
-  endpoint: https://tasks.corp.darkcompute.io/api/mcp
-  open: https://tasks.corp.darkcompute.io
-  description: The team's tasks, triage and goals, as you.
+# Keys are closed sets - top: title, request_url, apps; an app: id, name, description,
+# endpoint, open, icon, askWrites. gen-compose.py stops on anything else.
+title: Darkcompute apps
+# "Request a connector" lands in Tasks' triage; the dct_ token is in Coolify as
+# AGENTLOOM_CONNECTOR_REQUEST_TOKEN. Unset: no button.
+request_url: https://tasks.corp.darkcompute.io/api/capture
+apps:
+  - id: tasks
+    name: Tasks
+    endpoint: https://tasks.corp.darkcompute.io/api/mcp
+    open: https://tasks.corp.darkcompute.io
+    description: The team's tasks, triage and goals, as you.

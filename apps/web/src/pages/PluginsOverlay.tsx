@@ -70,7 +70,7 @@ import {
   pluginSelection,
   ROW_HOVER,
 } from "../components/integrations/plugin-marketplace";
-import { RegistryTiles } from "../components/integrations/RegistryTiles";
+import { RegistrySection } from "../components/integrations/RegistrySection";
 import {
   AvailabilityControl,
   AvailabilityLabel,
@@ -1672,6 +1672,7 @@ export function PluginsOverlay({
             renderBrowseMcp()
           ) : (
             <>
+              {showFeatured && !category ? <RegistrySection /> : null}
               {catalogLoaded && showFeatured && !category ? (
                 <div className="mb-6" data-testid="featured-connectors">
                   {catalog.length === 0 ? (
@@ -1715,7 +1716,6 @@ export function PluginsOverlay({
                           </div>
                         );
                       })}
-                      <RegistryTiles />
                     </div>
                   )}
                 </div>

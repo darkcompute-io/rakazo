@@ -1,3 +1,6 @@
-# app.agentloom.com's one-click apps: the top of Integrations. See corp/registry.yaml for
-# the keys. Empty: this instance has no authentik, and nothing is offered here yet.
-[]
+# app.agentloom.com's own apps: a titled section at the top of Integrations. See
+# corp/registry.yaml for the keys. No apps yet: with request_email set, the section is
+# just "Request a connector".
+title: AgentLoom apps
+# request_url: none yet - DMZ cannot reach CORP's Tasks, so there is no button here.
+apps: []

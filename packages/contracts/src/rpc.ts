@@ -1190,6 +1190,9 @@ export const appContract = {
   registry: {
     list: oc.output(
       z.object({
+        title: z.string(),
+        /** "Request a connector" has somewhere to go. */
+        requestable: z.boolean(),
         entries: z.array(
           z.object({
             id: z.string(),
@@ -1206,6 +1209,14 @@ export const appContract = {
     add: oc
       .input(z.object({ id: z.string().min(1).max(32) }))
       .output(z.object({ serverId: z.string() })),
+    request: oc
+      .input(
+        z.object({
+          app: z.string().trim().min(1).max(120),
+          why: z.string().trim().max(2000).default(""),
+        }),
+      )
+      .output(z.object({ ok: z.literal(true) })),
   },
   autoReview: {
     get: oc.input(settingsScopeInput.optional()).output(ActionAutoReviewSettingsSchema),

@@ -431,6 +431,10 @@ msgstr ""
 msgid "A command's output"
 msgstr "命令的輸出"
 
+#: src/pages/shell/composer-run-mode.tsx
+msgid "A model checks each new action instead of asking you."
+msgstr ""
+
 #. placeholder {0}: oauth.verificationUri.replace(/^https:\/\//, "")
 #: src/pages/model-settings/connection-controls.tsx
 #: src/pages/Onboarding.tsx
@@ -496,6 +500,7 @@ msgid "Activity"
 msgstr "動態"
 
 #: src/components/integrations/plugin-marketplace.tsx
+#: src/components/integrations/RegistrySection.tsx
 #: src/pages/McpServersOverlay.tsx
 #: src/pages/PluginsOverlay.tsx
 #: src/pages/ScratchpadSection.tsx
@@ -618,11 +623,13 @@ msgid "Add workspace"
 msgstr "新增工作區"
 
 #: src/components/integrations/plugin-marketplace.tsx
+#: src/components/integrations/RegistrySection.tsx
 #: src/pages/PluginsOverlay.tsx
 msgid "Added"
 msgstr "已新增"
 
 #: src/components/integrations/plugin-marketplace.tsx
+#: src/components/integrations/RegistrySection.tsx
 #: src/pages/McpServersOverlay.tsx
 #: src/pages/PluginsOverlay.tsx
 msgid "Adding…"
@@ -664,6 +671,10 @@ msgstr "全部 ${0} 都用於模型用量。"
 #: src/pages/shell/agent-import.tsx
 msgid "All bots"
 msgstr "所有機器人"
+
+#: src/pages/shell/composer-run-mode.tsx
+msgid "All confirmations"
+msgstr ""
 
 #: src/components/integrations/space-availability.tsx
 msgid "All spaces"
@@ -742,6 +753,10 @@ msgstr "一律開啟 {site}"
 msgid "An API key is stored for this provider, not a subscription sign-in."
 msgstr "此供應商儲存的是 API 金鑰，不是訂閱登入。"
 
+#: src/components/integrations/RegistrySection.tsx
+msgid "An app or tool you need here"
+msgstr ""
+
 #: src/pages/memory-providers/HonchoSettingsForm.tsx
 msgid "An existing Honcho peer to read from. Rakazo never writes to it."
 msgstr "用於讀取資料的現有 Honcho peer。Rakazo 絕不會向其寫入資料。"
@@ -813,6 +828,10 @@ msgstr "API 金鑰標頭"
 msgid "API keys"
 msgstr "API 金鑰"
 
+#: src/components/integrations/RegistrySection.tsx
+msgid "App or tool, e.g. Jira"
+msgstr ""
+
 #: src/pages/AccountSettingsOverlay.tsx
 msgid "Appearance"
 msgstr "外觀"
@@ -879,6 +898,7 @@ msgid "Artifacts"
 msgstr "成品"
 
 #: src/components/ApprovalRulesSettings.tsx
+#: src/pages/shell/composer-run-mode.tsx
 msgid "Ask"
 msgstr "詢問"
 
@@ -938,6 +958,7 @@ msgid "Authorize this server so agents can use its tools. A popup opens."
 msgstr "授權此伺服器，讓代理程式使用它的工具。接著會開啟彈出視窗。"
 
 #: src/components/ApprovalRulesSettings.tsx
+#: src/pages/shell/composer-run-mode.tsx
 msgid "Auto"
 msgstr "自動"
 
@@ -1077,9 +1098,17 @@ msgstr "兩者都有"
 msgid "Bots"
 msgstr "機器人"
 
+#: src/pages/shell/composer-run-mode.tsx
+msgid "Bots act without asking."
+msgstr ""
+
 #: src/components/ModelCredits.tsx
 msgid "Bots and browser automation"
 msgstr "機器人與瀏覽器自動化"
+
+#: src/pages/shell/composer-run-mode.tsx
+msgid "Bots ask before actions they have not done before."
+msgstr ""
 
 #: src/pages/Paywall.tsx
 msgid "Bots with their own computer and browser"
@@ -1140,6 +1169,7 @@ msgstr "無法讀取影像"
 #: src/components/AskCard.tsx
 #: src/components/ComputerMaintenanceActions.tsx
 #: src/components/integrations/plugin-marketplace.tsx
+#: src/components/integrations/RegistrySection.tsx
 #: src/components/markdown-link-prompt.tsx
 #: src/components/PasskeySettings.tsx
 #: src/components/SpaceMembersSettings.tsx
@@ -1699,7 +1729,9 @@ msgid "Continue to checkout"
 msgstr "繼續結帳"
 
 #. placeholder {0}: reset.sso.name
+#. placeholder {0}: ssoOnly.name
 #: src/pages/Auth.tsx
+#: src/pages/Welcome.tsx
 msgid "Continue with {0}"
 msgstr "透過 {0} 繼續"
 
@@ -1756,6 +1788,10 @@ msgstr "費用"
 #: src/pages/ScratchpadSection.tsx
 msgid "Could not add"
 msgstr "無法新增"
+
+#: src/components/integrations/RegistrySection.tsx
+msgid "Could not add it"
+msgstr ""
 
 #: src/pages/McpServersOverlay.tsx
 msgid "Could not add MCP server"
@@ -1846,6 +1882,7 @@ msgstr "無法連線至電腦螢幕"
 #: src/lib/user-error.ts
 #: src/pages/Auth.tsx
 #: src/pages/shell/use-computer.tsx
+#: src/pages/Welcome.tsx
 msgid "Could not continue"
 msgstr "無法繼續"
 
@@ -2142,6 +2179,7 @@ msgstr "無法執行例行任務"
 #: src/pages/KnowledgeSection.tsx
 #: src/pages/McpServersOverlay.tsx
 #: src/pages/shell/bot-panel.tsx
+#: src/pages/shell/composer-run-mode.tsx
 #: src/pages/shell/dialogs.tsx
 #: src/pages/shell/use-space-roster.ts
 msgid "Could not save"
@@ -2195,6 +2233,10 @@ msgstr "無法儲存此選擇"
 #: src/pages/PluginsOverlay.tsx
 msgid "Could not search catalog"
 msgstr "無法搜尋目錄"
+
+#: src/components/integrations/RegistrySection.tsx
+msgid "Could not send it"
+msgstr ""
 
 #: src/pages/Auth.tsx
 msgid "Could not send reset email"
@@ -2632,10 +2674,6 @@ msgstr "Docker 已設定，但電腦沒有回應。請確認沙箱管理服務�
 msgid "Docker limits access to your computer for added security. Using {hostLabel} lets bots work with your local files and tools."
 msgstr "Docker 限制對你電腦的存取，以提高安全性。使用 {hostLabel} 時，機器人可以處理你的本機檔案並使用本機工具。"
 
-#: src/components/SidebarFooter.tsx
-msgid "Docs"
-msgstr "說明文件"
-
 #: src/pages/KnowledgeSection.tsx
 msgid "Document changed. Reopen to edit the latest version."
 msgstr "文件已變更，請重新開啟以編輯最新版本。"
@@ -3039,10 +3077,6 @@ msgstr "一般"
 msgid "Get a free month for each friend who starts a trial."
 msgstr "每有一位朋友開始試用，你就能獲得一個月免費。"
 
-#: src/components/SidebarFooter.tsx
-msgid "Get the mobile app"
-msgstr "下載手機應用程式"
-
 #: src/components/ComputerUpdateProgress.tsx
 msgid "Getting ready"
 msgstr "正在準備"
@@ -3161,6 +3195,10 @@ msgstr "你的團隊有多大？"
 #: src/components/SignupSurvey.tsx
 msgid "How did you hear about us?"
 msgstr "你是如何知道我們的？"
+
+#: src/pages/shell/composer-run-mode.tsx
+msgid "How much bots ask before acting"
+msgstr ""
 
 #: src/pages/RoutineSchedule.tsx
 msgid "How often"
@@ -3370,6 +3408,18 @@ msgstr "跳到最新"
 #: src/pages/shell/chat-context.tsx
 msgid "Jump to replied message: {excerpt}"
 msgstr "跳轉到回覆的訊息：{excerpt}"
+
+#: src/pages/shell/composer-run-mode.tsx
+msgid "Just go"
+msgstr ""
+
+#: src/pages/shell/composer-run-mode.tsx
+msgid "Just go is on"
+msgstr ""
+
+#: src/pages/shell/composer-run-mode.tsx
+msgid "Just go is on: bots act without asking"
+msgstr ""
 
 #: src/lib/relative-time.ts
 msgid "just now"
@@ -4172,6 +4222,10 @@ msgstr "Rakazo 不使用"
 msgid "Not working"
 msgstr "無法正常工作"
 
+#: src/components/integrations/RegistrySection.tsx
+msgid "Nothing here yet. Ask for the app you need."
+msgstr ""
+
 #: src/pages/KnowledgeSection.tsx
 msgid "Nothing remembered yet"
 msgstr "尚無記憶"
@@ -4237,6 +4291,10 @@ msgstr "{day} 日 {time}"
 msgid "on the 1st at {0}"
 msgstr "每月 1 日 {0}"
 
+#: src/components/integrations/RegistrySection.tsx
+msgid "Once it is added it shows here for everyone."
+msgstr ""
+
 #: src/lib/cron.ts
 msgid "One-time"
 msgstr "一次性"
@@ -4253,7 +4311,9 @@ msgstr "單次購買，額度不會到期。"
 msgid "Open"
 msgstr "開啟"
 
+#. placeholder {0}: entry.name
 #. placeholder {0}: headerName(group)
+#: src/components/integrations/RegistrySection.tsx
 #: src/pages/shell/sidebar-roster.tsx
 msgid "Open {0}"
 msgstr "開啟 {0}"
@@ -4902,6 +4962,10 @@ msgstr "已取消回覆"
 msgid "Replying to {0}"
 msgstr "正在回覆 {0}"
 
+#: src/components/integrations/RegistrySection.tsx
+msgid "Request a connector"
+msgstr ""
+
 #: src/lib/user-error.ts
 msgid "Request a new code"
 msgstr "請重新獲取驗證碼"
@@ -5049,6 +5113,10 @@ msgstr "執行時間"
 #: src/pages/RoutineRunHistory.tsx
 msgid "Run history"
 msgstr "執行紀錄"
+
+#: src/pages/shell/composer-run-mode.tsx
+msgid "Run mode"
+msgstr ""
 
 #: src/pages/shell/use-routine-editor.ts
 msgid "Run time must be in the future."
@@ -5279,6 +5347,10 @@ msgstr "傳送"
 msgid "Send recording"
 msgstr "傳送錄製內容"
 
+#: src/components/integrations/RegistrySection.tsx
+msgid "Send request"
+msgstr ""
+
 #: src/pages/Auth.tsx
 msgid "Send reset link"
 msgstr "傳送重設連結"
@@ -5288,11 +5360,16 @@ msgid "Send with Enter"
 msgstr "按 Enter 傳送"
 
 #: src/components/AskCard.tsx
+#: src/components/integrations/RegistrySection.tsx
 msgid "Sending…"
 msgstr "正在傳送…"
 
 #: src/components/AskCard.tsx
 msgid "Sent"
+msgstr ""
+
+#: src/components/integrations/RegistrySection.tsx
+msgid "Sent to the team."
 msgstr ""
 
 #: src/pages/RoutineEditor.tsx
@@ -5419,6 +5496,7 @@ msgstr "登入"
 
 #: src/components/AccountAccess.tsx
 #: src/components/ConfirmIdentityDialog.tsx
+#: src/components/integrations/RegistrySection.tsx
 #: src/lib/passkeys.ts
 #: src/lib/user-error.ts
 #: src/pages/model-settings/connection-controls.tsx
@@ -5454,6 +5532,14 @@ msgstr "註冊"
 
 #: src/components/integrations/plugin-marketplace.tsx
 msgid "Sign-in cancelled. Try again."
+msgstr ""
+
+#: src/components/integrations/RegistrySection.tsx
+msgid "Signed in as you"
+msgstr ""
+
+#: src/components/integrations/RegistrySection.tsx
+msgid "Signed in as you · changes ask first"
 msgstr ""
 
 #: src/components/VaultSettings.tsx
@@ -5934,6 +6020,11 @@ msgstr "此模型的上下文視窗太小。請選擇其他模型。"
 msgid "This month"
 msgstr "本月"
 
+#. js-lingui-explicit-id
+#: src/lib/run-error.ts
+msgid "This needs a computer, and computers are not set up yet."
+msgstr ""
+
 #: src/components/AccountAccess.tsx
 msgid "This permanently deletes your account and data."
 msgstr "此操作將永久刪除你的帳號和資料。"
@@ -6406,6 +6497,10 @@ msgstr "你想讓我先做什麼？"
 #: src/components/teach/TeachComputerOverlay.tsx
 msgid "What result will you demonstrate?"
 msgstr "你要示範什麼結果？"
+
+#: src/components/integrations/RegistrySection.tsx
+msgid "What should a bot do there? (optional)"
+msgstr ""
 
 #: src/pages/RoutineEditor.tsx
 msgid "What should this routine do each time it runs?"

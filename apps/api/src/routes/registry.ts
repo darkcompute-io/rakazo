@@ -5,10 +5,18 @@
 // person's grant is the only credential, so a bot can do what they can.
 import { ORPCError } from "@orpc/server";
 import { McpServerConfigInput } from "@rakazo/contracts";
-import { registryEntries, registrySlug } from "@rakazo/core";
+import { registryEntries, registryInfo, registrySlug } from "@rakazo/core";
 import type { RouterContext } from "./context.js";
 
 const SCOPE = "openid profile email offline_access";
+
+/** Where "Request a connector" goes: a capture API taking { text, title, by, where } with a
+ * bearer token. On CORP that is Tasks' triage. Neither set: no button. */
+function requestSink(): { url: string; token: string } | null {
+  const url = process.env.AGENTLOOM_CONNECTOR_REQUEST_URL?.trim();
+  const token = process.env.AGENTLOOM_CONNECTOR_REQUEST_TOKEN?.trim();
+  return url?.startsWith("https://") && token ? { url, token } : null;
+}
 
 export function registryRoutes(ctx: RouterContext) {
   const { deps, authed, prepareMcpServer, insertMcpServer, announceMcpServer } = ctx;
@@ -16,7 +24,7 @@ export function registryRoutes(ctx: RouterContext) {
   return {
     registry: {
       list: authed.registry.list.handler(async ({ context }) => {
-        const entries = registryEntries();
+        const { title, entries } = registryInfo();
         const servers = await deps.prisma.mcpServer.findMany({
           where: {
             spaceId: context.actor.spaceId,
@@ -27,6 +35,8 @@ export function registryRoutes(ctx: RouterContext) {
         });
         const bySlug = new Map(servers.map((server) => [server.slug, server.id]));
         return {
+          title,
+          requestable: requestSink() !== null,
           entries: entries.map((entry) => ({
             id: entry.id,
             name: entry.name,
@@ -88,6 +98,37 @@ export function registryRoutes(ctx: RouterContext) {
           });
         }
         return { serverId: server.id };
+      }),
+      request: authed.registry.request.handler(async ({ context, input }) => {
+        const sink = requestSink();
+        if (!sink) {
+          throw new ORPCError("PRECONDITION_FAILED", { message: "Requests are not set up here." });
+        }
+        const user = await deps.prisma.user.findUnique({
+          where: { id: context.actor.userId },
+          select: { name: true, email: true },
+        });
+        const who = user?.email ?? user?.name ?? context.actor.userId;
+        const host = new URL(deps.env.webOrigin).host;
+        const response = await fetch(sink.url, {
+          method: "POST",
+          headers: { authorization: `Bearer ${sink.token}`, "content-type": "application/json" },
+          body: JSON.stringify({
+            title: `Connector request: ${input.app}`,
+            text: `${who} asked on ${host} for a connector: ${input.app}.${input.why ? `\n\n${input.why}` : ""}`,
+            by: who,
+            where: host,
+            ext: `connector:${context.actor.userId}:${input.app.toLowerCase().slice(0, 60)}`,
+          }),
+          redirect: "error",
+          signal: AbortSignal.timeout(10_000),
+        }).catch(() => null);
+        if (!response?.ok) {
+          throw new ORPCError("BAD_GATEWAY", {
+            message: "The request did not go through. Try again.",
+          });
+        }
+        return { ok: true as const };
       }),
     },
   };
