@@ -25,7 +25,6 @@ import { ActivityList } from "../ActivityList";
 import { SpaceSearchResults } from "../SpaceSearch";
 import type { SettingsSection } from "../shell-overlay";
 import { SidebarHeader } from "./sidebar-header";
-import { SidebarProjects } from "./sidebar-projects";
 import type { SidebarSearch } from "./use-sidebar-search";
 
 type User = { name?: string | null; email?: string; image?: string | null };
@@ -241,9 +240,7 @@ export function ShellSidebar({
               {roster}
             </>
           )}
-          <div className={mini ? "hidden" : "contents"}>
-            <SidebarProjects />
-          </div>
+          <div className={mini ? "hidden" : "contents"}></div>
           <div className={mini ? "hidden" : "contents"}>{archived}</div>
         </div>
         <div className={mini ? "hidden" : "contents"}>

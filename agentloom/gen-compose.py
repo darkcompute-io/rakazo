@@ -36,6 +36,8 @@ COMMON = {
     "RAKAZO_COMPUTER_IMAGE_TAG": tag,
     "SIGNUPS_ENABLED": "true",
     "SANDBOX_PROVIDER": "docker",
+    # Auto Review on for everyone who has not chosen: the deployment's model judges a
+    # fetch to a new site instead of stopping to ask, which a sub-agent cannot do.
     # Umami: the tag agentloom/Dockerfile adds loads from and posts to this origin,
     # and the app's CSP allows nothing outside 'self' unless named here.
     # Both instances: the image is one, and its data-domains counts app.agentloom.com only.
@@ -66,25 +68,11 @@ CORP = {
     # corp-caddy
     "TRUSTED_PROXIES": "local-networks,10.56.30.243",
 }
-# Projects: Gitea and its MCP server beside the app, on the internal data network only.
-PROJECTS_ENV = {
-    "GITEA_URL": "http://gitea:3000",
-    "GITEA_ADMIN_USER": "agentloom",
-    "GITEA_ADMIN_PASSWORD": "${GITEA_ADMIN_PASSWORD}",
-    "GITEA_MCP_URL": "http://gitea-mcp:8080/mcp",
-    # Only this origin may be a private MCP endpoint; MCP_ALLOW_PRIVATE_ENDPOINT stays off.
-    "AGENTLOOM_PRIVATE_MCP_ORIGINS": "http://gitea-mcp:8080",
-}
-GITEA_IMAGE = "docker.gitea.com/gitea:1.24.6-rootless@sha256:91f2b27e080739f0d19dba716c3214f17257c632cf762e545b44ca577e37052c"
-GITEA_MCP_IMAGE = "docker.gitea.com/gitea-mcp-server@sha256:ccdb5660ecdf54c5e480f10cc8120ba2bf150b582cea8a1974de2e59883582d3"
-# The repo and file tools a bot needs, and nothing else (no pull requests, wiki or Gitea's own
-# kanban "projects", which would be confused with ours). Mirrored in apps/api/src/routes/projects.ts.
-GITEA_TOOLS = "create_repo,list_my_repos,get_repository_tree,get_file_contents,get_dir_contents,create_or_update_file,list_commits"
 # Values the deployer holds. Named here, never written; a name an instance's deployer
 # does not hold is empty there.
 SECRET = {"POSTGRES_PASSWORD", "POSTGRES_APP_PASSWORD", "BETTER_AUTH_SECRET", "ENCRYPTION_KEY",
           "SCREEN_PROXY_SECRET", "SANDBOX_SUPERVISOR_TOKEN",
-          "EMAIL_PROVIDER", "EMAIL_API_KEY", "EMAIL_FROM", "GITEA_ADMIN_PASSWORD",
+          "EMAIL_PROVIDER", "EMAIL_API_KEY", "EMAIL_FROM",
           # The deployment-wide model: a run with no key of its own uses this one.
           "OPENROUTER_API_KEY",
           # Connect apps: Composio holds each member's app logins (Gmail, Slack, ...).
@@ -97,7 +85,7 @@ CORP_SECRET = {"OIDC_CLIENT_ID", "OIDC_CLIENT_SECRET", "WATCH_DB_PASSWORD", "WAT
                "WATCH_OIDC_CLIENT_SECRET", "WATCH_COOKIE_SECRET",
                # the registry's authentik client (agentloom-mcp): a person's token for each app
                "AGENTLOOM_MCP_CLIENT_ID", "AGENTLOOM_MCP_CLIENT_SECRET"}
-REGISTRY_KEYS = {"id", "name", "description", "endpoint", "open", "icon", "auth", "askWrites"}
+REGISTRY_KEYS = {"id", "name", "description", "endpoint", "open", "icon", "askWrites"}
 
 
 def registry(path: Path) -> list:
@@ -114,13 +102,11 @@ def registry(path: Path) -> list:
         if not re.fullmatch(r"[a-z][a-z0-9-]{0,31}", str(e.get("id", ""))) or e["id"] in seen:
             raise SystemExit(f"{path}: bad or repeated id {e.get('id')!r}")
         seen.add(e["id"])
-        if e.get("auth") not in ("person", "projects"):
-            raise SystemExit(f"{path}: {e['id']}: auth is person or projects")
+        if "endpoint" not in e:
+            raise SystemExit(f"{path}: {e['id']}: endpoint is required")
         for k in ("endpoint", "open", "icon"):
             if k in e and not str(e[k]).startswith("https://"):
                 raise SystemExit(f"{path}: {e['id']}: {k} must be https")
-        if e["auth"] == "person" and "endpoint" not in e:
-            raise SystemExit(f"{path}: {e['id']}: a person app needs its endpoint")
     return entries
 REF = re.compile(r"\$\{([A-Za-z_][A-Za-z0-9_]*)(?::([-?])((?:[^{}]|\{[^{}]*\})*))?\}")
 
@@ -175,67 +161,20 @@ def build(host: str, sets: dict, dst: Path, header: str, corp: bool) -> None:
             svc["healthcheck"]["test"] = sub(t) if isinstance(t, str) else [sub(x) for x in t]
         svc.pop("ports", None)  # nothing listens on the host's address but the door below
         if name in ("api", "worker"):
-            svc.setdefault("environment", {}).update(PROJECTS_ENV)
             apps = registry(dst.parent / "registry.yaml")
-            svc["environment"]["AGENTLOOM_REGISTRY"] = json.dumps(apps, separators=(",", ":"))
+            env = svc.setdefault("environment", {})
+            env["AGENTLOOM_REGISTRY"] = json.dumps(apps, separators=(",", ":"))
             if corp:
-                # Each registry app is on CORP too, so its origin is a private MCP endpoint.
+                # Only these origins may be a private MCP endpoint; MCP_ALLOW_PRIVATE_ENDPOINT
+                # stays off. Each registry app is on CORP too, so its origin joins them.
                 own = [urlsplit(e["endpoint"])._replace(path="", query="", fragment="").geturl()
-                       for e in apps if e.get("endpoint")]
-                svc["environment"]["AGENTLOOM_PRIVATE_MCP_ORIGINS"] = ",".join(dict.fromkeys(
-                    [PROJECTS_ENV["AGENTLOOM_PRIVATE_MCP_ORIGINS"], *CORP_PRIVATE_MCP_ORIGINS, *own]))
+                       for e in apps]
+                env["AGENTLOOM_PRIVATE_MCP_ORIGINS"] = ",".join(
+                    dict.fromkeys([*CORP_PRIVATE_MCP_ORIGINS, *own]))
                 if name == "api":
-                    svc["environment"]["AGENTLOOM_MCP_CLIENT_ID"] = "${AGENTLOOM_MCP_CLIENT_ID}"
-                    svc["environment"]["AGENTLOOM_MCP_CLIENT_SECRET"] = "${AGENTLOOM_MCP_CLIENT_SECRET}"
+                    env["AGENTLOOM_MCP_CLIENT_ID"] = "${AGENTLOOM_MCP_CLIENT_ID}"
+                    env["AGENTLOOM_MCP_CLIENT_SECRET"] = "${AGENTLOOM_MCP_CLIENT_SECRET}"
         services[name] = svc
-
-    gitea_volumes = ["giteadata:/var/lib/gitea", "giteaconfig:/etc/gitea"]
-    gitea_env = {
-        "GITEA__security__INSTALL_LOCK": "true",
-        "GITEA__service__DISABLE_REGISTRATION": "true",
-        "GITEA__service__REQUIRE_SIGNIN_VIEW": "true",
-        "GITEA__database__DB_TYPE": "sqlite3",
-        "GITEA__server__ROOT_URL": "http://gitea:3000/",
-        "GITEA__server__OFFLINE_MODE": "true",
-        "GITEA__repository__DEFAULT_PRIVATE": "private",
-        # Coolify adds every service to its own network too, so Gitea can reach out at the
-        # network level; close every way it would: migrations, mirrors and webhooks.
-        "GITEA__repository__DISABLE_MIGRATIONS": "true",
-        "GITEA__mirror__ENABLED": "false",
-        "GITEA__webhook__ALLOWED_HOST_LIST": "loopback",
-    }
-    services["gitea"] = {
-        "image": GITEA_IMAGE,
-        "restart": "unless-stopped",
-        "environment": gitea_env,
-        "volumes": gitea_volumes,
-        "networks": ["data"],
-    }
-    # Makes the admin account the api acts through, once; a rerun finds it and stops.
-    services["gitea-init"] = {
-        "image": GITEA_IMAGE,
-        "restart": "no",
-        "environment": {**gitea_env, "GITEA_ADMIN_PASSWORD": "${GITEA_ADMIN_PASSWORD}"},
-        "volumes": gitea_volumes,
-        "networks": ["data"],
-        "depends_on": ["gitea"],
-        "entrypoint": ["/bin/sh", "-c"],
-        "command": [
-            "for i in $$(seq 60); do gitea admin user list >/dev/null 2>&1 && break; sleep 2; done; "
-            "gitea admin user list | grep -qw agentloom || gitea admin user create --admin "
-            "--username agentloom --email admin@agentloom.local --password \"$$GITEA_ADMIN_PASSWORD\" "
-            "--must-change-password=false"
-        ],
-    }
-    services["gitea-mcp"] = {
-        "image": GITEA_MCP_IMAGE,
-        "restart": "unless-stopped",
-        "command": ["/app/gitea-mcp", "-t", "http", "--port", "8080", "-H", "http://gitea:3000"],
-        "environment": {"GITEA_TOOLS": GITEA_TOOLS},
-        "networks": ["data"],
-        "depends_on": ["gitea"],
-    }
-    doc.setdefault("volumes", {}).update({"giteadata": None, "giteaconfig": None})
 
     if corp:
         # corp-caddy terminates TLS and proxies the host's :80.

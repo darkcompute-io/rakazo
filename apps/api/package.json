@@ -30,10 +30,8 @@
     "@rakazo/db": "workspace:*",
     "@rakazo/logging": "workspace:*",
     "@rakazo/memory": "workspace:*",
-    "docx": "9.7.1",
     "fflate": "0.8.3",
     "hono": "4.13.14",
-    "marked": "15.0.12",
     "mermaid": "11.17.2"
   },
   "devDependencies": {

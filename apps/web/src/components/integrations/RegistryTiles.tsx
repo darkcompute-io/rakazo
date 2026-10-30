@@ -12,7 +12,6 @@ import { errorText } from "../../lib/user-error";
  * AgentLoom: this instance's own apps, tiles in the featured grid of Integrations.
  * Add makes the connection in this space and signs in as you (an authentik popup that
  * passes straight through when you are already signed in); the bots then act as you.
- * Projects is set up on its own and only shows here as added.
  */
 export function RegistryTiles() {
   const { t } = useLingui();
@@ -40,7 +39,7 @@ export function RegistryTiles() {
   return (
     <>
       {(list.data?.entries ?? []).map((entry) => {
-        const added = entry.auth === "projects" || entry.serverId !== null;
+        const added = entry.serverId !== null;
         const busy = pending === entry.id;
         return (
           <div
@@ -70,9 +69,7 @@ export function RegistryTiles() {
                   ? error.text
                   : entry.askWrites
                     ? t`Signed in as you · changes ask first`
-                    : entry.auth === "projects"
-                      ? t`Shared with this space`
-                      : t`Signed in as you`}
+                    : t`Signed in as you`}
               </div>
             </div>
             {entry.open ? (
@@ -88,22 +85,16 @@ export function RegistryTiles() {
                 <ExternalLink />
               </Button>
             ) : null}
-            {entry.auth === "projects" ? (
-              <Button type="button" variant="secondary" size="sm" disabled>
-                <Trans>Added</Trans>
-              </Button>
-            ) : (
-              <Button
-                type="button"
-                variant="secondary"
-                size="sm"
-                disabled={busy}
-                title={added ? t`Sign in again` : undefined}
-                onClick={() => void add(entry.id, entry.serverId)}
-              >
-                {busy ? <Trans>Adding…</Trans> : added ? <Trans>Added</Trans> : <Trans>Add</Trans>}
-              </Button>
-            )}
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              disabled={busy}
+              title={added ? t`Sign in again` : undefined}
+              onClick={() => void add(entry.id, entry.serverId)}
+            >
+              {busy ? <Trans>Adding…</Trans> : added ? <Trans>Added</Trans> : <Trans>Add</Trans>}
+            </Button>
           </div>
         );
       })}

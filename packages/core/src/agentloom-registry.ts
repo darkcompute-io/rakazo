@@ -3,19 +3,17 @@
 // agentloom/corp/registry.yaml for CORP), which agentloom/gen-compose.py writes into the
 // compose as AGENTLOOM_REGISTRY, so one image serves both.
 //
-// auth "person": the app's /api/mcp takes the member's own authentik token, asked for
-// through the instance's pre-registered client (AGENTLOOM_MCP_CLIENT_ID/_SECRET), so a
-// bot can do only what that person can. auth "projects": the space's own Gitea (projects.ts).
-// askWrites: a tool not declared read-only asks a person in every mode, Just go included.
+// Each app's /api/mcp takes the member's own authentik token, asked for through the
+// instance's pre-registered client (AGENTLOOM_MCP_CLIENT_ID/_SECRET), so a bot can do
+// only what that person can. askWrites: a tool not declared read-only asks a person in every mode, Just go included.
 
 export type RegistryEntry = {
   id: string;
   name: string;
   description: string;
-  endpoint: string | null;
+  endpoint: string;
   open: string | null;
   icon: string | null;
-  auth: "person" | "projects";
   askWrites: boolean;
 };
 
@@ -23,7 +21,7 @@ const ID = /^[a-z][a-z0-9-]{0,31}$/;
 
 /** The connection slug a registry entry's MCP server is stored under. */
 export function registrySlug(id: string): string {
-  return id === "projects" ? "projects" : `dc-${id}`;
+  return `dc-${id}`;
 }
 
 let cached: { raw: string | undefined; entries: RegistryEntry[] } | undefined;
@@ -42,12 +40,10 @@ export function registryEntries(
   const entries = (Array.isArray(parsed) ? parsed : []).flatMap((e): RegistryEntry[] => {
     if (!e || typeof e !== "object") return [];
     const r = e as Record<string, unknown>;
-    const auth = r.auth === "projects" ? "projects" : r.auth === "person" ? "person" : null;
     const id = typeof r.id === "string" ? r.id : "";
     const endpoint =
       typeof r.endpoint === "string" && /^https:\/\//.test(r.endpoint) ? r.endpoint : null;
-    if (!ID.test(id) || !auth || typeof r.name !== "string") return [];
-    if (auth === "person" && !endpoint) return [];
+    if (!ID.test(id) || !endpoint || typeof r.name !== "string") return [];
     return [
       {
         id,
@@ -56,7 +52,6 @@ export function registryEntries(
         endpoint,
         open: typeof r.open === "string" && /^https:\/\//.test(r.open) ? r.open : null,
         icon: typeof r.icon === "string" && /^https:\/\//.test(r.icon) ? r.icon : null,
-        auth,
         askWrites: r.askWrites === true,
       },
     ];

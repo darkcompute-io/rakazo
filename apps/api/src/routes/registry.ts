@@ -1,8 +1,8 @@
 // AgentLoom: the instance's one-click apps (packages/core agentloom-registry.ts). Add makes
 // the member's connection to the app in this space, signed in as them through the instance's
-// pre-registered authentik client, and puts it on every bot in the space the way Projects
-// does; the page then runs the ordinary MCP OAuth popup for it. Nothing here holds a token
-// of the app's own: the person's grant is the only credential, so a bot can do what they can.
+// pre-registered authentik client, and puts it on every bot in the space; the page then runs
+// the ordinary MCP OAuth popup for it. Nothing here holds a token of the app's own: the
+// person's grant is the only credential, so a bot can do what they can.
 import { ORPCError } from "@orpc/server";
 import { McpServerConfigInput } from "@rakazo/contracts";
 import { registryEntries, registrySlug } from "@rakazo/core";
@@ -33,7 +33,6 @@ export function registryRoutes(ctx: RouterContext) {
             description: entry.description,
             open: entry.open,
             icon: entry.icon,
-            auth: entry.auth,
             askWrites: entry.askWrites,
             serverId: bySlug.get(registrySlug(entry.id)) ?? null,
           })),
@@ -42,7 +41,7 @@ export function registryRoutes(ctx: RouterContext) {
       add: authed.registry.add.handler(async ({ context, input }) => {
         const actor = context.actor;
         const entry = registryEntries().find((e) => e.id === input.id);
-        if (!entry || entry.auth !== "person" || !entry.endpoint) {
+        if (!entry) {
           throw new ORPCError("NOT_FOUND", { message: "That app is not offered here." });
         }
         const clientId = process.env.AGENTLOOM_MCP_CLIENT_ID?.trim();
