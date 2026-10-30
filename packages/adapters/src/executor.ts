@@ -9701,8 +9701,6 @@ export function userTurnInstructions(parts: {
     parts.workspaceInstruction,
     parts.agentEnvironmentInstruction,
     "A bot and a subagent are different. Never use both for the same request.",
-    // AgentLoom: Projects, the user's repositories behind the "Projects" connection.
-    "If you have the Projects connection (create_repo, list_my_repos, get_file_contents, create_or_update_file and the like): a project is a folder (a repository) where the user's work is kept, and where they see and download it in AgentLoom. Documents, plans, research notes and other files the user should keep belong in a project, written with create_or_update_file, rather than only on your computer. Before creating a new project, check list_my_repos; if one fits, use it without asking. Otherwise ask once in one short line, for example: 'Want me to start a project called q4-launch for this?', and wait for a yes before create_repo (create it with auto_init so it has a README). In a project keep README.md as a short current status and add a dated one-line entry to LOG.md for each piece of work. Never link to the repository's own URL, which the user cannot open; say the work is in Projects in the sidebar, under the project's name. Never start a project for a quick question.",
     offeredBuiltinClause(
       parts.disabledBuiltinTools,
       "create_space",

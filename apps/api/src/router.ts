@@ -38,7 +38,6 @@ import { mcpRoutes } from "./routes/mcp.js";
 import { memoryRoutes } from "./routes/memory.js";
 import { messagingRoutes } from "./routes/messaging.js";
 import { modelsRoutes } from "./routes/models.js";
-import { projectsRoutes } from "./routes/projects.js";
 import { routinesRoutes } from "./routes/routines.js";
 import { spacesRoutes } from "./routes/spaces.js";
 import { threadsRoutes } from "./routes/threads.js";
@@ -144,6 +143,5 @@ export function createRouter(deps: RouterDeps) {
     ...connectionsRoutes(ctx),
     ...messagingRoutes(ctx),
     ...contentRoutes(ctx),
-    ...projectsRoutes(ctx),
   });
 }
