@@ -178,11 +178,35 @@ services:
       EMAIL_PROVIDER: ${EMAIL_PROVIDER}
       EMAIL_API_KEY: ${EMAIL_API_KEY}
       EMAIL_FROM: ${EMAIL_FROM}
-      AGENTLOOM_REGISTRY: '{"title":"Darkcompute apps","apps":[{"id":"tasks","name":"Tasks","endpoint":"https://tasks.corp.darkcompute.io/api/mcp","open":"https://tasks.corp.darkcompute.io","description":"The
-        team''s tasks, triage and goals, as you."}]}'
+      AGENTLOOM_REGISTRY: '{"title":"Darkcompute apps","apps":[{"id":"agents","name":"Agents hub","endpoint":"https://agents.corp.darkcompute.io/mcp","open":"https://agents.corp.darkcompute.io","description":"Every
+        app''s agent, and the approvals waiting on a person."},{"id":"tasks","name":"Tasks","endpoint":"https://tasks.corp.darkcompute.io/api/mcp","open":"https://tasks.corp.darkcompute.io","description":"The
+        team''s tasks, triage and goals."},{"id":"calendar","name":"Calendar","endpoint":"https://calendar.corp.darkcompute.io/api/mcp","open":"https://calendar.corp.darkcompute.io","description":"The
+        company calendar - events, series and invitations."},{"id":"me","name":"Me","endpoint":"https://me.corp.darkcompute.io/api/mcp","open":"https://me.corp.darkcompute.io","description":"One
+        person''s day - schedule, invitations and what needs them."},{"id":"inbox","name":"Inbox","endpoint":"https://inbox.corp.darkcompute.io/api/mcp","open":"https://inbox.corp.darkcompute.io","description":"Everyone''s
+        mail - read, summarise, draft and send."},{"id":"mail","name":"Mail admin","endpoint":"https://mail.corp.darkcompute.io/api/mcp","open":"https://mail.corp.darkcompute.io","description":"Migadu
+        domains, addresses and inboxes, and the mail gateways."},{"id":"drive","name":"Drive","endpoint":"https://drive.corp.darkcompute.io/api/mcp","open":"https://drive.corp.darkcompute.io","description":"Files
+        and folders, shared by space."},{"id":"library","name":"Library","endpoint":"https://library.corp.darkcompute.io/api/mcp","open":"https://library.corp.darkcompute.io","description":"What
+        agents and people have found out, kept as documents."},{"id":"research","name":"Research","endpoint":"https://research.corp.darkcompute.io/api/mcp","open":"https://research.corp.darkcompute.io","description":"Ask
+        a question and get a sourced answer."},{"id":"books","name":"Books","endpoint":"https://books.corp.darkcompute.io/api/mcp","open":"https://books.corp.darkcompute.io","description":"Bookkeeping
+        - ledgers, bills, payroll and reports."},{"id":"timesheets","name":"Timesheets","endpoint":"https://timesheets.corp.darkcompute.io/api/mcp","open":"https://timesheets.corp.darkcompute.io","description":"Timesheets
+        and invoices."},{"id":"portal","name":"Portal","endpoint":"https://chat.darkcompute.io/api/mcp","open":"https://chat.darkcompute.io","description":"The
+        employee portal - members, apps, timesheets and invoices."},{"id":"helm","name":"Helm","endpoint":"https://helm.corp.darkcompute.io/api/mcp","open":"https://helm.corp.darkcompute.io","description":"Every
+        app a person may open."},{"id":"marketing","name":"Marketing","endpoint":"https://marketing.corp.darkcompute.io/api/mcp","open":"https://marketing.corp.darkcompute.io","description":"Scheduler,
+        studio and library, per brand workspace."},{"id":"viral","name":"Viral","endpoint":"https://viral.corp.darkcompute.io/api/mcp","open":"https://viral.corp.darkcompute.io","description":"Short
+        videos from the social platforms, with their numbers."},{"id":"video","name":"Video","endpoint":"https://video.corp.darkcompute.io/api/mcp","open":"https://video.corp.darkcompute.io","description":"Shotboard
+        films and renders."},{"id":"recorder","name":"Recorder","endpoint":"https://recorder.corp.darkcompute.io/api/mcp","open":"https://recorder.corp.darkcompute.io","description":"Walkthrough
+        recordings, sites and guides."},{"id":"code","name":"Code","endpoint":"https://code.corp.darkcompute.io/api/mcp","open":"https://code.corp.darkcompute.io","description":"Every
+        mirrored repository, and an agent to work in it."},{"id":"test","name":"Test","endpoint":"https://test.corp.darkcompute.io/api/mcp","open":"https://test.corp.darkcompute.io","description":"Say
+        what to test and a tester runs it."},{"id":"jarvis","name":"Jarvis","endpoint":"https://jarvis.corp.darkcompute.io/api/mcp","open":"https://jarvis.corp.darkcompute.io","description":"The
+        scheduler and router over every app."},{"id":"inference","name":"Inference","endpoint":"https://inference.corp.darkcompute.io/api/mcp","open":"https://inference.corp.darkcompute.io","description":"Model
+        endpoints, pools, keys and runs."},{"id":"gpu","name":"GPU tests","endpoint":"https://gpu.corp.darkcompute.io/api/mcp","open":"https://gpu.corp.darkcompute.io","description":"GPU
+        tests - the card, the setup and the result."},{"id":"training","name":"Training","endpoint":"https://training.corp.darkcompute.io/api/mcp","open":"https://training.corp.darkcompute.io","description":"Train
+        and evaluate models."},{"id":"spaces","name":"Spaces","endpoint":"https://spaces.darkcompute.io/api/mcp","open":"https://spaces.darkcompute.io","description":"Chats
+        kept by topic."},{"id":"flow","name":"Flow","endpoint":"https://flow.corp.darkcompute.io/api/mcp","open":"https://flow.corp.darkcompute.io","description":"The
+        map of every app, its agents and how they connect."}]}'
       AGENTLOOM_CONNECTOR_REQUEST_URL: https://tasks.corp.darkcompute.io/api/capture
       AGENTLOOM_CONNECTOR_REQUEST_TOKEN: ${AGENTLOOM_CONNECTOR_REQUEST_TOKEN}
-      AGENTLOOM_PRIVATE_MCP_ORIGINS: https://agents.corp.darkcompute.io,https://tasks.corp.darkcompute.io
+      AGENTLOOM_PRIVATE_MCP_ORIGINS: https://agents.corp.darkcompute.io,https://tasks.corp.darkcompute.io,https://calendar.corp.darkcompute.io,https://me.corp.darkcompute.io,https://inbox.corp.darkcompute.io,https://mail.corp.darkcompute.io,https://drive.corp.darkcompute.io,https://library.corp.darkcompute.io,https://research.corp.darkcompute.io,https://books.corp.darkcompute.io,https://timesheets.corp.darkcompute.io,https://chat.darkcompute.io,https://helm.corp.darkcompute.io,https://marketing.corp.darkcompute.io,https://viral.corp.darkcompute.io,https://video.corp.darkcompute.io,https://recorder.corp.darkcompute.io,https://code.corp.darkcompute.io,https://test.corp.darkcompute.io,https://jarvis.corp.darkcompute.io,https://inference.corp.darkcompute.io,https://gpu.corp.darkcompute.io,https://training.corp.darkcompute.io,https://spaces.darkcompute.io,https://flow.corp.darkcompute.io
       AGENTLOOM_MCP_CLIENT_ID: ${AGENTLOOM_MCP_CLIENT_ID}
       AGENTLOOM_MCP_CLIENT_SECRET: ${AGENTLOOM_MCP_CLIENT_SECRET}
     volumes:
@@ -253,9 +277,33 @@ services:
       CLOUD_AGENT_PROVIDER: none
       PAYMENT_WALLET_PROVIDER: none
       COMPOSIO_API_KEY: ${COMPOSIO_API_KEY}
-      AGENTLOOM_REGISTRY: '{"title":"Darkcompute apps","apps":[{"id":"tasks","name":"Tasks","endpoint":"https://tasks.corp.darkcompute.io/api/mcp","open":"https://tasks.corp.darkcompute.io","description":"The
-        team''s tasks, triage and goals, as you."}]}'
-      AGENTLOOM_PRIVATE_MCP_ORIGINS: https://agents.corp.darkcompute.io,https://tasks.corp.darkcompute.io
+      AGENTLOOM_REGISTRY: '{"title":"Darkcompute apps","apps":[{"id":"agents","name":"Agents hub","endpoint":"https://agents.corp.darkcompute.io/mcp","open":"https://agents.corp.darkcompute.io","description":"Every
+        app''s agent, and the approvals waiting on a person."},{"id":"tasks","name":"Tasks","endpoint":"https://tasks.corp.darkcompute.io/api/mcp","open":"https://tasks.corp.darkcompute.io","description":"The
+        team''s tasks, triage and goals."},{"id":"calendar","name":"Calendar","endpoint":"https://calendar.corp.darkcompute.io/api/mcp","open":"https://calendar.corp.darkcompute.io","description":"The
+        company calendar - events, series and invitations."},{"id":"me","name":"Me","endpoint":"https://me.corp.darkcompute.io/api/mcp","open":"https://me.corp.darkcompute.io","description":"One
+        person''s day - schedule, invitations and what needs them."},{"id":"inbox","name":"Inbox","endpoint":"https://inbox.corp.darkcompute.io/api/mcp","open":"https://inbox.corp.darkcompute.io","description":"Everyone''s
+        mail - read, summarise, draft and send."},{"id":"mail","name":"Mail admin","endpoint":"https://mail.corp.darkcompute.io/api/mcp","open":"https://mail.corp.darkcompute.io","description":"Migadu
+        domains, addresses and inboxes, and the mail gateways."},{"id":"drive","name":"Drive","endpoint":"https://drive.corp.darkcompute.io/api/mcp","open":"https://drive.corp.darkcompute.io","description":"Files
+        and folders, shared by space."},{"id":"library","name":"Library","endpoint":"https://library.corp.darkcompute.io/api/mcp","open":"https://library.corp.darkcompute.io","description":"What
+        agents and people have found out, kept as documents."},{"id":"research","name":"Research","endpoint":"https://research.corp.darkcompute.io/api/mcp","open":"https://research.corp.darkcompute.io","description":"Ask
+        a question and get a sourced answer."},{"id":"books","name":"Books","endpoint":"https://books.corp.darkcompute.io/api/mcp","open":"https://books.corp.darkcompute.io","description":"Bookkeeping
+        - ledgers, bills, payroll and reports."},{"id":"timesheets","name":"Timesheets","endpoint":"https://timesheets.corp.darkcompute.io/api/mcp","open":"https://timesheets.corp.darkcompute.io","description":"Timesheets
+        and invoices."},{"id":"portal","name":"Portal","endpoint":"https://chat.darkcompute.io/api/mcp","open":"https://chat.darkcompute.io","description":"The
+        employee portal - members, apps, timesheets and invoices."},{"id":"helm","name":"Helm","endpoint":"https://helm.corp.darkcompute.io/api/mcp","open":"https://helm.corp.darkcompute.io","description":"Every
+        app a person may open."},{"id":"marketing","name":"Marketing","endpoint":"https://marketing.corp.darkcompute.io/api/mcp","open":"https://marketing.corp.darkcompute.io","description":"Scheduler,
+        studio and library, per brand workspace."},{"id":"viral","name":"Viral","endpoint":"https://viral.corp.darkcompute.io/api/mcp","open":"https://viral.corp.darkcompute.io","description":"Short
+        videos from the social platforms, with their numbers."},{"id":"video","name":"Video","endpoint":"https://video.corp.darkcompute.io/api/mcp","open":"https://video.corp.darkcompute.io","description":"Shotboard
+        films and renders."},{"id":"recorder","name":"Recorder","endpoint":"https://recorder.corp.darkcompute.io/api/mcp","open":"https://recorder.corp.darkcompute.io","description":"Walkthrough
+        recordings, sites and guides."},{"id":"code","name":"Code","endpoint":"https://code.corp.darkcompute.io/api/mcp","open":"https://code.corp.darkcompute.io","description":"Every
+        mirrored repository, and an agent to work in it."},{"id":"test","name":"Test","endpoint":"https://test.corp.darkcompute.io/api/mcp","open":"https://test.corp.darkcompute.io","description":"Say
+        what to test and a tester runs it."},{"id":"jarvis","name":"Jarvis","endpoint":"https://jarvis.corp.darkcompute.io/api/mcp","open":"https://jarvis.corp.darkcompute.io","description":"The
+        scheduler and router over every app."},{"id":"inference","name":"Inference","endpoint":"https://inference.corp.darkcompute.io/api/mcp","open":"https://inference.corp.darkcompute.io","description":"Model
+        endpoints, pools, keys and runs."},{"id":"gpu","name":"GPU tests","endpoint":"https://gpu.corp.darkcompute.io/api/mcp","open":"https://gpu.corp.darkcompute.io","description":"GPU
+        tests - the card, the setup and the result."},{"id":"training","name":"Training","endpoint":"https://training.corp.darkcompute.io/api/mcp","open":"https://training.corp.darkcompute.io","description":"Train
+        and evaluate models."},{"id":"spaces","name":"Spaces","endpoint":"https://spaces.darkcompute.io/api/mcp","open":"https://spaces.darkcompute.io","description":"Chats
+        kept by topic."},{"id":"flow","name":"Flow","endpoint":"https://flow.corp.darkcompute.io/api/mcp","open":"https://flow.corp.darkcompute.io","description":"The
+        map of every app, its agents and how they connect."}]}'
+      AGENTLOOM_PRIVATE_MCP_ORIGINS: https://agents.corp.darkcompute.io,https://tasks.corp.darkcompute.io,https://calendar.corp.darkcompute.io,https://me.corp.darkcompute.io,https://inbox.corp.darkcompute.io,https://mail.corp.darkcompute.io,https://drive.corp.darkcompute.io,https://library.corp.darkcompute.io,https://research.corp.darkcompute.io,https://books.corp.darkcompute.io,https://timesheets.corp.darkcompute.io,https://chat.darkcompute.io,https://helm.corp.darkcompute.io,https://marketing.corp.darkcompute.io,https://viral.corp.darkcompute.io,https://video.corp.darkcompute.io,https://recorder.corp.darkcompute.io,https://code.corp.darkcompute.io,https://test.corp.darkcompute.io,https://jarvis.corp.darkcompute.io,https://inference.corp.darkcompute.io,https://gpu.corp.darkcompute.io,https://training.corp.darkcompute.io,https://spaces.darkcompute.io,https://flow.corp.darkcompute.io
     volumes:
     - appdata:/data
     networks:
