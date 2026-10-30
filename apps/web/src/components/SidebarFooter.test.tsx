@@ -141,8 +141,6 @@ it("opens integrations and keeps the existing account actions and links", async 
   const menu = document.querySelector('[data-slot="popover-content"]')!;
   expect([...menu.querySelectorAll("button, a")].map((row) => row.textContent)).toEqual([
     "Usage",
-    "Get the mobile app",
-    "Docs",
     "Board",
     "Artifacts",
     "Settings",
@@ -159,15 +157,11 @@ it("omits Board when unavailable", async () => {
   );
 });
 
-it("offers the existing Android download on Android", async () => {
+it("links to none of upstream's sites (AgentLoom)", async () => {
   vi.spyOn(navigator, "userAgent", "get").mockReturnValue("Android");
   await render();
-  const mobile = [...document.querySelectorAll("a")].find(
-    (link) => link.textContent === "Get the mobile app",
-  )!;
-  expect(mobile.href).toBe(
-    "https://github.com/elie222/rakazo/releases/download/android/rakazo.apk",
-  );
+  const hrefs = [...document.querySelectorAll("a")].map((link) => link.href);
+  expect(hrefs.filter((href) => /rakazo|elie222/.test(href))).toEqual([]);
 });
 
 it("falls back when app artwork fails and accepts replacement artwork", async () => {
