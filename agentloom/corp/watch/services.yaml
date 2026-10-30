@@ -1,0 +1,77 @@
+# agentloom-watch, merged into compose.yaml by gen-compose.py. Published as
+# agentloom-watch.corp.darkcompute.io by corp-caddy, to this guest's :8091,
+# which is oauth2-proxy: authentik application darkcompute-agentloom-watch,
+# authentik Admins only. watch itself has no port and believes identity
+# headers only from the proxy's fixed address.
+services:
+  watch-init:
+    image: agentloom-watch:local
+    build: {context: ./watch}
+    pull_policy: build
+    command: [python3, /app/watch.py, init]
+    restart: 'no'
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      WATCH_DB_PASSWORD: ${WATCH_DB_PASSWORD}
+    networks: [data]
+    depends_on:
+      api: {condition: service_healthy}
+  watch:
+    image: agentloom-watch:local
+    build: {context: ./watch}
+    pull_policy: build
+    restart: unless-stopped
+    read_only: true
+    security_opt: [no-new-privileges:true]
+    cap_drop: [ALL]
+    mem_limit: 128m
+    environment:
+      WATCH_DB_PASSWORD: ${WATCH_DB_PASSWORD}
+      WATCH_ORIGIN: https://agentloom-watch.corp.darkcompute.io
+      TRUSTED_PROXY: 10.231.70.10
+    volumes: [watchdata:/data]
+    networks:
+      data: {}
+      watch: {ipv4_address: 10.231.70.20}
+    healthcheck:
+      test: [CMD, python3, -c, "import urllib.request;urllib.request.urlopen('http://127.0.0.1:8080/health',timeout=3)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    depends_on:
+      watch-init: {condition: service_completed_successfully}
+  watch-proxy:
+    image: quay.io/oauth2-proxy/oauth2-proxy:v7.12.0
+    restart: unless-stopped
+    ports: ['8091:4180']
+    environment:
+      OAUTH2_PROXY_PROVIDER: oidc
+      OAUTH2_PROXY_PROVIDER_DISPLAY_NAME: authentik
+      OAUTH2_PROXY_OIDC_ISSUER_URL: https://auth.darkcompute.io/application/o/darkcompute-agentloom-watch/
+      OAUTH2_PROXY_CLIENT_ID: ${WATCH_OIDC_CLIENT_ID}
+      OAUTH2_PROXY_CLIENT_SECRET: ${WATCH_OIDC_CLIENT_SECRET}
+      OAUTH2_PROXY_COOKIE_SECRET: ${WATCH_COOKIE_SECRET}
+      OAUTH2_PROXY_COOKIE_SECURE: 'true'
+      OAUTH2_PROXY_COOKIE_NAME: _agentloom_watch
+      OAUTH2_PROXY_REDIRECT_URL: https://agentloom-watch.corp.darkcompute.io/oauth2/callback
+      OAUTH2_PROXY_HTTP_ADDRESS: 0.0.0.0:4180
+      OAUTH2_PROXY_UPSTREAMS: http://10.231.70.20:8080
+      OAUTH2_PROXY_EMAIL_DOMAINS: '*'
+      OAUTH2_PROXY_SCOPE: openid email profile
+      OAUTH2_PROXY_OIDC_GROUPS_CLAIM: groups
+      OAUTH2_PROXY_ALLOWED_GROUPS: authentik Admins
+      # authentik sends email_verified: false for every account; the group is the gate
+      OAUTH2_PROXY_INSECURE_OIDC_ALLOW_UNVERIFIED_EMAIL: 'true'
+      OAUTH2_PROXY_PASS_USER_HEADERS: 'true'
+      OAUTH2_PROXY_REVERSE_PROXY: 'true'
+      OAUTH2_PROXY_SKIP_PROVIDER_BUTTON: 'true'
+      OAUTH2_PROXY_CODE_CHALLENGE_METHOD: S256
+      OAUTH2_PROXY_SESSION_COOKIE_MINIMAL: 'true'
+    networks:
+      watch: {ipv4_address: 10.231.70.10}
+volumes:
+  watchdata: null
+networks:
+  watch:
+    ipam:
+      config: [{subnet: 10.231.70.0/24}]

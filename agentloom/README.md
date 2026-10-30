@@ -1,6 +1,7 @@
-# AgentLoom for customers
+# AgentLoom
 
-**app.agentloom.com.** This repository is our copy of
+**app.agentloom.com** for customers, and **agentloom.corp.darkcompute.io** for us:
+one branch, one image, two instances. This repository is our copy of
 [elie222/rakazo](https://github.com/elie222/rakazo), and this directory is
 everything that makes it AgentLoom. Outside `agentloom/`, every file is upstream's
 or a change we chose to make to it.
@@ -27,18 +28,19 @@ secret goes in the deployer's env before the merge is deployed.
 
 ## How it runs
 
-`agentloom/compose.yaml` is generated, so don't hand-edit it.
+`agentloom/gen-compose.py <tag>` writes both composes, so don't hand-edit either.
 
-- **Image:** `app-base` builds upstream's `infra/compose/Dockerfile` unchanged, and `agentloom/Dockerfile` puts the name on it. api, worker and web run that one image.
-- **Sign-in:** email and password, with open sign-up.
-- **Computers:** E2B (`SANDBOX_PROVIDER=e2b`). The docker supervisor and its docker socket are dropped.
-- **The way in:** cloudflared reaches `web:5173`, and no port is published.
+| | `compose.yaml` (DMZ) | `corp/compose.yaml` (CORP) |
+|---|---|---|
+| Name | app.agentloom.com | agentloom.corp.darkcompute.io |
+| Sign-in | email and password, open sign-up | authentik only (slug `darkcompute-rakazo`) |
+| Way in | cloudflared, no host port | corp-caddy to the host's `:80` |
+| Computers | docker, behind Rakazo's egress lock | docker |
+| Extra | | agentloom-watch (`corp/watch`) on `:8091` |
 
-It is deployed by Coolify, with base directory `/agentloom` and compose file
-`/compose.yaml`. Coolify resolves a build context from the base directory, not
-from the compose file's own directory, so with base `/` the `..` in
-`app-base`'s context points above the repository and the build fails with
-`lstat /artifacts/infra`.
+- **Image:** each plane's runner builds this branch (`runner/`) and pushes to the registry on its app host; api, worker, web and the supervisor run it.
+- **Projects:** Gitea and its MCP server run beside the app on the internal network, in both.
+- **Deploy:** Coolify on each plane, from this repository's `agentloom` branch, base directory `/agentloom` (DMZ) or `/agentloom/corp` (CORP), compose file `/compose.yaml`. The runner calls the deploy; a push alone deploys nothing.
 
 ## Actions
 
