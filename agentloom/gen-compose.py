@@ -17,8 +17,9 @@ commit and pushed to the registry on that instance's host; neither host builds.
 
 Run it after every merge from upstream, and commit what it writes.
 """
-import re, sys
+import json, re, sys
 from pathlib import Path
+from urllib.parse import urlsplit
 import yaml
 
 HERE = Path(__file__).resolve().parent
@@ -93,7 +94,34 @@ SECRET = {"POSTGRES_PASSWORD", "POSTGRES_APP_PASSWORD", "BETTER_AUTH_SECRET", "E
 CORP_PRIVATE_MCP_ORIGINS = ["https://agents.corp.darkcompute.io"]
 # corp's only: the authentik client, and agentloom-watch's.
 CORP_SECRET = {"OIDC_CLIENT_ID", "OIDC_CLIENT_SECRET", "WATCH_DB_PASSWORD", "WATCH_OIDC_CLIENT_ID",
-               "WATCH_OIDC_CLIENT_SECRET", "WATCH_COOKIE_SECRET"}
+               "WATCH_OIDC_CLIENT_SECRET", "WATCH_COOKIE_SECRET",
+               # the registry's authentik client (agentloom-mcp): a person's token for each app
+               "AGENTLOOM_MCP_CLIENT_ID", "AGENTLOOM_MCP_CLIENT_SECRET"}
+REGISTRY_KEYS = {"id", "name", "description", "endpoint", "open", "icon", "auth", "askWrites"}
+
+
+def registry(path: Path) -> list:
+    """The instance's one-click apps (packages/core agentloom-registry.ts). Closed key set,
+    https only, ids unique: a bad file stops the generator rather than shipping half a list."""
+    if not path.exists():
+        return []
+    entries = yaml.safe_load(path.read_text(encoding="utf-8")) or []
+    seen = set()
+    for e in entries:
+        extra = set(e) - REGISTRY_KEYS
+        if extra:
+            raise SystemExit(f"{path}: {e.get('id')}: unknown keys {sorted(extra)}")
+        if not re.fullmatch(r"[a-z][a-z0-9-]{0,31}", str(e.get("id", ""))) or e["id"] in seen:
+            raise SystemExit(f"{path}: bad or repeated id {e.get('id')!r}")
+        seen.add(e["id"])
+        if e.get("auth") not in ("person", "projects"):
+            raise SystemExit(f"{path}: {e['id']}: auth is person or projects")
+        for k in ("endpoint", "open", "icon"):
+            if k in e and not str(e[k]).startswith("https://"):
+                raise SystemExit(f"{path}: {e['id']}: {k} must be https")
+        if e["auth"] == "person" and "endpoint" not in e:
+            raise SystemExit(f"{path}: {e['id']}: a person app needs its endpoint")
+    return entries
 REF = re.compile(r"\$\{([A-Za-z_][A-Za-z0-9_]*)(?::([-?])((?:[^{}]|\{[^{}]*\})*))?\}")
 
 
@@ -148,9 +176,17 @@ def build(host: str, sets: dict, dst: Path, header: str, corp: bool) -> None:
         svc.pop("ports", None)  # nothing listens on the host's address but the door below
         if name in ("api", "worker"):
             svc.setdefault("environment", {}).update(PROJECTS_ENV)
+            apps = registry(dst.parent / "registry.yaml")
+            svc["environment"]["AGENTLOOM_REGISTRY"] = json.dumps(apps, separators=(",", ":"))
             if corp:
-                svc["environment"]["AGENTLOOM_PRIVATE_MCP_ORIGINS"] = ",".join(
-                    [PROJECTS_ENV["AGENTLOOM_PRIVATE_MCP_ORIGINS"], *CORP_PRIVATE_MCP_ORIGINS])
+                # Each registry app is on CORP too, so its origin is a private MCP endpoint.
+                own = [urlsplit(e["endpoint"])._replace(path="", query="", fragment="").geturl()
+                       for e in apps if e.get("endpoint")]
+                svc["environment"]["AGENTLOOM_PRIVATE_MCP_ORIGINS"] = ",".join(dict.fromkeys(
+                    [PROJECTS_ENV["AGENTLOOM_PRIVATE_MCP_ORIGINS"], *CORP_PRIVATE_MCP_ORIGINS, *own]))
+                if name == "api":
+                    svc["environment"]["AGENTLOOM_MCP_CLIENT_ID"] = "${AGENTLOOM_MCP_CLIENT_ID}"
+                    svc["environment"]["AGENTLOOM_MCP_CLIENT_SECRET"] = "${AGENTLOOM_MCP_CLIENT_SECRET}"
         services[name] = svc
 
     gitea_volumes = ["giteadata:/var/lib/gitea", "giteaconfig:/etc/gitea"]

@@ -70,6 +70,7 @@ import {
   pluginSelection,
   ROW_HOVER,
 } from "../components/integrations/plugin-marketplace";
+import { RegistryTiles } from "../components/integrations/RegistryTiles";
 import {
   AvailabilityControl,
   AvailabilityLabel,
@@ -1714,6 +1715,7 @@ export function PluginsOverlay({
                           </div>
                         );
                       })}
+                      <RegistryTiles />
                     </div>
                   )}
                 </div>

@@ -1,0 +1,21 @@
+# agentloom.corp's one-click apps: the top of Integrations. gen-compose.py writes this into
+# the compose as AGENTLOOM_REGISTRY (packages/core/src/agentloom-registry.ts reads it).
+#
+#   auth: person    the app's /api/mcp takes the member's own authentik token
+#                   (provider agentloom-mcp), so a bot can do only what that person can.
+#                   The app must vendor darkcompute agentkit >= 0.3.0 person.mjs and set
+#                   MCP_OIDC_ISSUER/_AUDIENCE/_GROUPS before it is listed here.
+#   auth: projects  the space's own Gitea (apps/api/src/routes/projects.ts).
+#   askWrites       every tool not declared read-only asks a person, Just go included.
+#
+# Keys are a closed set; gen-compose.py stops on anything else.
+- id: projects
+  name: Projects
+  auth: projects
+  description: This space's folders, where bots keep documents, files, status and a log.
+- id: tasks
+  name: Tasks
+  auth: person
+  endpoint: https://tasks.corp.darkcompute.io/api/mcp
+  open: https://tasks.corp.darkcompute.io
+  description: The team's tasks, triage and goals, as you.

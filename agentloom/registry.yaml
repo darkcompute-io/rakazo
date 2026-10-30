@@ -1,0 +1,6 @@
+# app.agentloom.com's one-click apps: the top of Integrations. See corp/registry.yaml for
+# the keys; this instance has no authentik, so it offers only what needs no sign-in.
+- id: projects
+  name: Projects
+  auth: projects
+  description: This space's folders, where bots keep documents, files, status and a log.

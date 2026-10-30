@@ -535,6 +535,8 @@ export function planActionGate(input: {
   mode: ApprovalMode;
   /** Needs a person whatever the rules say (see toolRequiresExplicitApproval). */
   mandatory?: boolean;
+  /** AgentLoom: a write into a registry app marked askWrites asks in every mode, Just go included. */
+  alwaysAsk?: boolean;
   /** The owner did not start this run, or outside content entered it. */
   steerable?: boolean;
   consequential: boolean;
@@ -548,6 +550,7 @@ export function planActionGate(input: {
   newDestination?: boolean;
 }): "ask" | "allow" | "judge" | "deny" {
   if (input.resolved.decision === "deny") return "deny";
+  if (input.alwaysAsk) return "ask";
   if (input.mandatory) {
     if (input.mode !== "never") return "ask";
     return input.steerable ? "deny" : "allow";

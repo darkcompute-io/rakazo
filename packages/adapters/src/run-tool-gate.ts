@@ -20,6 +20,7 @@ import {
   outboundSiteGate,
   planActionGate,
   redactSecrets,
+  registryAlwaysAsks,
   resolveActionApprovalForTools,
   toolRequiresApproval,
   toolRequiresExplicitApproval,
@@ -284,6 +285,9 @@ export async function gateToolCall(
           resolved: approvalResolved,
           mode,
           mandatory: requiresMandatoryApproval,
+          alwaysAsk: approvalToolNames.some((toolName) =>
+            registryAlwaysAsks(toolName, declaredReadOnlyFor(toolName)),
+          ),
           steerable:
             requiresMandatoryApproval && mode === "never"
               ? !ctx.source.ownerStartedRun || (await isRunTainted(ctx))

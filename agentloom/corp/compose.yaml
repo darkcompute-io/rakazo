@@ -182,7 +182,12 @@ services:
       GITEA_ADMIN_USER: agentloom
       GITEA_ADMIN_PASSWORD: ${GITEA_ADMIN_PASSWORD}
       GITEA_MCP_URL: http://gitea-mcp:8080/mcp
-      AGENTLOOM_PRIVATE_MCP_ORIGINS: http://gitea-mcp:8080,https://agents.corp.darkcompute.io
+      AGENTLOOM_PRIVATE_MCP_ORIGINS: http://gitea-mcp:8080,https://agents.corp.darkcompute.io,https://tasks.corp.darkcompute.io
+      AGENTLOOM_REGISTRY: '[{"id":"projects","name":"Projects","auth":"projects","description":"This space''s
+        folders, where bots keep documents, files, status and a log."},{"id":"tasks","name":"Tasks","auth":"person","endpoint":"https://tasks.corp.darkcompute.io/api/mcp","open":"https://tasks.corp.darkcompute.io","description":"The
+        team''s tasks, triage and goals, as you."}]'
+      AGENTLOOM_MCP_CLIENT_ID: ${AGENTLOOM_MCP_CLIENT_ID}
+      AGENTLOOM_MCP_CLIENT_SECRET: ${AGENTLOOM_MCP_CLIENT_SECRET}
     volumes:
     - appdata:/data
     networks:
@@ -255,7 +260,10 @@ services:
       GITEA_ADMIN_USER: agentloom
       GITEA_ADMIN_PASSWORD: ${GITEA_ADMIN_PASSWORD}
       GITEA_MCP_URL: http://gitea-mcp:8080/mcp
-      AGENTLOOM_PRIVATE_MCP_ORIGINS: http://gitea-mcp:8080,https://agents.corp.darkcompute.io
+      AGENTLOOM_PRIVATE_MCP_ORIGINS: http://gitea-mcp:8080,https://agents.corp.darkcompute.io,https://tasks.corp.darkcompute.io
+      AGENTLOOM_REGISTRY: '[{"id":"projects","name":"Projects","auth":"projects","description":"This space''s
+        folders, where bots keep documents, files, status and a log."},{"id":"tasks","name":"Tasks","auth":"person","endpoint":"https://tasks.corp.darkcompute.io/api/mcp","open":"https://tasks.corp.darkcompute.io","description":"The
+        team''s tasks, triage and goals, as you."}]'
     volumes:
     - appdata:/data
     networks:

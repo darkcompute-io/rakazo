@@ -1186,6 +1186,28 @@ export const appContract = {
       .input(z.object({ site: z.string().min(1).max(253) }))
       .output(z.object({ ok: z.literal(true) })),
   },
+  // AgentLoom: this instance's one-click apps (packages/core agentloom-registry.ts).
+  registry: {
+    list: oc.output(
+      z.object({
+        entries: z.array(
+          z.object({
+            id: z.string(),
+            name: z.string(),
+            description: z.string(),
+            open: z.string().nullable(),
+            icon: z.string().nullable(),
+            auth: z.enum(["person", "projects"]),
+            askWrites: z.boolean(),
+            serverId: z.string().nullable(),
+          }),
+        ),
+      }),
+    ),
+    add: oc
+      .input(z.object({ id: z.string().min(1).max(32) }))
+      .output(z.object({ serverId: z.string() })),
+  },
   // AgentLoom: Projects are the member's Gitea repositories, kept by their bots.
   projects: {
     list: oc.output(
