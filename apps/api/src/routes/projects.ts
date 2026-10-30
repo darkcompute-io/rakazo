@@ -1,8 +1,9 @@
-// AgentLoom: Projects. Each member has a Gitea account the app makes for them;
-// a project is one of its repositories. Bots reach it through Gitea's own MCP
-// server (a "Projects" connection registered and assigned here, carrying the
-// member's token), and the app reads it through the admin account acting as
-// the member (Gitea's Sudo header), so no member token is needed to browse.
+// AgentLoom: Projects. Each space has a Gitea account the app makes for it; a
+// project is one of its repositories, so everyone in a shared space sees the same
+// projects and who may is exactly who is in the space. Bots reach it through Gitea's
+// own MCP server (each member's "Projects" connection in the space, carrying a token
+// for the space's account), and the app reads it through the admin account acting as
+// that account (Gitea's Sudo header).
 import { createHash, randomBytes } from "node:crypto";
 import { ORPCError } from "@orpc/server";
 import type { Actor } from "@rakazo/contracts";
@@ -37,8 +38,13 @@ function giteaConfig(): Gitea | null {
     : null;
 }
 
-/** A stable Gitea username for a member: their ids are mixed case, Gitea's are not. */
-export function giteaUsername(userId: string): string {
+/** A stable Gitea username for a space: ids are mixed case, Gitea's are not. */
+export function spaceAccount(spaceId: string): string {
+  return `sp-${createHash("sha256").update(spaceId).digest("hex").slice(0, 16)}`;
+}
+
+/** Where a member's projects lived before projects belonged to a space. */
+function legacyMemberAccount(userId: string): string {
   return `al-${createHash("sha256").update(userId).digest("hex").slice(0, 16)}`;
 }
 
@@ -79,8 +85,8 @@ async function giteaJson<T>(
   return (await response.json()) as T;
 }
 
-/** Make the member's Gitea account if missing, and return a fresh token for it. */
-async function mintMemberToken(g: Gitea, username: string): Promise<string> {
+/** Make the space's Gitea account if missing, and return a fresh token for it. */
+async function mintAccountToken(g: Gitea, username: string): Promise<string> {
   const password = randomBytes(24).toString("base64url");
   const existing = await gitea(g, `/users/${username}`);
   if (existing.status === 404) {
@@ -115,21 +121,55 @@ async function mintMemberToken(g: Gitea, username: string): Promise<string> {
 }
 
 export function projectsRoutes(ctx: RouterContext) {
-  const { deps, authed, prepareMcpServer, insertMcpServer, announceMcpServer } = ctx;
+  const {
+    deps,
+    authed,
+    prepareMcpServer,
+    insertMcpServer,
+    announceMcpServer,
+    removeMcpServerInTransaction,
+  } = ctx;
 
-  /** The member's Gitea account, Projects connection, and its assignment to every bot of theirs. */
+  /** A member's projects from before they belonged to a space move into their personal space. */
+  async function adoptLegacyProjects(g: Gitea, actor: Actor, username: string) {
+    const space = await deps.prisma.space.findUnique({
+      where: { id: actor.spaceId },
+      select: { isDefault: true },
+    });
+    if (!space?.isDefault) return;
+    const legacy = legacyMemberAccount(actor.userId);
+    const response = await gitea(g, `/users/${legacy}/repos?limit=50`);
+    if (!response.ok) return;
+    for (const r of (await response.json()) as { name: string }[]) {
+      // An admin's transfer is immediate; a name the space already holds stays where it is.
+      await gitea(g, `/repos/${legacy}/${encodeURIComponent(r.name)}/transfer`, {
+        method: "POST",
+        body: { new_owner: username },
+      });
+    }
+  }
+
+  /** The space's Gitea account, the member's Projects connection to it, and that connection on
+   * every bot in the space: a run uses the sender's connections, whoever owns the bot. */
   async function ensureProjects(g: Gitea, actor: Actor): Promise<string> {
-    const username = giteaUsername(actor.userId);
+    const username = spaceAccount(actor.spaceId);
     let server = await deps.prisma.mcpServer.findFirst({
       where: { spaceId: actor.spaceId, userId: actor.userId, slug: SLUG },
     });
+    if (server && !server.description?.includes(username)) {
+      // A connection from before projects belonged to the space: it points at the member's
+      // own account, so it is replaced.
+      const old = server;
+      await deps.prisma.$transaction((tx) => removeMcpServerInTransaction(tx, actor, old));
+      server = null;
+    }
     if (!server) {
-      const token = await mintMemberToken(g, username);
+      const token = await mintAccountToken(g, username);
+      await adoptLegacyProjects(g, actor, username).catch(() => undefined);
       const input = McpServerConfigInput.parse({
         slug: SLUG,
         name: "Projects",
-        description:
-          "The user's projects: folders (repositories) where bots keep documents, files, status and a log.",
+        description: `This space's projects (${username}): folders (repositories) where bots keep documents, files, status and a log.`,
         enabled: true,
         transport: "streamable_http",
         endpoint: g.mcpUrl,
@@ -151,7 +191,7 @@ export function projectsRoutes(ctx: RouterContext) {
       skipDuplicates: true,
     });
     const bots = await deps.prisma.bot.findMany({
-      where: { spaceId: actor.spaceId, userId: actor.userId, archivedAt: null },
+      where: { spaceId: actor.spaceId, archivedAt: null },
       select: { id: true },
     });
     if (bots.length) {
@@ -222,7 +262,7 @@ export function projectsRoutes(ctx: RouterContext) {
 
       get: authed.projects.get.handler(async ({ context, input }) => {
         const g = requireGitea();
-        const username = giteaUsername(context.actor.userId);
+        const username = spaceAccount(context.actor.spaceId);
         const r = await repo(g, username, input.name);
         const base = `/repos/${username}/${encodeURIComponent(r.name)}`;
         if (r.empty) {
@@ -269,7 +309,7 @@ export function projectsRoutes(ctx: RouterContext) {
 
       file: authed.projects.file.handler(async ({ context, input }) => {
         const g = requireGitea();
-        const username = giteaUsername(context.actor.userId);
+        const username = spaceAccount(context.actor.spaceId);
         const path = input.path.split("/").map(encodeURIComponent).join("/");
         const response = await gitea(
           g,
@@ -292,7 +332,7 @@ export function projectsRoutes(ctx: RouterContext) {
 
       download: authed.projects.download.handler(async ({ context, input }) => {
         const g = requireGitea();
-        const username = giteaUsername(context.actor.userId);
+        const username = spaceAccount(context.actor.spaceId);
         const r = await repo(g, username, input.name);
         const base = `/repos/${username}/${encodeURIComponent(r.name)}`;
         const one = input.path?.split("/").map(encodeURIComponent).join("/");
