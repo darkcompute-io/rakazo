@@ -44,8 +44,8 @@ secret goes in the deployer's env before the merge is deployed.
 | Computers | docker, behind Rakazo's egress lock | docker |
 | Extra | | agentloom-watch (`corp/watch`) on `:8091` |
 
+- **Tools:** a bot reaches anything beyond chat through an MCP connection, never a feature in the app; corp may reach the darkcompute agents hub (`AGENTLOOM_PRIVATE_MCP_ORIGINS`).
 - **Image:** each plane's runner builds this branch (`runner/`) and pushes to the registry on its app host; api, worker, web and the supervisor run it.
-- **Projects:** Gitea and its MCP server run beside the app on the internal network, in both.
 - **Deploy:** Coolify on each plane, from this repository's `agentloom` branch, base directory `/agentloom` (DMZ) or `/agentloom/corp` (CORP), compose file `/compose.yaml`. The runner calls the deploy; a push alone deploys nothing.
 
 ## Actions
