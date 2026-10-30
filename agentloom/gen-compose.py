@@ -48,6 +48,10 @@ SET = {
     # Auto Review on for everyone who has not chosen: the deployment's model judges a
     # fetch to a new site instead of stopping to ask, which a sub-agent cannot do.
     "RAKAZO_AUTO_REVIEW": "true",
+    # Umami: the tag agentloom/Dockerfile adds loads from and posts to this origin,
+    # and the app's CSP allows nothing outside 'self' unless named here.
+    "RAKAZO_CSP_SCRIPT_SRC": "https://a.darkcompute.io",
+    "RAKAZO_CSP_CONNECT_SRC": "https://a.darkcompute.io",
 }
 # Projects: Gitea and its MCP server beside the app, on the internal data network only.
 PROJECTS_ENV = {
