@@ -91,6 +91,9 @@ SECRET = {"POSTGRES_PASSWORD", "POSTGRES_APP_PASSWORD", "BETTER_AUTH_SECRET", "E
           "OPENROUTER_API_KEY",
           # Connect apps: Composio holds each member's app logins (Gmail, Slack, ...).
           "COMPOSIO_API_KEY"}
+# corp's only: the darkcompute agents hub, every internal app's tools as one MCP server
+# (apps/agents in darkcompute), reached over CORP and published by corp-caddy.
+CORP_PRIVATE_MCP_ORIGINS = ["https://agents.corp.darkcompute.io"]
 # corp's only: the authentik client, and agentloom-watch's.
 CORP_SECRET = {"OIDC_CLIENT_ID", "OIDC_CLIENT_SECRET", "WATCH_DB_PASSWORD", "WATCH_OIDC_CLIENT_ID",
                "WATCH_OIDC_CLIENT_SECRET", "WATCH_COOKIE_SECRET"}
@@ -148,6 +151,9 @@ def build(host: str, sets: dict, dst: Path, header: str, corp: bool) -> None:
         svc.pop("ports", None)  # nothing listens on the host's address but the door below
         if name in ("api", "worker"):
             svc.setdefault("environment", {}).update(PROJECTS_ENV)
+            if corp:
+                svc["environment"]["AGENTLOOM_PRIVATE_MCP_ORIGINS"] = ",".join(
+                    [PROJECTS_ENV["AGENTLOOM_PRIVATE_MCP_ORIGINS"], *CORP_PRIVATE_MCP_ORIGINS])
         services[name] = svc
 
     gitea_volumes = ["giteadata:/var/lib/gitea", "giteaconfig:/etc/gitea"]
