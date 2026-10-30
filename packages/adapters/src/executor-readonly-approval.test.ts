@@ -242,6 +242,7 @@ function fixture({
   let offeredTools: string[] = [];
   let instructions = "";
   const prisma = {
+    spaceMember: { findUnique: vi.fn(async () => ({ id: "member-1" })) },
     user: { findUnique: vi.fn(async () => null) },
     run: {
       findFirst: vi.fn(async () =>
@@ -360,7 +361,10 @@ function fixture({
           : [],
       ),
     },
-    secret: { findFirst: vi.fn(async () => ({ id: "review-secret", ciphertext: "fake-cipher" })) },
+    secret: {
+      findMany: vi.fn(async () => []),
+      findFirst: vi.fn(async () => ({ id: "review-secret", ciphertext: "fake-cipher" })),
+    },
     usageRecord: { createMany: vi.fn(async () => ({ count: 1 })) },
     modelCreditEntry: { findUnique: vi.fn(async () => null) },
     deploymentSettings: {

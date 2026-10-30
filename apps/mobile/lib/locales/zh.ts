@@ -200,6 +200,7 @@ export const ZH_MESSAGES: Record<string, string> = {
   expired: "已过期",
 
   Saved: "已保存",
+  Sent: "已发送",
   " (unread)": "（未读）",
   Appearance: "外观",
   Dark: "深色",
@@ -401,6 +402,7 @@ export const ZH_MESSAGES: Record<string, string> = {
   "Could not save the server URL": "无法保存服务器地址",
   "Could not send reset email": "无法发送重置邮件",
   "Could not send answer": "无法发送回答",
+  "Save to Vault": "保存到保险库",
   "Could not share file": "无法分享文件",
   "Could not sign out": "无法退出登录",
   "Could not speak": "无法朗读",
@@ -934,6 +936,7 @@ export const ZH_MESSAGES: Record<string, string> = {
   Disabled: "已禁用",
   "OAuth connected": "OAuth 已连接",
   "OAuth expired": "OAuth 已过期",
+  "Needs an OAuth client ID": "需要 OAuth 客户端 ID",
   "Credential saved": "凭据已保存",
   "No auth": "无需身份验证",
   "The bot couldn't reply because its provider's daily limit was reached.":
@@ -1027,6 +1030,18 @@ export const ZH_MESSAGES: Record<string, string> = {
   "{count} need attention": "{count} 个需要处理",
   "{label}, above": "{label}，上方",
   "{label}, below": "{label}，下方",
+  Invite: "邀请",
+  "Leave space": "退出空间",
+  "Everyone in this space sees all its chats, bots and memory.":
+    "此空间中的每个人都能看到其中所有的聊天、机器人和记忆。",
+  "Your other spaces stay private.": "你的其他空间仍保持私密。",
+  "A bot uses the accounts of whoever messages it, and anyone here can read its reply.":
+    "机器人会使用给它发消息的人的账户，这里的每个人都能看到它的回复。",
+  "Leave {name}?": "退出 {name}？",
+  "Could not load members": "无法加载成员",
+  "Could not create invite link": "无法创建邀请链接",
+  "Could not remove member": "无法移除成员",
+  "Could not leave space": "无法退出空间",
   Work: "工作",
   Both: "两者都有",
   "How will you use Rakazo?": "你会如何使用 Rakazo？",
@@ -1200,4 +1215,5 @@ export const ZH_MESSAGES: Record<string, string> = {
     "每有一位朋友开始试用，你就能获得一个月免费。",
   "1 free month earned": "已获得 1 个月免费",
   "{count} free months earned": "已获得 {count} 个月免费",
+  "Submit a plugin": "提交插件",
 };

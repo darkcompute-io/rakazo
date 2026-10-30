@@ -215,6 +215,10 @@ msgstr "{hidden, plural, one {+# 个更早的步骤} other {+# 个更早的步�
 msgid "{hours}h ago"
 msgstr "{hours} 小时前"
 
+#: src/pages/Invite.tsx
+msgid "{inviterName} invited you"
+msgstr "{inviterName} 邀请了你"
+
 #: src/components/markdown-copy.tsx
 msgid "{label}, empty"
 msgstr "{label}，空"
@@ -418,6 +422,10 @@ msgstr ""
 msgid "A bit of everything"
 msgstr "什么都做一点"
 
+#: src/components/SharedSpaceRules.tsx
+msgid "A bot uses the accounts of whoever messages it, and anyone here can read its reply."
+msgstr "机器人会使用给它发消息的人的账户，这里的每个人都能看到它的回复。"
+
 #: src/pages/RoutineEditor.tsx
 msgid "A command's output"
 msgstr "命令的输出"
@@ -469,6 +477,10 @@ msgstr "{name} 的账户菜单"
 msgid "Actions for {0}"
 msgstr "{0} 的操作"
 
+#: src/components/SpaceMembersSettings.tsx
+msgid "Actions for {name}"
+msgstr ""
+
 #: src/pages/shell/shell-dialogs.tsx
 msgid "Actions for space"
 msgstr "工作区操作"
@@ -486,7 +498,6 @@ msgstr "动态"
 #: src/pages/McpServersOverlay.tsx
 #: src/pages/PluginsOverlay.tsx
 #: src/pages/ScratchpadSection.tsx
-#: src/pages/shell/agent-import.tsx
 msgid "Add"
 msgstr "添加"
 
@@ -592,10 +603,6 @@ msgstr "添加服务器 URL"
 #: src/components/integrations/plugin-marketplace.tsx
 msgid "Add skills"
 msgstr ""
-
-#: src/pages/shell/agent-import.tsx
-msgid "Add to an existing bot"
-msgstr "添加到现有机器人"
 
 #: src/components/teach/SkillDraftCard.tsx
 msgid "Add to routine"
@@ -805,10 +812,6 @@ msgstr "API 密钥请求头"
 msgid "API keys"
 msgstr "API 密钥"
 
-#: src/pages/shell/agent-import-undo.tsx
-msgid "API keys stay connected."
-msgstr "API 密钥保持连接。"
-
 #: src/pages/AccountSettingsOverlay.tsx
 msgid "Appearance"
 msgstr "外观"
@@ -831,6 +834,7 @@ msgid "Approvals"
 msgstr "审批"
 
 #: src/pages/MessagingSettingsPanel.tsx
+#: src/pages/PluginSubmissionsPanel.tsx
 #: src/pages/shell/message-cards.tsx
 msgid "Approve"
 msgstr "批准"
@@ -838,6 +842,14 @@ msgstr "批准"
 #: src/pages/shell/message-cards.tsx
 msgid "Approve this server to let your agent use its tools."
 msgstr "批准此服务器后，Agent 才能使用它的工具。"
+
+#: src/pages/PluginSubmissionsPanel.tsx
+msgid "Approved"
+msgstr ""
+
+#: src/pages/PluginSubmissionsPanel.tsx
+msgid "Approving…"
+msgstr ""
 
 #: src/components/integrations/plugin-marketplace.tsx
 #: src/pages/PluginsOverlay.tsx
@@ -881,10 +893,6 @@ msgstr "{0}"
 #: src/pages/RoutineSchedule.tsx
 msgid "at {timeSelect}"
 msgstr "{timeSelect}"
-
-#: src/pages/shell/composer.tsx
-msgid "Attach"
-msgstr "附加"
 
 #: src/pages/shell/composer.tsx
 msgid "Attach file"
@@ -962,6 +970,7 @@ msgstr "头像工作室"
 
 #: src/components/integrations/plugin-marketplace.tsx
 #: src/components/integrations/skills-dialog.tsx
+#: src/pages/AdminPluginsPage.tsx
 #: src/pages/Auth.tsx
 #: src/pages/Board.tsx
 #: src/pages/NavLinkPage.tsx
@@ -1029,7 +1038,6 @@ msgstr "Bot"
 #: src/pages/IntegrationSetup.tsx
 #: src/pages/MessagingSettingsPanel.tsx
 #: src/pages/Shell.tsx
-#: src/pages/shell/agent-import.tsx
 #: src/pages/shell/avatar-studio-popover.tsx
 #: src/pages/shell/message-view.tsx
 msgid "Bot"
@@ -1133,6 +1141,7 @@ msgstr "无法读取图像"
 #: src/components/integrations/plugin-marketplace.tsx
 #: src/components/markdown-link-prompt.tsx
 #: src/components/PasskeySettings.tsx
+#: src/components/SpaceMembersSettings.tsx
 #: src/components/teach/TeachComputerOverlay.tsx
 #: src/components/VaultSettings.tsx
 #: src/pages/AccountSettingsOverlay.tsx
@@ -1144,7 +1153,7 @@ msgstr "无法读取图像"
 #: src/pages/ModelSettingsOverlay.tsx
 #: src/pages/Onboarding.tsx
 #: src/pages/PaymentWalletSettingsPanel.tsx
-#: src/pages/shell/agent-import-undo.tsx
+#: src/pages/PluginSubmissionsPanel.tsx
 #: src/pages/shell/create-bot-dialog.tsx
 #: src/pages/shell/dialogs.tsx
 #: src/pages/SpaceSettingOverrides.tsx
@@ -1279,10 +1288,6 @@ msgstr "正在检查连接…"
 #: src/pages/HostComputerPrompt.tsx
 msgid "Checking…"
 msgstr "正在检查…"
-
-#: src/pages/shell/agent-import.tsx
-msgid "Choose a bot"
-msgstr "选择机器人"
 
 #: src/pages/shell/avatar-studio-popover.tsx
 msgid "Choose a bot shape, color, or upload an image"
@@ -1673,6 +1678,7 @@ msgstr "包含可运行的代码"
 msgid "Context limit"
 msgstr "上下文限制"
 
+#: src/components/AskCard.tsx
 #: src/components/ConfirmIdentityDialog.tsx
 #: src/components/integrations/IntegrationSetup.tsx
 #: src/components/SignupSurvey.tsx
@@ -1730,6 +1736,10 @@ msgstr "复制代码"
 msgid "Copy diagram source"
 msgstr "复制图表源代码"
 
+#: src/components/SpaceMembersSettings.tsx
+msgid "Copy invite link"
+msgstr ""
+
 #: src/pages/shell/agent-import.tsx
 msgid "Copy prompt"
 msgstr "复制提示词"
@@ -1752,6 +1762,10 @@ msgstr "无法添加 MCP 服务器"
 
 #: src/components/integrations/plugin-marketplace.tsx
 msgid "Could not add skills"
+msgstr ""
+
+#: src/pages/PluginSubmissionsPanel.tsx
+msgid "Could not approve plugin"
 msgstr ""
 
 #: src/pages/shell/message-cards.tsx
@@ -1843,6 +1857,10 @@ msgstr "无法创建 Bot"
 msgid "Could not create group"
 msgstr "无法创建群组"
 
+#: src/components/SpaceMembersSettings.tsx
+msgid "Could not create invite link"
+msgstr ""
+
 #: src/pages/shell/dialogs.tsx
 msgid "Could not create section"
 msgstr "无法创建分组"
@@ -1932,6 +1950,10 @@ msgstr "无法安装连接器"
 msgid "Could not install plugin"
 msgstr ""
 
+#: src/components/SpaceMembersSettings.tsx
+msgid "Could not leave space"
+msgstr ""
+
 #: src/components/ErrorBoundary.tsx
 #: src/components/PasskeySettings.tsx
 #: src/lib/user-devices.ts
@@ -1971,6 +1993,10 @@ msgstr "无法加载集成"
 #: src/pages/PluginsOverlay.tsx
 msgid "Could not load MCP servers"
 msgstr "无法加载 MCP 服务器"
+
+#: src/components/SpaceMembersSettings.tsx
+msgid "Could not load members"
+msgstr ""
 
 #: src/pages/model-settings/use-model-settings.ts
 msgid "Could not load model settings"
@@ -2047,6 +2073,10 @@ msgstr "无法连接服务器"
 msgid "Could not read these files"
 msgstr "无法读取这些文件"
 
+#: src/pages/PluginSubmissionsPanel.tsx
+msgid "Could not reject plugin"
+msgstr ""
+
 #: src/components/ComputerDeviceSettings.tsx
 #: src/lib/user-devices.ts
 #: src/pages/KnowledgeSection.tsx
@@ -2057,6 +2087,10 @@ msgstr "无法移除"
 #: src/pages/PluginsOverlay.tsx
 msgid "Could not remove connector"
 msgstr "无法移除连接器"
+
+#: src/components/SpaceMembersSettings.tsx
+msgid "Could not remove member"
+msgstr ""
 
 #: src/components/integrations/plugin-marketplace.tsx
 msgid "Could not remove plugin"
@@ -2206,10 +2240,6 @@ msgstr "无法接管"
 msgid "Could not test MCP server"
 msgstr "无法测试 MCP 服务器"
 
-#: src/pages/shell/agent-import-undo.tsx
-msgid "Could not undo the import"
-msgstr "无法撤销导入"
-
 #: src/pages/ScratchpadSection.tsx
 msgid "Could not update"
 msgstr "无法更新"
@@ -2245,6 +2275,10 @@ msgstr "无法确认电脑是否就绪（{failureMessage}）。请修复连接�
 #: src/pages/MessagingSettingsPanel.tsx
 msgid "Couldn't load messaging settings"
 msgstr "无法加载消息设置"
+
+#: src/pages/PluginSubmissionsPanel.tsx
+msgid "Couldn't load submissions"
+msgstr ""
 
 #: src/pages/PaymentWalletSettingsPanel.tsx
 msgid "Couldn't load your wallet"
@@ -2806,6 +2840,10 @@ msgstr "每月"
 msgid "Every week"
 msgstr "每周"
 
+#: src/components/SharedSpaceRules.tsx
+msgid "Everyone in this space sees all its chats, bots and memory."
+msgstr "此空间中的每个人都能看到其中所有的聊天、机器人和记忆。"
+
 #: src/pages/PluginsOverlay.tsx
 msgid "Executor token"
 msgstr "Executor 令牌"
@@ -3168,24 +3206,14 @@ msgstr "此模型尚未配置图片输入。"
 msgid "Image upload area"
 msgstr "图片上传区域"
 
-#: src/pages/shell/composer.tsx
-#: src/pages/shell/create-bot-dialog.tsx
-msgid "Import"
-msgstr "导入"
-
-#: src/pages/Onboarding.tsx
+#: src/components/AccountDataSettings.tsx
 #: src/pages/shell/agent-import.tsx
-#: src/pages/shell/message-cards.tsx
 msgid "Import an agent"
 msgstr "导入 Agent"
 
 #: src/components/AccountDataSettings.tsx
 msgid "Import data"
 msgstr "导入数据"
-
-#: src/pages/shell/composer.tsx
-msgid "Import this agent as a bot?"
-msgstr "将此智能体导入为机器人？"
 
 #: src/lib/ticket-status.ts
 msgid "In progress"
@@ -3291,14 +3319,23 @@ msgstr "间隔单位"
 msgid "Invalid code"
 msgstr "验证码无效"
 
+#: src/components/SpaceMembersSettings.tsx
+msgid "Invite"
+msgstr "邀请"
+
 #: src/components/InviteDialog.tsx
 #: src/components/SidebarFooter.tsx
 msgid "Invite friends"
 msgstr "邀请朋友"
 
 #: src/components/InviteDialog.tsx
+#: src/components/SpaceMembersSettings.tsx
 msgid "Invite link"
 msgstr "邀请链接"
+
+#: src/components/SpaceMembersSettings.tsx
+msgid "Invite link copied"
+msgstr "邀请链接已复制"
 
 #: src/pages/MemorySettingsOverlay.tsx
 #: src/pages/shell/bot-panel.tsx
@@ -3317,25 +3354,13 @@ msgstr "其中的 Bot 和群组会保留，并移出该分组。"
 msgid "Its conversation, files, and routines will be permanently deleted. Bots it created stay in your list."
 msgstr "它的对话、文件和例行任务将被永久删除。它创建的 Bot 仍留在列表中。"
 
-#: src/pages/shell/agent-import-undo.tsx
-msgid "Its instructions changed since the import, so they stay."
-msgstr "导入后指令已被修改，因此保持不变。"
+#: src/pages/Invite.tsx
+msgid "Join"
+msgstr "加入"
 
-#: src/lib/agent-import-errors.ts
-msgid "Its instructions changed. Review them, then try again."
-msgstr "其指令已更改。请查看后重试。"
-
-#: src/pages/shell/agent-import-undo.tsx
-msgid "Its instructions go back to before the import."
-msgstr "指令将恢复到导入之前。"
-
-#: src/pages/shell/agent-import-undo.tsx
-msgid "Its model changed since the import, so it stays."
-msgstr "导入后模型已被修改，因此保持不变。"
-
-#: src/pages/shell/agent-import-undo.tsx
-msgid "Its model goes back to before the import."
-msgstr "模型将恢复到导入之前。"
+#: src/pages/Invite.tsx
+msgid "Join {spaceName}"
+msgstr "加入 {spaceName}"
 
 #: src/pages/shell/transcript.tsx
 msgid "Jump to latest"
@@ -3349,17 +3374,9 @@ msgstr "跳转到回复的消息：{excerpt}"
 msgid "just now"
 msgstr "刚刚"
 
-#: src/pages/shell/agent-import.tsx
-msgid "Keep its instructions"
-msgstr "保留其指令"
-
 #: src/pages/shell/dialogs.tsx
 msgid "Keep memories"
 msgstr "保留记忆"
-
-#: src/pages/shell/agent-import-undo.tsx
-msgid "Kept"
-msgstr "保留"
 
 #: src/pages/RoutineEditor.tsx
 msgid "key"
@@ -3387,9 +3404,19 @@ msgstr "上次检查 {0}：无变化"
 msgid "Later"
 msgstr "稍后"
 
+#: src/components/SpaceMembersSettings.tsx
 #: src/pages/MessagingSettingsPanel.tsx
 msgid "Leave"
 msgstr "退出"
+
+#. placeholder {0}: space.name
+#: src/components/SpaceMembersSettings.tsx
+msgid "Leave {0}?"
+msgstr ""
+
+#: src/components/SpaceMembersSettings.tsx
+msgid "Leave space"
+msgstr "退出空间"
 
 #: src/components/ComputerDeviceSettings.tsx
 msgid "Let bots use this computer"
@@ -3480,9 +3507,12 @@ msgstr "正在加载语音提供方…"
 #: src/components/integrations/plugin-marketplace.tsx
 #: src/components/integrations/skills-dialog.tsx
 #: src/components/PageLoading.tsx
+#: src/components/SpaceMembersSettings.tsx
 #: src/pages/Artifacts.tsx
 #: src/pages/IntegrationSetup.tsx
+#: src/pages/Invite.tsx
 #: src/pages/PeerMessagesOverlay.tsx
+#: src/pages/PluginSubmissionsPanel.tsx
 #: src/pages/RoutineRunHistory.tsx
 #: src/pages/shell/transcript.tsx
 msgid "Loading…"
@@ -3628,6 +3658,10 @@ msgstr "中"
 
 #: src/lib/identity-display.ts
 msgid "Member"
+msgstr "成员"
+
+#: src/components/SpaceMembersSettings.tsx
+msgid "Members"
 msgstr "成员"
 
 #. placeholder {0}: selected.length
@@ -3876,7 +3910,6 @@ msgstr "已静音"
 msgid "Name"
 msgstr "名称"
 
-#: src/lib/agent-import-errors.ts
 #: src/pages/shell/agent-import.tsx
 msgid "Name this bot"
 msgstr "给这个 Bot 命名"
@@ -3896,6 +3929,11 @@ msgstr ""
 #: src/lib/roster-status.ts
 msgid "Needs an answer"
 msgstr "等你回答"
+
+#: src/components/McpServerHealthLine.tsx
+#: src/lib/user-error.ts
+msgid "Needs an OAuth client ID"
+msgstr "需要 OAuth 客户端 ID"
 
 #: src/pages/ActivityList.tsx
 msgid "Needs input"
@@ -3923,7 +3961,6 @@ msgid "New"
 msgstr "新消息"
 
 #: src/pages/Shell.tsx
-#: src/pages/shell/agent-import.tsx
 #: src/pages/shell/bot-picker.tsx
 #: src/pages/shell/create-bot-dialog.tsx
 msgid "New bot"
@@ -4075,6 +4112,10 @@ msgstr "还没有运行记录"
 #: src/pages/KnowledgeSection.tsx
 msgid "No skills yet"
 msgstr "暂无技能"
+
+#: src/pages/PluginSubmissionsPanel.tsx
+msgid "No submissions"
+msgstr ""
 
 #: src/pages/Board.tsx
 msgid "No tickets yet"
@@ -4251,6 +4292,10 @@ msgstr "在完整窗口中打开"
 msgid "Open navigation"
 msgstr "打开导航"
 
+#: src/pages/Invite.tsx
+msgid "Open Rakazo"
+msgstr ""
+
 #: src/pages/ScratchpadSection.tsx
 msgid "Open work"
 msgstr "待办"
@@ -4305,6 +4350,7 @@ msgstr "其他模型…"
 msgid "Output"
 msgstr "输出"
 
+#: src/components/SpaceMembersSettings.tsx
 #: src/lib/identity-display.ts
 #: src/pages/Board.tsx
 msgid "Owner"
@@ -4387,6 +4433,7 @@ msgid "Paused"
 msgstr "已暂停"
 
 #: src/pages/MessagingSettingsPanel.tsx
+#: src/pages/PluginSubmissionsPanel.tsx
 msgid "Pending"
 msgstr ""
 
@@ -4450,6 +4497,10 @@ msgstr "插件"
 #: src/components/integrations/skills-dialog.tsx
 #: src/pages/PluginsOverlay.tsx
 msgid "Plugin GitHub URL"
+msgstr ""
+
+#: src/pages/AdminPluginsPage.tsx
+msgid "Plugin submissions"
 msgstr ""
 
 #: src/components/integrations/skills-dialog.tsx
@@ -4562,6 +4613,10 @@ msgstr "朗读回复"
 #: src/pages/shell/import-status.ts
 msgid "Ready"
 msgstr "就绪"
+
+#: src/pages/PluginSubmissionsPanel.tsx
+msgid "Reason"
+msgstr ""
 
 #: src/pages/model-settings/compatible-model-fields.tsx
 #: src/pages/Onboarding.tsx
@@ -4684,6 +4739,23 @@ msgstr "正在刷新…"
 msgid "Registration is closed"
 msgstr "注册已关闭"
 
+#: src/pages/PluginSubmissionsPanel.tsx
+msgid "Reject"
+msgstr ""
+
+#. placeholder {0}: rejecting?.name
+#: src/pages/PluginSubmissionsPanel.tsx
+msgid "Reject {0}"
+msgstr ""
+
+#: src/pages/PluginSubmissionsPanel.tsx
+msgid "Rejected"
+msgstr ""
+
+#: src/pages/PluginSubmissionsPanel.tsx
+msgid "Rejecting…"
+msgstr ""
+
 #: src/pages/shell/computer-release-actions.tsx
 msgid "Release control"
 msgstr "交还控制权"
@@ -4696,6 +4768,7 @@ msgstr "重新加载"
 #: src/components/ApprovalRulesSettings.tsx
 #: src/components/integrations/plugin-marketplace.tsx
 #: src/components/LoginFields.tsx
+#: src/components/SpaceMembersSettings.tsx
 #: src/components/TrustedLinkSitesSettings.tsx
 #: src/components/VaultSettings.tsx
 #: src/pages/McpServersOverlay.tsx
@@ -4716,6 +4789,10 @@ msgstr "移除 {0}"
 #: src/pages/GroupPanel.tsx
 msgid "Remove {0} from the group"
 msgstr "把 {0} 移出群组"
+
+#: src/components/SpaceMembersSettings.tsx
+msgid "Remove {memberName}?"
+msgstr ""
 
 #: src/components/VaultSettings.tsx
 msgid "Remove {secretName}? Bots will no longer be able to use it."
@@ -4770,10 +4847,6 @@ msgstr ""
 msgid "Remove webhook"
 msgstr "移除 Webhook"
 
-#: src/pages/shell/agent-import-undo.tsx
-msgid "Removed"
-msgstr "移除"
-
 #: src/pages/ScratchpadSection.tsx
 msgid "Removed, but list refresh failed"
 msgstr "已移除，但列表刷新失败"
@@ -4804,10 +4877,6 @@ msgstr "重新打开"
 #: src/pages/model-settings/connection-controls.tsx
 msgid "Replace API key"
 msgstr "替换 API 密钥"
-
-#: src/pages/shell/agent-import.tsx
-msgid "Replace its instructions"
-msgstr "替换其指令"
 
 #: src/pages/shell/composer-error.tsx
 #: src/pages/VoiceSettingsOverlay.tsx
@@ -4911,8 +4980,10 @@ msgstr "正在恢复工作区"
 #: src/components/integrations/skills-dialog.tsx
 #: src/components/PasskeySettings.tsx
 #: src/pages/Auth.tsx
+#: src/pages/Invite.tsx
 #: src/pages/ModelRoleSettings.tsx
 #: src/pages/PluginsOverlay.tsx
+#: src/pages/PluginSubmissionsPanel.tsx
 #: src/pages/SpaceSettingOverrides.tsx
 msgid "Retry"
 msgstr "重试"
@@ -5042,6 +5113,10 @@ msgstr "保存新值"
 #: src/components/ComputerMaintenanceActions.tsx
 msgid "Save the workspace and install current software."
 msgstr "保存工作区并安装最新软件。"
+
+#: src/components/AskCard.tsx
+msgid "Save to Vault"
+msgstr "保存到保管库"
 
 #: src/components/AskCard.tsx
 #: src/components/teach/SkillDraftCard.tsx
@@ -5582,6 +5657,10 @@ msgstr "子 Agent"
 msgid "Submit"
 msgstr "提交"
 
+#: src/pages/PluginsOverlay.tsx
+msgid "Submit a plugin"
+msgstr ""
+
 #: src/components/ModelCredits.tsx
 #: src/pages/Paywall.tsx
 msgid "Subscribe"
@@ -5687,14 +5766,14 @@ msgstr "测试规则"
 msgid "Test run"
 msgstr "测试运行"
 
+#: src/pages/PluginSubmissionsPanel.tsx
+msgid "Testing"
+msgstr ""
+
 #: src/components/ModelConnectionPreflightNotice.tsx
 #: src/pages/McpServersOverlay.tsx
 msgid "Testing…"
 msgstr "正在测试…"
-
-#: src/pages/shell/agent-import-undo.tsx
-msgid "The bot and what its import added will be removed."
-msgstr "此 Bot 及其导入添加的内容将被移除。"
 
 #: src/pages/shell/composer-error.tsx
 msgid "The bot can use the file but won't see the picture."
@@ -5783,10 +5862,6 @@ msgstr "此 Bot"
 msgid "This bot runs on this computer, not a Linux desktop. Shell and files use your home folder."
 msgstr "此 Bot 运行在这台电脑上，而不是 Linux 桌面。Shell 和文件使用你的主目录。"
 
-#: src/lib/agent-import-errors.ts
-msgid "This bot was not imported."
-msgstr "此机器人不是导入的。"
-
 #: src/components/call/IncomingCall.tsx
 msgid "This call is no longer ringing."
 msgstr "这通电话已经不响了。"
@@ -5829,12 +5904,12 @@ msgid "This file is not valid UTF-8 text."
 msgstr "这个文件不是有效的 UTF-8 文本。"
 
 #: src/lib/agent-import-errors.ts
-msgid "This import changed. Try again."
-msgstr "此导入已更改。请重试。"
-
-#: src/lib/agent-import-errors.ts
 msgid "This import was already used. Choose the files again."
 msgstr "此导入已使用过。请重新选择文件。"
+
+#: src/pages/Invite.tsx
+msgid "This invite link is no longer valid."
+msgstr ""
 
 #: src/pages/HostComputerPrompt.tsx
 msgid "this Mac"
@@ -6035,14 +6110,6 @@ msgstr "未分配"
 #: src/components/AskCard.tsx
 msgid "Undo"
 msgstr "撤销"
-
-#: src/pages/shell/agent-import-undo.tsx
-msgid "Undo import"
-msgstr "撤销导入"
-
-#: src/pages/shell/agent-import-undo.tsx
-msgid "Undo import?"
-msgstr "撤销导入？"
 
 #: src/pages/PluginsOverlay.tsx
 msgid "Uninstall"
@@ -6343,10 +6410,6 @@ msgstr "你要示范什么结果？"
 msgid "What should this routine do each time it runs?"
 msgstr "每次运行时，这个例行任务应做什么？"
 
-#: src/pages/shell/agent-import-undo.tsx
-msgid "What the import added will be removed. The bot stays."
-msgstr "导入添加的内容将被删除，机器人会保留。"
-
 #: src/pages/shell/bot-panel.tsx
 msgid "What this bot is for"
 msgstr "这个 Bot 是做什么的"
@@ -6382,10 +6445,6 @@ msgstr "何时使用"
 #: src/pages/HostComputerPrompt.tsx
 msgid "Where should bots run?"
 msgstr "Bot 应在哪里运行？"
-
-#: src/pages/shell/agent-import.tsx
-msgid "Where to import"
-msgstr "导入到哪里"
 
 #: src/lib/ticket-status.ts
 msgid "Won't do"
@@ -6460,14 +6519,6 @@ msgstr "你的默认设置"
 msgid "Your email address"
 msgstr "你的邮箱"
 
-#: src/pages/Onboarding.tsx
-msgid "Your first bot already existed, so the agent was not imported."
-msgstr "你的第一个机器人已经存在，因此未导入该智能体。"
-
-#: src/lib/agent-import-errors.ts
-msgid "Your first bot already exists."
-msgstr "你的第一个机器人已存在。"
-
 #. js-lingui-explicit-id
 #: src/lib/run-error.ts
 msgid "Your model provider"
@@ -6486,6 +6537,10 @@ msgstr "你的 OpenAI"
 #: src/lib/run-error.ts
 msgid "Your OpenRouter"
 msgstr "你的 OpenRouter"
+
+#: src/components/SharedSpaceRules.tsx
+msgid "Your other spaces stay private."
+msgstr "你的其他空间仍保持私密。"
 
 #: src/components/integrations/skills-dialog.tsx
 msgid "Your skills"

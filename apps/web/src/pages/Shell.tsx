@@ -6,7 +6,6 @@ import type {
   ThreadMessage,
   VoiceStatus,
 } from "@rakazo/contracts";
-import type { AgentImportReader } from "@rakazo/core";
 import {
   answerableAskMessageIds,
   channelMessageSender,
@@ -16,6 +15,7 @@ import {
   isActive,
   isRunWorking,
   memberName,
+  otherAuthor,
 } from "@rakazo/core";
 import { fetchFresh, writeSaved } from "@rakazo/core/query";
 import type { GroupAvatarMember } from "@rakazo/ui-web";
@@ -181,9 +181,6 @@ function SpaceShell() {
   );
   const rightPanel = useRightPanel({ searchParams, setSearchParams });
   const { panel, setPanel, modelFocusRequest, setModelFocusRequest } = rightPanel;
-  const [droppedAgent, setDroppedAgent] = useState<AgentImportReader | null>(null);
-  // Back returns to the New bot dialog only when the import was opened from it.
-  const [importFromDialog, setImportFromDialog] = useState(false);
   const [peerConversation, setPeerConversation] = usePreloadRecoveryState<{
     peerBotId: string;
     peerBotName: string;
@@ -547,7 +544,9 @@ function SpaceShell() {
 
   const replyTargetName = composer.replyTarget
     ? composer.replyTarget.role === "user"
-      ? (channelMessageSender(composer.replyTarget.blocks) ?? t`You`)
+      ? (otherAuthor(composer.replyTarget.author, userId)?.name ??
+        channelMessageSender(composer.replyTarget.blocks) ??
+        t`You`)
       : (resolveTranscriptMemberName(composer.replyTarget.botId) ?? active?.name ?? t`Bot`)
     : undefined;
   useRightPanelRestore({
@@ -629,12 +628,6 @@ function SpaceShell() {
     openSettings("space", spaceId);
   }
 
-  function openImport(agent: AgentImportReader | null, fromDialog: boolean) {
-    setDroppedAgent(agent);
-    setImportFromDialog(fromDialog);
-    setPanel("import-agent");
-  }
-
   async function renameSpace(spaceId: string, name: string) {
     await commitSpaceRename({
       rename: async () => {
@@ -660,6 +653,16 @@ function SpaceShell() {
         window.location.assign("/app");
         return;
       }
+    }
+    await refreshBots(true);
+  }
+
+  async function leftSpace(spaceId: string, activeSpaceId: string) {
+    const effectiveSpaceId = selectedSpaceId() ?? bootstrapMe?.spaceId;
+    // Leaving the open space changes the auth boundary, so reload like a space switch.
+    if (effectiveSpaceId === spaceId && selectSpace(activeSpaceId)) {
+      window.location.assign("/app");
+      return;
     }
     await refreshBots(true);
   }
@@ -844,6 +847,7 @@ function SpaceShell() {
           ) : (
             <Transcript
               key={activeSnapshot?.threadId}
+              meId={userId}
               scrollRef={thread.messageScroll}
               scrollRequest={scrollRequest}
               onScrollRequestHandled={clearScrollRequest}
@@ -895,7 +899,6 @@ function SpaceShell() {
               speakingMessageId={speakingMessageId}
               onSpeak={speakMessage}
               onOpenComputer={computerControls.onOpenComputer}
-              onOpenImport={() => openImport(null, false)}
               onOpenImportSetup={(target) => {
                 importSetupOpen.current = true;
                 if (target.kind === "models") openSettings("models");
@@ -922,7 +925,6 @@ function SpaceShell() {
               key={inGroup ? `group:${groupId}` : `bot:${active?.id}`}
               draftKey={inGroup ? `group:${groupId}` : `bot:${active?.id}`}
               enterToSend={enterToSend}
-              onImportAgent={(agent) => openImport(agent, false)}
               activeName={inGroup ? (activeGroup?.name ?? activeSnapshot?.groupName) : active?.name}
               running={composerRunning}
               disabled={Boolean(recordingSkill)}
@@ -1003,7 +1005,6 @@ function SpaceShell() {
         refreshBots={refreshBots}
         refreshThread={refreshThread}
         refreshGroupThread={refreshGroupThread}
-        refreshActiveThread={refreshActiveThread}
         computer={computer}
         computerOpen={computerOpen}
         booting={booting}
@@ -1044,10 +1045,6 @@ function SpaceShell() {
         routineEditorProps={routineEditorProps}
         openBot={openBot}
         openCreatedBot={openCreatedBot}
-        droppedAgent={droppedAgent}
-        setDroppedAgent={setDroppedAgent}
-        importFromDialog={importFromDialog}
-        setCreateBotOpen={dialogs.setCreateBotOpen}
         modelFocusRequest={modelFocusRequest}
         openSettings={openSettings}
         memoryProviderConfigured={memoryProviderConfig != null}
@@ -1071,10 +1068,6 @@ function SpaceShell() {
           openSpaceSettings={openSpaceSettings}
           closeMobileSidebar={() => setMobileSidebarOpen(false)}
           createBot={createBot}
-          onImportFromCreate={() => {
-            dialogs.setCreateBotOpen(false);
-            openImport(null, true);
-          }}
           clearOpenThread={() => {
             thread.resetHistory();
             thread.updateSnapshot((current) =>
@@ -1103,7 +1096,9 @@ function SpaceShell() {
           spaces={spaces}
           renameSpace={renameSpace}
           removeSpace={removeSpace}
+          leftSpace={leftSpace}
           refreshSpaces={() => refreshBots()}
+          openAgentImport={() => setPanel("import-agent")}
           alive={alive}
           user={session.data?.user}
           refetchSession={() => session.refetch({ query: { disableCookieCache: true } })}

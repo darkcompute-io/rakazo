@@ -183,11 +183,8 @@ describe("spawned bot creation", () => {
   });
 });
 describe("spawned bot archival", () => {
-  it("scopes management by account and space without requiring a creator", () => {
-    expect(managedBotsWhere({ userId: "user-1", spaceId: "space-1" })).toEqual({
-      userId: "user-1",
-      spaceId: "space-1",
-    });
+  it("scopes management to the space without requiring a creator", () => {
+    expect(managedBotsWhere({ spaceId: "space-1" })).toEqual({ spaceId: "space-1" });
   });
 
   it("refuses an out-of-scope bot before stopping work", async () => {
@@ -212,7 +209,7 @@ describe("spawned bot archival", () => {
       ),
     ).toHaveProperty("error");
     expect(findMany).toHaveBeenCalledWith({
-      where: { userId: "user-1", spaceId: "space-1", id: "outside" },
+      where: { spaceId: "space-1", id: "outside" },
       take: 2,
     });
   });
@@ -276,7 +273,7 @@ describe("spawned bot archival", () => {
       ),
     ).resolves.toMatchObject({ ok: true, botId: "child-1", name: "Scout" });
     expect(prisma.bot.findMany).toHaveBeenCalledWith({
-      where: { userId: "user-1", spaceId: "workspace-1", id: "child-1" },
+      where: { spaceId: "workspace-1", id: "child-1" },
       take: 2,
     });
   });
@@ -381,7 +378,6 @@ describe("destroyBot", () => {
     const createDeletion = vi.fn();
     const deleteBot = vi.fn();
     const removeArtifact = vi.fn();
-    const within = vi.fn();
     const transaction = vi.fn(async (callback: (tx: unknown) => Promise<unknown>) =>
       callback({
         $queryRaw: vi.fn().mockResolvedValue([]),
@@ -416,11 +412,10 @@ describe("destroyBot", () => {
         archivedAt: null,
       },
       context,
-      { deleteMemories: false, within },
+      { deleteMemories: false },
     );
 
     expect(transaction).toHaveBeenCalledOnce();
-    expect(within).not.toHaveBeenCalled();
     expect(createDeletion).not.toHaveBeenCalled();
     expect(deleteBot).not.toHaveBeenCalled();
     expect(removeArtifact).not.toHaveBeenCalled();
@@ -482,7 +477,12 @@ describe("destroyBot", () => {
     );
 
     expect(deleteSecrets).toHaveBeenCalledWith({
-      where: { OR: [{ userId: "user-1", spaceId: "workspace-1", kind: "run-secret:run-1" }] },
+      where: {
+        OR: [
+          { userId: "user-1", spaceId: "workspace-1", kind: "run-secret:run-1" },
+          { userId: "user-1", spaceId: "workspace-1", kind: { startsWith: "run-login:run-1:" } },
+        ],
+      },
     });
   });
 
@@ -2041,7 +2041,12 @@ describe("archiveBot", () => {
     expect(groupCleanup.chatGroupMember.deleteMany).not.toHaveBeenCalled();
     // The archived bot's cancelled run never reads a waiting one-time answer.
     expect(deleteSecrets).toHaveBeenCalledWith({
-      where: { OR: [{ userId: "user-1", spaceId: "workspace-1", kind: "run-secret:run-1" }] },
+      where: {
+        OR: [
+          { userId: "user-1", spaceId: "workspace-1", kind: "run-secret:run-1" },
+          { userId: "user-1", spaceId: "workspace-1", kind: { startsWith: "run-login:run-1:" } },
+        ],
+      },
     });
     expect(cancel).toHaveBeenCalledWith("run:run-1");
   });

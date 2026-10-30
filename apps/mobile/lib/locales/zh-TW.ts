@@ -192,6 +192,7 @@ export const ZH_TW_MESSAGES: Record<string, string> = {
   expired: "已過期",
 
   Saved: "已儲存",
+  Sent: "已傳送",
   " (unread)": "（未讀）",
   Appearance: "外觀",
   Dark: "深色",
@@ -393,6 +394,7 @@ export const ZH_TW_MESSAGES: Record<string, string> = {
   "Could not save the server URL": "無法儲存伺服器網址",
   "Could not send reset email": "無法傳送重設郵件",
   "Could not send answer": "無法傳送回答",
+  "Save to Vault": "儲存到保險庫",
   "Could not share file": "無法分享檔案",
   "Could not sign out": "無法登出",
   "Could not speak": "無法朗讀",
@@ -924,6 +926,7 @@ export const ZH_TW_MESSAGES: Record<string, string> = {
   Disabled: "已停用",
   "OAuth connected": "OAuth 已連線",
   "OAuth expired": "OAuth 已過期",
+  "Needs an OAuth client ID": "需要 OAuth 用戶端 ID",
   "Credential saved": "憑證已儲存",
   "No auth": "無驗證",
   "The bot couldn't reply because its provider's daily limit was reached.":
@@ -1220,4 +1223,17 @@ export const ZH_TW_MESSAGES: Record<string, string> = {
     "每有一位朋友開始試用，你就能獲得一個月免費。",
   "1 free month earned": "已獲得 1 個月免費",
   "{count} free months earned": "已獲得 {count} 個月免費",
+  "Submit a plugin": "提交外掛程式",
+  Invite: "邀請",
+  "Leave space": "離開空間",
+  "Everyone in this space sees all its chats, bots and memory.":
+    "此空間中的每個人都能看到其中所有的聊天、機器人和記憶。",
+  "Your other spaces stay private.": "你的其他空間仍保持私密。",
+  "A bot uses the accounts of whoever messages it, and anyone here can read its reply.":
+    "機器人會使用傳訊息給它的人的帳號，這裡的每個人都能看到它的回覆。",
+  "Leave {name}?": "要離開 {name} 嗎？",
+  "Could not load members": "無法載入成員",
+  "Could not create invite link": "無法建立邀請連結",
+  "Could not remove member": "無法移除成員",
+  "Could not leave space": "無法離開空間",
 };

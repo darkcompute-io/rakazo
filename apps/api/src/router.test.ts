@@ -17,6 +17,7 @@ import {
   IntegrationProviderSettings,
   LocalAgentHomeStore,
   listPiCatalog,
+  McpOAuthClientRequiredError,
   ModelSignInError,
   modelCredentialDto,
   parseModelSecret,
@@ -26,12 +27,13 @@ import {
 import type { Actor, Bot, ProductEvent } from "@rakazo/contracts";
 import {
   CONNECTOR_AUTH_UNAVAILABLE,
+  MCP_OAUTH_CLIENT_REQUIRED,
   MODEL_KEY_FORMAT_ERROR,
   REPLY_QUOTE_MAX_LENGTH,
 } from "@rakazo/contracts";
 import { openScreenCapability } from "@rakazo/core/node/screen-capability";
 import type { PrismaClient } from "@rakazo/db";
-import { AnswerTooLongError, runProviderTransaction } from "@rakazo/db";
+import { AnswerTooLongError, Prisma, runProviderTransaction } from "@rakazo/db";
 import { createLogger, createTestSink, installLogger } from "@rakazo/logging";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { mainRole, withModelRoles } from "../../../packages/adapters/src/testing/model-roles.js";
@@ -952,6 +954,17 @@ describe("secret request dismissal", () => {
     expect(h.answerRunInput).toHaveBeenCalledWith(expect.objectContaining({ answer: "", fields }));
   });
 
+  it("passes a login answered without saving it on", async () => {
+    const h = setup(true);
+    const fields = [{ label: "Password", value: "fake-password-1", hidden: true }];
+    const { response } = await h.send({ answer: "", fields, remember: false });
+
+    expect(response.status).toBe(200);
+    expect(h.answerRunInput).toHaveBeenCalledWith(
+      expect.objectContaining({ fields, remember: false }),
+    );
+  });
+
   it("reports a dismissal the card no longer accepts as a conflict", async () => {
     const h = setup(false);
     const { response } = await h.send({ answer: "", dismiss: true });
@@ -978,6 +991,16 @@ describe("secret request dismissal", () => {
     ["fields without hidden", { answer: "", fields: [{ label: "Code", value: "x" }] }],
     ["a dismissal during a call", { answer: "", clientNonce: "call:call-1:x", dismiss: true }],
     ["an empty answer", { answer: "" }],
+    ["not saving an answer that isn't a login", { answer: "123456", remember: false }],
+    ["not saving a dismissal", { answer: "", dismiss: true, remember: false }],
+    [
+      "remember true",
+      {
+        answer: "",
+        fields: [{ label: "Password", value: "x", hidden: true }],
+        remember: true,
+      },
+    ],
   ])("rejects %s before it reaches the run", async (_name, json) => {
     const h = setup(true);
     const { response } = await h.send(json);
@@ -2130,6 +2153,7 @@ describe("MCP server health", () => {
     expect(listed?.health).toEqual({
       status: "error",
       message: "spawn npx ENOENT",
+      code: null,
       toolCount: null,
       checkedAt: "2026-10-21T10:00:00.000Z",
     });
@@ -2316,6 +2340,43 @@ describe("MCP server health", () => {
 
       expect(created.health.status).toBe("unknown");
       expect(h.updateMany).not.toHaveBeenCalled();
+    });
+
+    it("asks for a client ID when the server cannot register one", async () => {
+      const h = harness({
+        row: baseRow({ transport: "streamable_http", endpoint: "https://mcp.example.test/mcp" }),
+      });
+      Object.assign(h.deps, {
+        mcpOAuth: {
+          ...(h.deps.mcpOAuth as object),
+          begin: vi.fn().mockRejectedValue(new McpOAuthClientRequiredError(1)),
+        },
+      });
+      const client = createRouterClient(createRouter(h.deps), {
+        context: {
+          actor: {
+            spaceId: "workspace-1",
+            userId: "owner-1",
+            email: "owner@rakazo.test",
+            isDeploymentOwner: true,
+          },
+        } as never,
+      });
+
+      await expect(
+        client.mcp.oauth.begin({
+          serverId: "server-1",
+          redirectUri: "http://127.0.0.1:5173/mcp/oauth/callback",
+        }),
+      ).rejects.toMatchObject({ code: MCP_OAUTH_CLIENT_REQUIRED });
+      expect(h.updateMany).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { id: "server-1", revision: 1 } }),
+      );
+      (h.deps.prisma.mcpServer as unknown as { findMany: unknown }).findMany = vi.fn(async () => [
+        h.row(),
+      ]);
+      const [listed] = await client.mcp.servers.list();
+      expect(listed?.health).toMatchObject({ status: "error", code: MCP_OAUTH_CLIENT_REQUIRED });
     });
 
     it("probes the server once its OAuth session completes", async () => {
@@ -3710,6 +3771,28 @@ describe("computer terminal and file transfer", () => {
       call("uploadFile", { path: "bots/bot-2/secret.txt", contentBase64 }),
     ).resolves.toMatchObject({ status: 400 });
     expect(sandbox.writeFile).not.toHaveBeenCalled();
+  });
+
+  it("answers 400 when a running computer's file is too large or not text to preview", async () => {
+    const large = setup();
+    large.sandbox.readFile.mockRejectedValueOnce(new Error("computer file exceeds 2097152 bytes"));
+    await expect(large.call("readFile", { path: "big.log" })).resolves.toMatchObject({
+      status: 400,
+      body: { json: { message: "file is too large to preview" } },
+    });
+
+    const binary = setup();
+    binary.sandbox.readFile.mockResolvedValueOnce(new Uint8Array([0xff, 0xfe, 0x00]));
+    await expect(binary.call("readFile", { path: "image.bin" })).resolves.toMatchObject({
+      status: 400,
+      body: { json: { message: "file is not a text file" } },
+    });
+
+    const text = setup();
+    await expect(text.call("readFile", { path: "notes.txt" })).resolves.toEqual({
+      status: 200,
+      body: { json: { path: "notes.txt", content: "hello" } },
+    });
   });
 
   it("downloads bytes from a running computer", async () => {
@@ -6642,7 +6725,7 @@ describe("routine live Codex model validation", () => {
 });
 
 describe("routines.list", () => {
-  it("marks routines another Space member created as not editable", async () => {
+  it("lets every Space member change a routine, whoever created it", async () => {
     const actor = { userId: "user-1", spaceId: "space-1" };
     const row = (id: string, userId: string) => ({
       id,
@@ -6683,7 +6766,7 @@ describe("routines.list", () => {
     const routines = await client.routines.list({ botId: "bot-1" });
     expect(routines.map(({ id, editable }) => ({ id, editable }))).toEqual([
       { id: "mine", editable: true },
-      { id: "theirs", editable: false },
+      { id: "theirs", editable: true },
     ]);
     expect(routines[0]).not.toHaveProperty("userId");
   });
@@ -6817,6 +6900,20 @@ describe("routines.update", () => {
     const { response } = await call();
     expect(response.status).toBe(404);
     expect(enqueue).not.toHaveBeenCalled();
+  });
+
+  it("takes over a routine and restarts its watch baseline when someone else edits it", async () => {
+    const { call, update } = fixture(false, false, { userId: "user-2" });
+    expect((await call({ name: "Renamed" })).response.status).toBe(200);
+    const data = update.mock.calls[0]![0].data;
+    expect(data.userId).toBe("user-1");
+    expect(data).toHaveProperty("watchState", Prisma.DbNull);
+  });
+
+  it("keeps its watch baseline when the owner edits it", async () => {
+    const { call, update } = fixture(false);
+    expect((await call({ name: "Renamed" })).response.status).toBe(200);
+    expect(update.mock.calls[0]![0].data).not.toHaveProperty("watchState");
   });
 
   const ownModel = {
@@ -7897,7 +7994,7 @@ describe("threads.answerCall and threads.declineCall", () => {
     expect((await call("answerCall", {})).response.status).not.toBe(200);
     expect(prisma.bot.findFirst).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: expect.objectContaining({ id: "bot-1", userId: "user-1", spaceId: "space-1" }),
+        where: expect.objectContaining({ id: "bot-1", spaceId: "space-1" }),
       }),
     );
     expect(prisma.message.updateMany).not.toHaveBeenCalled();
@@ -8626,7 +8723,7 @@ describe("memory documents", () => {
     });
     await expect(client.memory.remove({ documentId: "doc-1" })).resolves.toEqual({ ok: true });
     expect(memoryDocument.findFirst).toHaveBeenCalledWith({
-      where: { id: "doc-1", spaceId: "space-1", userId: "user-1" },
+      where: { id: "doc-1", spaceId: "space-1" },
     });
     expect(memory.remove).toHaveBeenCalledWith(
       { id: "doc-1", scope: "bot", botId: "bot-1", path: "projects/retired.md" },
@@ -8717,7 +8814,7 @@ describe("routine watch creation boundaries", () => {
     expect(update).not.toHaveBeenCalled();
   });
 
-  it("uses the owner boundary before creating or changing a command watch", async () => {
+  it("uses the space boundary before creating or changing a command watch", async () => {
     const { client, create, update, findBot, findRoutine } = fixture();
     findBot.mockResolvedValueOnce(null as never);
     const watch = {
@@ -8731,7 +8828,7 @@ describe("routine watch creation boundaries", () => {
     ).rejects.toBeDefined();
     expect(findBot).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: expect.objectContaining({ spaceId: actor.spaceId, userId: actor.userId }),
+        where: expect.objectContaining({ spaceId: actor.spaceId }),
       }),
     );
     findRoutine.mockResolvedValueOnce(null as never);
@@ -8740,7 +8837,7 @@ describe("routine watch creation boundaries", () => {
     });
     expect(findRoutine).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: expect.objectContaining({ spaceId: actor.spaceId, userId: actor.userId }),
+        where: expect.objectContaining({ spaceId: actor.spaceId }),
       }),
     );
     expect(create).not.toHaveBeenCalled();
@@ -8821,6 +8918,53 @@ describe("API-key live model catalog", () => {
       );
     },
   );
+});
+
+describe("shared space bot permissions", () => {
+  const actor = { userId: "user-1", spaceId: "space-1", email: "user@rakazo.test" };
+
+  function sharedBotClient(role: string) {
+    const bot = {
+      id: "bot-1",
+      spaceId: "space-1",
+      userId: "user-2",
+      archivedAt: null,
+      webhookSecretId: null,
+      thread: { id: "thread-1" },
+      computer: null,
+    };
+    const prisma = {
+      bot: { findFirst: vi.fn(async () => bot) },
+      spaceMember: { findUnique: vi.fn(async () => ({ role })) },
+    };
+    const secrets = { put: vi.fn() };
+    const deps = {
+      prisma,
+      secrets,
+      env: { webOrigin: "https://example.test" },
+    } as unknown as RouterDeps;
+    const client = createRouterClient(createRouter(deps), { context: { actor } as never });
+    return { client, prisma, secrets };
+  }
+
+  it("lets only the bot's creator or the space owner delete a bot for good", async () => {
+    const { client, prisma } = sharedBotClient("member");
+    await expect(
+      client.bots.remove({ botId: "bot-1", deleteMemories: false }),
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
+    expect(prisma.spaceMember.findUnique).toHaveBeenCalledWith({
+      where: { spaceId_userId: { spaceId: "space-1", userId: "user-1" } },
+      select: { role: true },
+    });
+  });
+
+  it("keeps a bot's webhook secret with its creator", async () => {
+    const { client, secrets } = sharedBotClient("owner");
+    await expect(client.bots.rotateWebhookSecret({ botId: "bot-1" })).rejects.toMatchObject({
+      code: "FORBIDDEN",
+    });
+    expect(secrets.put).not.toHaveBeenCalled();
+  });
 });
 
 describe("quarantined computer stop", () => {

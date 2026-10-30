@@ -293,6 +293,7 @@ export const NL_MESSAGES: Record<string, string> = {
   "Tap to open": "Tik om te openen",
   "Could not open message": "Bericht openen mislukt",
   "Could not send answer": "Antwoord verzenden mislukt",
+  "Save to Vault": "Opslaan in kluis",
   "Could not speak": "Spreken mislukt",
   "Could not update reaction": "Reactie bijwerken mislukt",
   Created: "Aangemaakt",
@@ -329,6 +330,7 @@ export const NL_MESSAGES: Record<string, string> = {
   "Return to inbox": "Terug naar postvak IN",
   Running: "Draait",
   Saved: "Opgeslagen",
+  Sent: "Verzonden",
   Send: "Verzenden",
   "Send answer": "Antwoord verzenden",
   "Sending…": "Bezig met verzenden…",
@@ -933,6 +935,7 @@ export const NL_MESSAGES: Record<string, string> = {
   Disabled: "Uitgeschakeld",
   "OAuth connected": "OAuth verbonden",
   "OAuth expired": "OAuth verlopen",
+  "Needs an OAuth client ID": "OAuth-client-ID nodig",
   "Credential saved": "Inloggegevens opgeslagen",
   "No auth": "Geen authenticatie",
   "The bot couldn't reply because its provider's daily limit was reached.":
@@ -1028,6 +1031,18 @@ export const NL_MESSAGES: Record<string, string> = {
   "{count} need attention": "{count} vragen aandacht",
   "{label}, above": "{label}, boven",
   "{label}, below": "{label}, onder",
+  Invite: "Uitnodigen",
+  "Leave space": "Space verlaten",
+  "Everyone in this space sees all its chats, bots and memory.":
+    "Iedereen in deze space ziet alle chats, bots en het geheugen.",
+  "Your other spaces stay private.": "Je andere spaces blijven privé.",
+  "A bot uses the accounts of whoever messages it, and anyone here can read its reply.":
+    "Een bot gebruikt de accounts van wie hem een bericht stuurt, en iedereen hier kan zijn antwoord lezen.",
+  "Leave {name}?": "{name} verlaten?",
+  "Could not load members": "Kan leden niet laden",
+  "Could not create invite link": "Kan uitnodigingslink niet maken",
+  "Could not remove member": "Kan lid niet verwijderen",
+  "Could not leave space": "Kan space niet verlaten",
   Work: "Werk",
   Both: "Allebei",
   "How will you use Rakazo?": "Hoe ga je Rakazo gebruiken?",
@@ -1205,4 +1220,5 @@ export const NL_MESSAGES: Record<string, string> = {
     "Krijg een gratis maand voor elke vriend die een proefperiode start.",
   "1 free month earned": "1 gratis maand verdiend",
   "{count} free months earned": "{count} gratis maanden verdiend",
+  "Submit a plugin": "Plugin indienen",
 };

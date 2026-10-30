@@ -281,6 +281,7 @@ export const JA_MESSAGES: Record<string, string> = {
   "Tap to open": "タップして開く",
   "Could not open message": "メッセージを開けませんでした",
   "Could not send answer": "回答を送信できませんでした",
+  "Save to Vault": "保管庫に保存",
   "Could not speak": "読み上げできませんでした",
   "Could not update reaction": "リアクションを更新できませんでした",
   Created: "作成済み",
@@ -317,6 +318,7 @@ export const JA_MESSAGES: Record<string, string> = {
   "Return to inbox": "受信トレイに戻る",
   Running: "実行中",
   Saved: "保存しました",
+  Sent: "送信しました",
   Send: "送信",
   "Send answer": "回答を送信",
   "Sending…": "送信中…",
@@ -922,6 +924,7 @@ export const JA_MESSAGES: Record<string, string> = {
   Disabled: "無効",
   "OAuth connected": "OAuth接続済み",
   "OAuth expired": "OAuthの有効期限切れ",
+  "Needs an OAuth client ID": "OAuth クライアント ID が必要です",
   "Credential saved": "認証情報を保存済み",
   "No auth": "認証なし",
   "The bot couldn't reply because its provider's daily limit was reached.":
@@ -1237,4 +1240,17 @@ export const JA_MESSAGES: Record<string, string> = {
     "友だちがトライアルを開始するたびに、1か月無料になります。",
   "1 free month earned": "1か月分の無料期間を獲得",
   "{count} free months earned": "{count}か月分の無料期間を獲得",
+  "Submit a plugin": "プラグインを申請",
+  Invite: "招待",
+  "Leave space": "スペースから退出",
+  "Everyone in this space sees all its chats, bots and memory.":
+    "このスペースの全員が、すべてのチャット、ボット、メモリーを見られます。",
+  "Your other spaces stay private.": "ほかのスペースは非公開のままです。",
+  "A bot uses the accounts of whoever messages it, and anyone here can read its reply.":
+    "ボットはメッセージを送った人のアカウントを使い、ここにいる全員がその返信を読めます。",
+  "Leave {name}?": "{name}から退出しますか？",
+  "Could not load members": "メンバーを読み込めませんでした",
+  "Could not create invite link": "招待リンクを作成できませんでした",
+  "Could not remove member": "メンバーを削除できませんでした",
+  "Could not leave space": "スペースから退出できませんでした",
 };

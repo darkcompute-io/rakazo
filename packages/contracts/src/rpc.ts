@@ -7,10 +7,8 @@ import { eventIterator, oc } from "@orpc/contract";
 import * as z from "zod";
 import {
   AgentImportCreateInput,
-  AgentImportInfoSchema,
   AgentImportPlanSchema,
   AgentImportPreviewInput,
-  AgentImportUndoInput,
 } from "./agent-import.js";
 import { AgentImportSetupStateInput, AgentImportSetupStateSchema } from "./agent-import-setup.js";
 import { AiConsentQuerySchema, AiConsentStatusSchema } from "./ai-consent.js";
@@ -108,6 +106,9 @@ import {
   PluginMarketplaceCatalogSchema,
   PluginPartSchema,
   PluginPreviewSchema,
+  PluginSubmissionReviewSchema,
+  PluginSubmissionSchema,
+  PluginSubmissionStatusSchema,
   REPLY_QUOTE_MAX_LENGTH,
   ReorderBotsInput,
   ROUTINE_MENTION_BATCH_MAX,
@@ -121,6 +122,9 @@ import {
   SignupSurveySchema,
   SkillPlaybookSchema,
   SpaceAvailabilitySchema,
+  SpaceInviteLinkSchema,
+  SpaceInvitePreviewSchema,
+  SpaceMembersSchema,
   SpaceMemoryConfigSchema,
   SpaceNavigationSchema,
   SpaceSchema,
@@ -299,6 +303,27 @@ export const appContract = {
     remove: oc
       .input(z.object({ spaceId: Id }))
       .output(z.object({ ok: z.literal(true), activeSpaceId: Id })),
+    members: {
+      list: oc.input(z.object({ spaceId: Id })).output(SpaceMembersSchema),
+      /** Owner only. The removed person's bots, chats and routines stay with the space. */
+      remove: oc
+        .input(z.object({ spaceId: Id, userId: Id }))
+        .output(z.object({ ok: z.literal(true) })),
+      /** Members only; an owner deletes the space instead. */
+      leave: oc
+        .input(z.object({ spaceId: Id }))
+        .output(z.object({ ok: z.literal(true), activeSpaceId: Id })),
+    },
+    invites: {
+      /** Owner only. A new single-use link each call. */
+      create: oc.input(z.object({ spaceId: Id })).output(SpaceInviteLinkSchema),
+      preview: oc
+        .input(z.object({ token: z.string().min(1).max(200) }))
+        .output(SpaceInvitePreviewSchema),
+      accept: oc
+        .input(z.object({ token: z.string().min(1).max(200) }))
+        .output(z.object({ spaceId: Id })),
+    },
   },
   bootstrap: oc.input(z.object({ botId: Id.optional() })).output(AppBootstrapSchema),
   deployment: {
@@ -428,9 +453,7 @@ export const appContract = {
     create: oc.input(CreateBotInput).output(BotSchema),
     importPreview: oc.input(AgentImportPreviewInput).output(AgentImportPlanSchema),
     importCreate: oc.input(AgentImportCreateInput).output(BotSchema),
-    importInfo: oc.input(botId).output(AgentImportInfoSchema.nullable()),
     importSetupState: oc.input(AgentImportSetupStateInput).output(AgentImportSetupStateSchema),
-    importUndo: oc.input(AgentImportUndoInput).output(AgentImportInfoSchema),
     duplicate: oc.input(botId).output(BotSchema),
     reorder: oc.input(ReorderBotsInput).output(z.object({ ok: z.literal(true) })),
     update: oc.input(UpdateBotInput).output(BotSchema),
@@ -593,9 +616,18 @@ export const appContract = {
             fields: z.array(LoginFieldInput).min(1).max(LOGIN_FIELD_LIMIT).optional(),
             /** A login card's answer from apps that predate `fields`; `answer` carries its password. */
             username: z.string().min(1).max(512).optional(),
+            /** Only for a login card: use the login for this run only instead of saving it. */
+            remember: z.literal(false).optional(),
             /** Turns down a pending secret request; `answer` is then empty. */
             dismiss: z.literal(true).optional(),
           })
+          .refine(
+            (input) => input.remember === undefined || Boolean(input.fields ?? input.username),
+            {
+              message: "Only a website login can be used without saving it",
+              path: ["remember"],
+            },
+          )
           .refine(
             (input) =>
               input.dismiss
@@ -884,6 +916,12 @@ export const appContract = {
     catalog: oc
       .input(z.object({ query: z.string().trim().max(200).default("") }))
       .output(PluginMarketplaceCatalogSchema),
+    /** Admins only. */
+    submissions: oc
+      .input(z.object({ status: PluginSubmissionStatusSchema.default("pending") }))
+      .output(z.array(PluginSubmissionSchema)),
+    /** Admins only. */
+    review: oc.input(PluginSubmissionReviewSchema).output(PluginSubmissionSchema),
   },
   capabilities: {
     list: oc.output(z.array(CapabilityInstallSchema)),

@@ -298,6 +298,7 @@ export const DE_MESSAGES: Record<string, string> = {
   "Tap to open": "Zum Öffnen tippen",
   "Could not open message": "Nachricht konnte nicht geöffnet werden",
   "Could not send answer": "Antwort konnte nicht gesendet werden",
+  "Save to Vault": "Im Tresor speichern",
   "Could not speak": "Vorlesen fehlgeschlagen",
   "Could not update reaction": "Reaktion konnte nicht aktualisiert werden",
   Created: "Erstellt",
@@ -334,6 +335,7 @@ export const DE_MESSAGES: Record<string, string> = {
   "Return to inbox": "Zurück zur Übersicht",
   Running: "Läuft",
   Saved: "Gespeichert",
+  Sent: "Gesendet",
   Send: "Senden",
   "Send answer": "Antwort senden",
   "Sending…": "Wird gesendet…",
@@ -941,6 +943,7 @@ export const DE_MESSAGES: Record<string, string> = {
   Disabled: "Deaktiviert",
   "OAuth connected": "OAuth verbunden",
   "OAuth expired": "OAuth abgelaufen",
+  "Needs an OAuth client ID": "Benötigt eine OAuth-Client-ID",
   "Credential saved": "Zugangsdaten gespeichert",
   "No auth": "Keine Authentifizierung",
   "The bot couldn't reply because its provider's daily limit was reached.":
@@ -1036,6 +1039,18 @@ export const DE_MESSAGES: Record<string, string> = {
   "{count} need attention": "{count} brauchen Aufmerksamkeit",
   "{label}, above": "{label}, oben",
   "{label}, below": "{label}, unten",
+  Invite: "Einladen",
+  "Leave space": "Space verlassen",
+  "Everyone in this space sees all its chats, bots and memory.":
+    "Alle in diesem Space sehen alle Chats, Bots und Erinnerungen.",
+  "Your other spaces stay private.": "Deine anderen Spaces bleiben privat.",
+  "A bot uses the accounts of whoever messages it, and anyone here can read its reply.":
+    "Ein Bot nutzt die Konten der Person, die ihm schreibt, und alle hier können seine Antwort lesen.",
+  "Leave {name}?": "{name} verlassen?",
+  "Could not load members": "Mitglieder konnten nicht geladen werden",
+  "Could not create invite link": "Einladungslink konnte nicht erstellt werden",
+  "Could not remove member": "Mitglied konnte nicht entfernt werden",
+  "Could not leave space": "Space konnte nicht verlassen werden",
   Work: "Arbeit",
   Both: "Beides",
   "How will you use Rakazo?": "Wie wirst du Rakazo nutzen?",
@@ -1213,4 +1228,5 @@ export const DE_MESSAGES: Record<string, string> = {
     "Erhalte einen Gratismonat für jeden Freund, der eine Testphase startet.",
   "1 free month earned": "1 Gratismonat verdient",
   "{count} free months earned": "{count} Gratismonate verdient",
+  "Submit a plugin": "Plugin einreichen",
 };

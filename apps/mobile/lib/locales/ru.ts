@@ -226,6 +226,7 @@ export const RU_MESSAGES: Record<string, string> = {
   cancelled: "отменено",
   expired: "истёк срок",
   Saved: "Сохранено",
+  Sent: "Отправлено",
   " (unread)": " (непрочитано)",
   Appearance: "Внешний вид",
   Dark: "Тёмная",
@@ -430,6 +431,7 @@ export const RU_MESSAGES: Record<string, string> = {
   "Could not save the server URL": "Не удалось сохранить URL-адрес сервера.",
   "Could not send reset email": "Не удалось отправить электронное письмо для сброса",
   "Could not send answer": "Не удалось отправить ответ",
+  "Save to Vault": "Сохранить в хранилище",
   "Could not share file": "Не удалось поделиться файлом",
   "Could not sign out": "Не удалось выйти",
   "Could not speak": "Не удалось озвучить",
@@ -972,6 +974,7 @@ export const RU_MESSAGES: Record<string, string> = {
   Disabled: "Отключено",
   "OAuth connected": "OAuth подключён",
   "OAuth expired": "Срок действия OAuth истёк",
+  "Needs an OAuth client ID": "Нужен идентификатор клиента OAuth",
   "Credential saved": "Учётные данные сохранены",
   "No auth": "Без авторизации",
   "The bot couldn't reply because its provider's daily limit was reached.":
@@ -1067,6 +1070,18 @@ export const RU_MESSAGES: Record<string, string> = {
   "{count} need attention": "Требуют внимания: {count}",
   "{label}, above": "{label}, выше",
   "{label}, below": "{label}, ниже",
+  Invite: "Пригласить",
+  "Leave space": "Покинуть пространство",
+  "Everyone in this space sees all its chats, bots and memory.":
+    "Все участники этого пространства видят все его чаты, ботов и память.",
+  "Your other spaces stay private.": "Ваши другие пространства остаются личными.",
+  "A bot uses the accounts of whoever messages it, and anyone here can read its reply.":
+    "Бот использует аккаунты того, кто ему пишет, и все здесь могут прочитать его ответ.",
+  "Leave {name}?": "Покинуть {name}?",
+  "Could not load members": "Не удалось загрузить участников",
+  "Could not create invite link": "Не удалось создать ссылку-приглашение",
+  "Could not remove member": "Не удалось удалить участника",
+  "Could not leave space": "Не удалось покинуть пространство",
   Work: "Работа",
   Both: "И то, и другое",
   "How will you use Rakazo?": "Как вы будете использовать Rakazo?",
@@ -1244,4 +1259,5 @@ export const RU_MESSAGES: Record<string, string> = {
     "Получайте бесплатный месяц за каждого друга, который начнёт пробный период.",
   "1 free month earned": "Получен 1 бесплатный месяц",
   "{count} free months earned": "Бесплатных месяцев получено: {count}",
+  "Submit a plugin": "Предложить плагин",
 };

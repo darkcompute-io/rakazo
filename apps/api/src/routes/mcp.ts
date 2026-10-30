@@ -4,6 +4,7 @@ import { runContinueJob } from "@rakazo/adapter-kit";
 import {
   createPluginMarketplace,
   isTransientFetchError,
+  McpOAuthClientRequiredError,
   persistPreparedSecret,
   pluginPreviewDto,
   prepareApiInstall,
@@ -15,7 +16,7 @@ import {
 } from "@rakazo/adapters";
 import type { Actor } from "@rakazo/contracts";
 import { signupSurveyAsksTeamSize } from "@rakazo/contracts";
-import { containsSecret } from "@rakazo/core";
+import { comparePlugins, containsSecret, matchesPluginQuery } from "@rakazo/core";
 import type { Prisma } from "@rakazo/db";
 import {
   AVAILABILITY_SELECT,
@@ -55,6 +56,12 @@ import {
   startOnboarding,
 } from "../onboarding.js";
 import { installPlugin, lockPluginInstalls, setPluginParts } from "../plugin-installs.js";
+import {
+  approvedPluginEntries,
+  isAdmin,
+  listPluginSubmissions,
+  reviewPluginSubmission,
+} from "../plugin-submissions.js";
 import type { RouterContext } from "./context.js";
 import { computerContext, isUniqueViolation } from "./shared.js";
 
@@ -73,6 +80,10 @@ export function mcpRoutes(ctx: RouterContext) {
     authed,
   } = ctx;
   const pluginMarketplace = createPluginMarketplace(deps.pluginMarketplaceRead);
+  const requireAdmin = async (actor: Actor) => {
+    if (!(await isAdmin(deps, actor.userId)))
+      throw new ORPCError("FORBIDDEN", { message: "Admins only" });
+  };
   /** Removes an install and, for a plugin, the servers, secrets and skills it added. */
   const removeInstall = async (actor: Actor, id: string) => {
     const notify: Array<{ threadId: string; seq: number }> = [];
@@ -110,9 +121,29 @@ export function mcpRoutes(ctx: RouterContext) {
   };
   return {
     marketplace: {
-      catalog: authed.marketplace.catalog.handler(({ input }) =>
-        pluginMarketplace.catalog(input.query),
-      ),
+      catalog: authed.marketplace.catalog.handler(async ({ input }) => {
+        const [catalog, approved] = await Promise.all([
+          pluginMarketplace.catalog(input.query),
+          approvedPluginEntries(deps.prisma),
+        ]);
+        // A plugin also listed by another registry shows once, as the version we reviewed.
+        const reviewed = new Set(approved.map((entry) => entry.installedSource));
+        return {
+          ...catalog,
+          entries: [
+            ...approved.filter((entry) => matchesPluginQuery(entry, input.query)),
+            ...catalog.entries.filter((entry) => !reviewed.has(entry.installedSource)),
+          ].sort(comparePlugins),
+        };
+      }),
+      submissions: authed.marketplace.submissions.handler(async ({ context, input }) => {
+        await requireAdmin(context.actor);
+        return listPluginSubmissions(deps.prisma, input.status);
+      }),
+      review: authed.marketplace.review.handler(async ({ context, input }) => {
+        await requireAdmin(context.actor);
+        return reviewPluginSubmission(deps, input, context.signal);
+      }),
     },
     capabilities: {
       list: authed.capabilities.list.handler(async ({ context }) => {
@@ -615,6 +646,7 @@ export function mcpRoutes(ctx: RouterContext) {
           return { ok: true as const };
         }),
       },
+      // Any bot in the space can use the member's own servers; servers and assignments stay personal.
       assignments: {
         all: authed.mcp.assignments.all.handler(async ({ context }) => {
           const rows = await deps.prisma.botMcpServer.findMany({
@@ -633,7 +665,6 @@ export function mcpRoutes(ctx: RouterContext) {
             where: {
               id: input.botId,
               spaceId: context.actor.spaceId,
-              userId: context.actor.userId,
             },
             select: { id: true },
           });
@@ -666,7 +697,6 @@ export function mcpRoutes(ctx: RouterContext) {
                   where: {
                     id: input.botId,
                     spaceId: context.actor.spaceId,
-                    userId: context.actor.userId,
                   },
                   select: { id: true },
                 }),
@@ -730,7 +760,6 @@ export function mcpRoutes(ctx: RouterContext) {
               where: {
                 id: input.botId,
                 spaceId: context.actor.spaceId,
-                userId: context.actor.userId,
               },
               select: { id: true },
             });
@@ -812,6 +841,15 @@ export function mcpRoutes(ctx: RouterContext) {
               userId: context.actor.userId,
             });
           } catch (error) {
+            if (error instanceof McpOAuthClientRequiredError) {
+              await recordMcpServerHealth(
+                deps.prisma,
+                input.serverId,
+                { status: "error", message: error.message },
+                error.revision,
+              );
+              throw new ORPCError(error.code, { status: 400, message: error.message });
+            }
             throw new ORPCError("BAD_REQUEST", {
               message: error instanceof Error ? error.message : "Could not start MCP OAuth",
             });

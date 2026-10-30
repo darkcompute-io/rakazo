@@ -7,7 +7,12 @@ import type {
   ThreadMessage,
 } from "@rakazo/contracts";
 import type { ChildBotBlock } from "@rakazo/core";
-import { isPeerReceiptBlocks, isSecretAskBlock, isToolActivityBlock } from "@rakazo/core";
+import {
+  isPeerReceiptBlocks,
+  isSecretAskBlock,
+  isToolActivityBlock,
+  otherAuthor,
+} from "@rakazo/core";
 import { BotAvatar, Button, cn, resolvePersonaColorDef } from "@rakazo/ui-web";
 import { UserRound } from "lucide-react";
 import { memo, useMemo } from "react";
@@ -50,6 +55,7 @@ export const MessageView = memo(function MessageView({
   canAnswer,
   canDismiss,
   message,
+  meId,
   mentions,
   onAnswer,
   onOpenBot,
@@ -69,7 +75,6 @@ export const MessageView = memo(function MessageView({
   onSpeak,
   onOpenComputer,
   onOpenImportSetup,
-  onOpenImport,
   showToolActivity,
   onReply,
   onMarkUnread,
@@ -80,6 +85,8 @@ export const MessageView = memo(function MessageView({
   canAnswer: boolean;
   canDismiss: boolean;
   message: ThreadMessage;
+  /** The signed-in person; anyone else's message is named and set apart. */
+  meId?: string;
   /** Bots this reply announces, named inline in its text. */
   mentions?: readonly ChildBotBlock[];
   onAnswer: (
@@ -87,6 +94,7 @@ export const MessageView = memo(function MessageView({
     text: string,
     fields?: LoginFieldInput[],
     dismiss?: boolean,
+    remember?: false,
   ) => Promise<void>;
   onOpenBot: (botId: string) => void;
   onOpenPeerMessages: (peer: { peerBotId: string; peerBotName: string }) => void;
@@ -109,8 +117,6 @@ export const MessageView = memo(function MessageView({
   onOpenComputer: (botId?: string) => void;
   /** Opens where an imported item's setup is finished. */
   onOpenImportSetup?: (target: ImportSetupTarget) => void;
-  /** Opens the agent importer (from Chief's first-run focus card). */
-  onOpenImport?: () => void;
   showToolActivity: boolean;
   onReply: (message: ThreadMessage) => void;
   onMarkUnread: (message: ThreadMessage) => void;
@@ -151,6 +157,8 @@ export const MessageView = memo(function MessageView({
     ) : undefined;
   };
   const replyBotId = message.replyPreview?.botId ?? replyParent?.botId;
+  const author = message.role === "user" ? otherAuthor(message.author, meId) : undefined;
+  const replyAuthor = otherAuthor(message.replyPreview?.author ?? replyParent?.author, meId);
   const speakerBot = message.botId ? peerBot?.(message.botId) : undefined;
   const speakerColorDef = useMemo(
     () => resolvePersonaColorDef(message.botId ?? "bot", speakerBot?.color),
@@ -172,6 +180,13 @@ export const MessageView = memo(function MessageView({
           />
           {speakerName}
         </div>
+      ) : author ? (
+        <div
+          className="mb-1.5 text-end text-[13px] font-semibold tracking-tight text-muted-foreground"
+          dir="auto"
+        >
+          {author.name}
+        </div>
       ) : null}
       <ReplyLine
         target={artifactTarget}
@@ -179,7 +194,7 @@ export const MessageView = memo(function MessageView({
         fallbackText={replyParent ? previewMessageText(replyParent) : undefined}
         author={
           (message.replyPreview?.role ?? replyParent?.role) === "user"
-            ? t`You`
+            ? (replyAuthor?.name ?? t`You`)
             : ((replyBotId ? peerBot(replyBotId)?.name : undefined) ??
               memberName?.(replyBotId) ??
               t`Bot`)
@@ -412,15 +427,7 @@ export const MessageView = memo(function MessageView({
           if (block.kind === "choice") {
             const botId = "botId" in artifactTarget ? artifactTarget.botId : message.botId;
             if (!botId) return null;
-            return (
-              <ChoiceCard
-                key={i}
-                botId={botId}
-                block={block}
-                onBotChanged={onBotChanged}
-                onImportAgent={onOpenImport}
-              />
-            );
+            return <ChoiceCard key={i} botId={botId} block={block} onBotChanged={onBotChanged} />;
           }
           if (block.kind === "app_connect") {
             const botId = "botId" in artifactTarget ? artifactTarget.botId : message.botId;
@@ -505,7 +512,12 @@ export const MessageView = memo(function MessageView({
                 <div
                   data-testid="message-user-bubble"
                   data-quote-message-id={quoteMessageId}
-                  className="max-w-full whitespace-pre-wrap wrap-anywhere rounded-[20px] bg-chat-user px-[18px] py-3 text-body1 text-chat-user-foreground"
+                  className={cn(
+                    "max-w-full whitespace-pre-wrap wrap-anywhere rounded-[20px] px-[18px] py-3 text-body1",
+                    author
+                      ? "bg-muted text-foreground/90"
+                      : "bg-chat-user text-chat-user-foreground",
+                  )}
                   dir="auto"
                 >
                   <LinkifiedText>{block.text}</LinkifiedText>
@@ -570,7 +582,9 @@ export const MessageView = memo(function MessageView({
                   block={block}
                   canAnswer={canAnswer}
                   canDismiss={canDismiss}
-                  onAnswer={(text, fields) => onAnswer(message, text, fields)}
+                  onAnswer={(text, fields, remember) =>
+                    onAnswer(message, text, fields, undefined, remember)
+                  }
                   onDismiss={() => onAnswer(message, "", undefined, true)}
                 />
                 {i === hoverAnchorIndex ? hoverActions : null}

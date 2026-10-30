@@ -38,6 +38,7 @@ function executorFixture(
   };
   const prisma = {
     user: { findUnique: vi.fn<() => Promise<{ timezone: string } | null>>(async () => null) },
+    spaceMember: { findUnique: async () => ({ id: "member-1" }) },
     run: {
       findUnique: async () => run,
       findUniqueOrThrow: async () => run,
@@ -82,6 +83,7 @@ function executorFixture(
     },
     taughtSkill: { findMany: async () => [] },
     agentSecret: { findMany: async () => [] },
+    secret: { findMany: async () => [] },
     vaultCredential: { findMany: async () => [] },
     agentSkill: { findMany: async () => [] },
     scratchpadItem: { findMany: async () => [] },

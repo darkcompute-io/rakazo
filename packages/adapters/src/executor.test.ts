@@ -1087,6 +1087,7 @@ function compatiblePrismaParts(modelId: string, plaintext: string) {
       },
       deploymentSettings: { findUnique: vi.fn(async () => null) },
       secret: {
+        findMany: vi.fn(async () => []),
         findFirst: vi.fn(async () => ({ id: "secret-compat", ciphertext: plaintext })),
         findUnique: vi.fn(async () => null),
       },
@@ -1138,6 +1139,7 @@ function pinnedRoutineRunPrisma(modelId: string) {
     computer: { id: "computer-1", scope: "private" },
   };
   return {
+    spaceMember: { findUnique: vi.fn(async () => ({ id: "member-1" })) },
     run: {
       findUnique: vi.fn(async () => run),
       findUniqueOrThrow: vi.fn(async () => ({ status: "leased", startedAt: null })),
@@ -1166,6 +1168,7 @@ function pinnedRoutineRunPrisma(modelId: string) {
     task: { findUniqueOrThrow: vi.fn(async () => ({ id: "task-1", prompt: "hello" })) },
     connection: { findMany: vi.fn(async () => []) },
     taughtSkill: { findMany: vi.fn(async () => []) },
+    secret: { findMany: vi.fn(async () => []) },
     vaultCredential: { findMany: vi.fn(async () => []) },
     agentSkill: { findMany: vi.fn(async () => []) },
     scratchpadItem: { findMany: vi.fn(async () => []) },
@@ -2363,6 +2366,7 @@ description: Prepare standup notes
 
 1. Summarize wins.
 `;
+    const claim = vi.fn(async (_args: unknown) => ({ count: 1 }));
     const prisma = {
       routine: {
         findUnique: vi.fn(async () => ({
@@ -2384,7 +2388,7 @@ description: Prepare standup notes
         })),
       },
       agentSkill: {
-        findMany: vi.fn(async () => [
+        findMany: vi.fn(async (_args: unknown) => [
           {
             id: "skill-1",
             name: "Daily standup",
@@ -2397,7 +2401,7 @@ description: Prepare standup notes
       $transaction: vi.fn(async (callback: (tx: unknown) => Promise<unknown>) =>
         callback({
           routine: {
-            updateMany: vi.fn(async () => ({ count: 1 })),
+            updateMany: claim,
             findUnique: vi.fn(async () => ({
               modelProvider: null,
               modelId: null,
@@ -2408,9 +2412,9 @@ description: Prepare standup notes
           run: { create: vi.fn(async () => ({ id: "run-1" })) },
         }),
       ),
-    } as unknown as PrismaClient;
+    };
     const executor = createRunExecutor({
-      prisma,
+      prisma: prisma as unknown as PrismaClient,
       jobs: { enqueue, cancel: vi.fn(async () => undefined), close: vi.fn(async () => undefined) },
       events: { append: vi.fn(async () => undefined) },
     } as unknown as Parameters<typeof createRunExecutor>[0]);
@@ -2420,6 +2424,13 @@ description: Prepare standup notes
     expect(createdPrompt).toContain("Use skill: Daily standup");
     expect(createdPrompt).toContain("Summarize wins");
     expect(createdPrompt).not.toMatch(/@Daily standup/);
+    // Routines run as their owner: only the owner's skills, and the claim names the owner.
+    expect(prisma.agentSkill.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: expect.objectContaining({ userId: "user-1" }) }),
+    );
+    expect(claim).toHaveBeenCalledWith(
+      expect.objectContaining({ where: expect.objectContaining({ userId: "user-1" }) }),
+    );
   });
 
   it("still continues the run when routine.fired append fails", async () => {
@@ -2556,6 +2567,7 @@ description: Prepare standup notes
   it("consumes a persisted takeover checkpoint when claiming the run", async () => {
     const updateMany = vi.fn(async () => ({ count: 0 }));
     const prisma = {
+      spaceMember: { findUnique: vi.fn(async () => ({ id: "member-1" })) },
       run: {
         findUnique: vi.fn(async () => ({
           id: "run-1",
@@ -2609,6 +2621,7 @@ description: Prepare standup notes
       return { count: matchesClaim(args.where, row) ? 1 : 0 };
     });
     const prisma = {
+      spaceMember: { findUnique: vi.fn(async () => ({ id: "member-1" })) },
       run: {
         findUnique: vi.fn(async () => ({
           id: "run-1",
@@ -2649,6 +2662,7 @@ description: Prepare standup notes
     );
     const enqueue = vi.fn(async () => undefined);
     const prisma = {
+      spaceMember: { findUnique: vi.fn(async () => ({ id: "member-1" })) },
       run: {
         findUnique: vi.fn(async () => ({
           id: "run-1",
@@ -2708,6 +2722,7 @@ description: Prepare standup notes
     );
     const enqueue = vi.fn(async () => undefined);
     const prisma = {
+      spaceMember: { findUnique: vi.fn(async () => ({ id: "member-1" })) },
       run: {
         findUnique: vi.fn(async () => ({
           id: "run-1",
@@ -2765,6 +2780,7 @@ description: Prepare standup notes
     );
     const enqueue = vi.fn(async () => undefined);
     const prisma = {
+      spaceMember: { findUnique: vi.fn(async () => ({ id: "member-1" })) },
       run: {
         findUnique: vi.fn(async () => ({
           id: "run-1",
@@ -2845,6 +2861,7 @@ description: Prepare standup notes
             },
       );
       const prisma = {
+        spaceMember: { findUnique: vi.fn(async () => ({ id: "member-1" })) },
         run: {
           findUnique: vi.fn(async () => run),
           findUniqueOrThrow: vi.fn(async () => ({ status: "leased", startedAt: null })),
@@ -2882,6 +2899,7 @@ description: Prepare standup notes
           ),
         },
         secret: {
+          findMany: vi.fn(async () => []),
           findFirst: vi.fn(async () =>
             plaintext === undefined
               ? null
@@ -2962,6 +2980,7 @@ description: Prepare standup notes
       leaseFence: 0,
     };
     const prisma = {
+      spaceMember: { findUnique: vi.fn(async () => ({ id: "member-1" })) },
       run: {
         findUnique: vi.fn(async () => run),
         findUniqueOrThrow: vi.fn(async () => ({ status: "leased", startedAt: null })),
@@ -3015,6 +3034,7 @@ description: Prepare standup notes
       userModelCredential: { findMany: vi.fn(async () => []), findFirst: vi.fn(async () => null) },
       deploymentSettings: { findUnique: vi.fn(async () => null) },
       taughtSkill: { findMany: vi.fn(async () => []) },
+      secret: { findMany: vi.fn(async () => []) },
       vaultCredential: { findMany: vi.fn(async () => []) },
       agentSkill: { findMany: vi.fn(async () => []) },
       scratchpadItem: { findMany: vi.fn(async () => []) },
@@ -3066,6 +3086,7 @@ description: Prepare standup notes
       leaseFence: 0,
     };
     const prisma = {
+      spaceMember: { findUnique: vi.fn(async () => ({ id: "member-1" })) },
       run: {
         findUnique: vi.fn(async () => run),
         findUniqueOrThrow: vi.fn(async () => ({ status: "leased", startedAt: null })),
@@ -3132,6 +3153,7 @@ description: Prepare standup notes
       userModelCredential: { findMany: vi.fn(async () => []), findFirst: vi.fn(async () => null) },
       deploymentSettings: { findUnique: vi.fn(async () => null) },
       taughtSkill: { findMany: vi.fn(async () => []) },
+      secret: { findMany: vi.fn(async () => []) },
       vaultCredential: { findMany: vi.fn(async () => []) },
       agentSkill: { findMany: vi.fn(async () => []) },
       scratchpadItem: { findMany: vi.fn(async () => []) },
@@ -3192,6 +3214,7 @@ description: Prepare standup notes
       userModelCredential: { findMany: vi.fn(async () => []), findFirst: vi.fn(async () => null) },
       deploymentSettings: { findUnique: vi.fn(async () => null) },
       secret: {
+        findMany: vi.fn(async () => []),
         findFirst: vi.fn(async () => ({ id: "fixture-secret", ciphertext: "fixture-ciphertext" })),
         findUnique: vi.fn(async () => null),
       },
