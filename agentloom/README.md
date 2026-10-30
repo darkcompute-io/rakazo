@@ -42,7 +42,7 @@ secret goes in the deployer's env before the merge is deployed.
 | Sign-in | email and password, open sign-up | authentik only (slug `darkcompute-rakazo`) |
 | Way in | cloudflared, no host port | corp-caddy to the host's `:80` |
 | Computers | docker, behind Rakazo's egress lock | docker |
-| Extra | | agentloom-watch (`corp/watch`) on `:8091` |
+| Extra | | admin dashboard (`admin/`) at `/admin`, `:8091` |
 
 - **Tools:** a bot reaches anything beyond chat through an MCP connection, never a feature in the app; corp may reach the darkcompute agents hub (`AGENTLOOM_PRIVATE_MCP_ORIGINS`).
 - **Image:** each plane's runner builds this branch (`runner/`) and pushes to the registry on its app host; api, worker, web and the supervisor run it.

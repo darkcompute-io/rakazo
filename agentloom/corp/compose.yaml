@@ -3,8 +3,8 @@
 # Who gets in is authentik's decision: application AgentLoom (slug
 # darkcompute-rakazo) and its binding. There is no password sign-in, and an
 # account opens for whoever authentik sends back (OIDC_ALLOW_SIGNUP_BYPASS).
-# watch-init, watch and watch-proxy are agentloom-watch (corp/watch): every routine
-# on one page with a Stop, behind oauth2-proxy on :8091.
+# watch-init, watch and watch-proxy are the admin dashboard (admin/), which
+# corp-caddy publishes at /admin from oauth2-proxy on :8091.
 #
 # Nothing is built here. The plane's local runner (agentloom/runner) builds upstream's
 # infra/compose/Dockerfile and agentloom/Dockerfile from the agentloom branch and pushes
@@ -311,7 +311,7 @@ services:
   watch-init:
     image: agentloom-watch:local
     build:
-      context: ./watch
+      context: ./admin
     pull_policy: build
     command:
     - python3
@@ -329,7 +329,7 @@ services:
   watch:
     image: agentloom-watch:local
     build:
-      context: ./watch
+      context: ./admin
     pull_policy: build
     restart: unless-stopped
     read_only: true
@@ -340,7 +340,8 @@ services:
     mem_limit: 128m
     environment:
       WATCH_DB_PASSWORD: ${WATCH_DB_PASSWORD}
-      WATCH_ORIGIN: https://agentloom-watch.corp.darkcompute.io
+      WATCH_ORIGIN: https://agentloom.corp.darkcompute.io
+      WATCH_INSTANCE: AgentLoom CORP
       TRUSTED_PROXY: 10.231.70.10
     volumes:
     - watchdata:/data
@@ -363,8 +364,6 @@ services:
   watch-proxy:
     image: quay.io/oauth2-proxy/oauth2-proxy:v7.12.0
     restart: unless-stopped
-    ports:
-    - 8091:4180
     environment:
       OAUTH2_PROXY_PROVIDER: oidc
       OAUTH2_PROXY_PROVIDER_DISPLAY_NAME: authentik
@@ -374,7 +373,8 @@ services:
       OAUTH2_PROXY_COOKIE_SECRET: ${WATCH_COOKIE_SECRET}
       OAUTH2_PROXY_COOKIE_SECURE: 'true'
       OAUTH2_PROXY_COOKIE_NAME: _agentloom_watch
-      OAUTH2_PROXY_REDIRECT_URL: https://agentloom-watch.corp.darkcompute.io/oauth2/callback
+      OAUTH2_PROXY_REDIRECT_URL: https://agentloom.corp.darkcompute.io/admin/oauth2/callback
+      OAUTH2_PROXY_PROXY_PREFIX: /admin/oauth2
       OAUTH2_PROXY_HTTP_ADDRESS: 0.0.0.0:4180
       OAUTH2_PROXY_UPSTREAMS: http://10.231.70.20:8080
       OAUTH2_PROXY_EMAIL_DOMAINS: '*'
@@ -390,6 +390,8 @@ services:
     networks:
       watch:
         ipv4_address: 10.231.70.10
+    ports:
+    - 8091:4180
 volumes:
   pgdata: null
   appdata: null

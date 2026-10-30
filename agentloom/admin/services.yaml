@@ -1,12 +1,13 @@
-# agentloom-watch, merged into compose.yaml by gen-compose.py. Published as
-# agentloom-watch.corp.darkcompute.io by corp-caddy, to this guest's :8091,
-# which is oauth2-proxy: authentik application darkcompute-agentloom-watch,
-# authentik Admins only. watch itself has no port and believes identity
-# headers only from the proxy's fixed address.
+# The admin dashboard (watch.py), merged into both instances' compose by
+# gen-compose.py, which fills in each instance's origin. Served at <origin>/admin
+# by oauth2-proxy: authentik application darkcompute-agentloom-watch, authentik
+# Admins only. watch itself has no port and believes identity headers only
+# from the proxy's fixed address. The service names are still watch* so an
+# existing instance keeps its containers and its audit volume.
 services:
   watch-init:
     image: agentloom-watch:local
-    build: {context: ./watch}
+    build: {context: ./admin}
     pull_policy: build
     command: [python3, /app/watch.py, init]
     restart: 'no'
@@ -18,7 +19,7 @@ services:
       api: {condition: service_healthy}
   watch:
     image: agentloom-watch:local
-    build: {context: ./watch}
+    build: {context: ./admin}
     pull_policy: build
     restart: unless-stopped
     read_only: true
@@ -27,7 +28,8 @@ services:
     mem_limit: 128m
     environment:
       WATCH_DB_PASSWORD: ${WATCH_DB_PASSWORD}
-      WATCH_ORIGIN: https://agentloom-watch.corp.darkcompute.io
+      WATCH_ORIGIN: "@ORIGIN@"
+      WATCH_INSTANCE: "@INSTANCE@"
       TRUSTED_PROXY: 10.231.70.10
     volumes: [watchdata:/data]
     networks:
@@ -43,7 +45,6 @@ services:
   watch-proxy:
     image: quay.io/oauth2-proxy/oauth2-proxy:v7.12.0
     restart: unless-stopped
-    ports: ['8091:4180']
     environment:
       OAUTH2_PROXY_PROVIDER: oidc
       OAUTH2_PROXY_PROVIDER_DISPLAY_NAME: authentik
@@ -53,7 +54,8 @@ services:
       OAUTH2_PROXY_COOKIE_SECRET: ${WATCH_COOKIE_SECRET}
       OAUTH2_PROXY_COOKIE_SECURE: 'true'
       OAUTH2_PROXY_COOKIE_NAME: _agentloom_watch
-      OAUTH2_PROXY_REDIRECT_URL: https://agentloom-watch.corp.darkcompute.io/oauth2/callback
+      OAUTH2_PROXY_REDIRECT_URL: "@ORIGIN@/admin/oauth2/callback"
+      OAUTH2_PROXY_PROXY_PREFIX: /admin/oauth2
       OAUTH2_PROXY_HTTP_ADDRESS: 0.0.0.0:4180
       OAUTH2_PROXY_UPSTREAMS: http://10.231.70.20:8080
       OAUTH2_PROXY_EMAIL_DOMAINS: '*'

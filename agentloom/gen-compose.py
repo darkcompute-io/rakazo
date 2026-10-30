@@ -7,8 +7,9 @@ One branch, one image, two instances that differ only in what they decide:
                                      password with open sign-up, computers behind Rakazo's
                                      egress lock, cloudflared the only way in.
   corp  agentloom/corp/compose.yaml  agentloom.corp.darkcompute.io on CORP, for us: authentik
-                                     sign-in only, corp-caddy proxies the host's :80, and
-                                     agentloom-watch (corp/watch) beside it.
+                                     sign-in only, corp-caddy proxies the host's :80.
+
+Both carry the admin dashboard (admin/) at <origin>/admin, authentik Admins only.
 
 The image is built by a local runner on each plane (agentloom/runner) from the same
 commit and pushed to the registry on that instance's host; neither host builds.
@@ -201,14 +202,22 @@ def build(host: str, sets: dict, dst: Path, header: str, corp: bool) -> None:
         }
     doc["services"] = services
 
+    # The admin dashboard at <origin>/admin: our services beside upstream's
+    # (admin/services.yaml), the same on both instances but for who reaches its proxy.
+    text = (HERE / "admin" / "services.yaml").read_text(encoding="utf-8")
+    extra = yaml.safe_load(text.replace("@ORIGIN@", origin).replace(
+        "@INSTANCE@", "AgentLoom CORP" if corp else "AgentLoom"))
+    for key in ("services", "volumes", "networks"):
+        clash = set(doc.get(key) or {}) & set(extra.get(key) or {})
+        if clash:
+            raise SystemExit(f"admin/services.yaml {key} clash with upstream's: {sorted(clash)}")
+        doc.setdefault(key, {}).update(extra.get(key) or {})
     if corp:
-        # agentloom-watch: our services beside upstream's (corp/watch/services.yaml).
-        extra = yaml.safe_load((dst.parent / "watch" / "services.yaml").read_text(encoding="utf-8"))
-        for key in ("services", "volumes", "networks"):
-            clash = set(doc.get(key) or {}) & set(extra.get(key) or {})
-            if clash:
-                raise SystemExit(f"watch/services.yaml {key} clash with upstream's: {sorted(clash)}")
-            doc.setdefault(key, {}).update(extra.get(key) or {})
+        # corp-caddy proxies <origin>/admin* to the host's :8091.
+        doc["services"]["watch-proxy"]["ports"] = ["8091:4180"]
+    else:
+        # cloudflared sends ^/admin to the proxy over the watch network (the tunnel's ingress).
+        doc["services"]["cloudflared"]["networks"].append("watch")
 
     with open(dst, "w", encoding="utf-8") as f:
         f.write(header.format(origin=origin, tag=tag))
@@ -236,6 +245,6 @@ build("agentloom.corp.darkcompute.io", CORP, HERE / "corp" / "compose.yaml", """
 # Who gets in is authentik's decision: application AgentLoom (slug
 # darkcompute-rakazo) and its binding. There is no password sign-in, and an
 # account opens for whoever authentik sends back (OIDC_ALLOW_SIGNUP_BYPASS).
-# watch-init, watch and watch-proxy are agentloom-watch (corp/watch): every routine
-# on one page with a Stop, behind oauth2-proxy on :8091.
+# watch-init, watch and watch-proxy are the admin dashboard (admin/), which
+# corp-caddy publishes at /admin from oauth2-proxy on :8091.
 """ + FOOTER, corp=True)
