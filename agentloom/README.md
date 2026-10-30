@@ -10,8 +10,14 @@ or a change we chose to make to it.
 
 The source keeps upstream's name, so pulling upstream never conflicts over
 it. The name people see is put on at build time by `agentloom/Dockerfile`. It
-rewrites every capitalised `Rakazo` in the built web bundle, and the build fails
-if one survives. Messages the api or a bot writes can still say Rakazo.
+rewrites every capitalised `Rakazo` in the built web, api and worker bundles,
+points upstream's privacy policy, site and repository at agentloom.com, and the
+build fails if any of them survives. The avatar menu's mobile app and Docs
+links are removed in source (`SidebarFooter.tsx`): both were upstream's.
+
+The licence is not part of the name. Upstream is Apache-2.0: `LICENSE` and the
+copyright notices in source stay, and this directory is the record of what
+we changed.
 
 ## Pulling upstream's fixes
 

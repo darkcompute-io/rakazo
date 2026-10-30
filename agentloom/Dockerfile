@@ -8,11 +8,24 @@
 # name on purpose, so pulling upstream never conflicts over it.
 FROM base
 USER root
+# Upstream's addresses in every shipped bundle, web and server alike: its privacy
+# policy, its site (OpenRouter's referer) and its repository (the web fetchers'
+# User-Agent), and the published image's name, become AgentLoom's. Then the server bundles get the same name change
+# as the web one below: api and worker bundle every workspace package
+# (scripts/build-server.mjs), so emails, bot text and errors are all in dist/.
+RUN cd /app/apps \
+ && find web/dist api/dist worker/dist -type f \( -name '*.js' -o -name '*.mjs' -o -name '*.html' \) \
+      -exec sed -i -e 's#https://rakazo\.com/privacy/#https://agentloom.com/privacy/#g' \
+                   -e 's#https://rakazo\.com#https://agentloom.com#g' \
+                   -e 's#https://github\.com/elie222/rakazo#https://agentloom.com#g' \
+                   -e 's#elie222/rakazo#agentloom/agentloom#g' -e 's#elie222#agentloom#g' {} + \
+ && find api/dist worker/dist -type f \( -name '*.js' -o -name '*.mjs' \) -exec sed -i 's/Rakazo/AgentLoom/g' {} + \
+ && ! grep -rlE --exclude='*.map' 'Rakazo|//rakazo\.com|elie222' api/dist worker/dist
 RUN cd /app/apps/web/dist \
  && find . -type f \( -name '*.js' -o -name '*.html' -o -name '*.webmanifest' \) \
       -exec sed -i 's/Rakazo/AgentLoom/g' {} + \
  && grep -q '<title>AgentLoom</title>' index.html \
- && ! grep -rl --exclude='*.map' Rakazo .
+ && ! grep -rlE --exclude='*.map' 'Rakazo|//rakazo\.com|elie222' .
 # Umami pageviews for app.agentloom.com (darkcompute deploy/analytics/sites.yaml).
 # An external script, not inline, so the CSP's script-src needs only the
 # collector's origin, which gen-compose.py sets as RAKAZO_CSP_SCRIPT_SRC and
