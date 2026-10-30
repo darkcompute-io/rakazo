@@ -119,14 +119,21 @@ it.each(["in", "up", "forgot"] as const)(
     expect(host.querySelector("form")).toBeNull();
   },
 );
-it.each(["in", "up"] as const)("offers SSO and hides credentials on %s", async (mode) => {
+it("offers SSO and hides credentials on in", async () => {
   vi.mocked(fetchAuthCapabilities).mockResolvedValue(capabilities);
-  await render(mode);
+  await render("in");
   expect(host.textContent).toContain("Continue with Example");
   expect(host.querySelector("input")).toBeNull();
   const sso = host.querySelector("button")!;
   expect(sso.dataset.variant).toBe("default");
   expect(sso.className).toContain("w-full");
+});
+// AgentLoom: SSO-only sign-up redirects to sign-in, so the page itself renders nothing.
+it("leaves an SSO-only sign-up for sign-in", async () => {
+  vi.mocked(fetchAuthCapabilities).mockResolvedValue(capabilities);
+  await render("up");
+  expect(host.textContent).toBe("");
+  expect(host.querySelector("input")).toBeNull();
 });
 it("retries failed capabilities without exposing a password form", async () => {
   vi.mocked(fetchAuthCapabilities)

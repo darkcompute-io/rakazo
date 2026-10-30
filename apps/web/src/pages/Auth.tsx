@@ -7,7 +7,7 @@ import {
 } from "@rakazo/core";
 import { Button, Input, InputOTP, InputOTPGroup, InputOTPSlot, Label } from "@rakazo/ui-web";
 import { useEffect, useRef, useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { Link, Navigate, useSearchParams } from "react-router-dom";
 import { PasskeySignIn } from "../components/PasskeySignIn";
 import { authClient } from "../lib/auth";
 import type { AuthCapabilities } from "../lib/auth-capabilities";
@@ -216,6 +216,12 @@ export function AuthPage({ mode }: { mode: AuthMode }) {
 
   if (!sent && !reset && !capabilityError) {
     return <div className="h-full bg-background" />;
+  }
+
+  // AgentLoom: where the SSO is the only way in (agentloom.corp: authentik), an account
+  // opens at first sign-in, so there is no sign-up page; send it to sign-in.
+  if (mode === "up" && reset?.sso && !reset.passwordAuth) {
+    return <Navigate to={`/sign-in${searchParams.size ? `?${searchParams}` : ""}`} replace />;
   }
 
   return (
