@@ -1228,6 +1228,26 @@ export class McpOAuthBroker {
     await this.replaceMaterial(server.id, material, input, { incrementRevision: true });
   }
 
+  /**
+   * AgentLoom: stores a grant obtained without the redirect flow (the registry exchanges the
+   * member's own login for it). It carries no refresh token, so when it lapses the server
+   * reads "reconnect" until the registry stores the next one.
+   */
+  async storeGrant(server: ServerRef, context: ActorRef, tokens: OAuthTokens): Promise<void> {
+    const { material } = await this.loadMaterial(server, context);
+    material.oauth = { ...(material.oauth ?? {}), tokens, obtainedAt: Date.now() };
+    await this.replaceMaterial(server.id, material, context, {
+      expectedEndpoint: server.endpoint,
+      replaceCleared: true,
+    });
+  }
+
+  /** AgentLoom: when the stored grant's access token lapses, in ms; undefined when none. */
+  async grantExpiresAt(server: ServerRef, context: ActorRef): Promise<number | undefined> {
+    const { material } = await this.loadMaterial(server, context);
+    return material.oauth?.tokens ? (accessTokenExpiresAt(material.oauth) ?? Infinity) : undefined;
+  }
+
   private async loadMaterial(
     server: ServerRef,
     context: ActorRef,
