@@ -40,7 +40,15 @@ const RENEW_BEFORE_MS = 30 * 60_000;
 let sweeping = false;
 
 export function registryRoutes(ctx: RouterContext) {
-  const { deps, authed, prepareMcpServer, insertMcpServer, announceMcpServer, mcpOAuth } = ctx;
+  const {
+    deps,
+    authed,
+    prepareMcpServer,
+    insertMcpServer,
+    announceMcpServer,
+    mcpOAuth,
+    probeMcpServer,
+  } = ctx;
 
   /** The member's connection to one app in their space, made if missing, on every bot. */
   async function ensureServer(actor: Actor, entry: RegistryEntry) {
@@ -181,7 +189,12 @@ export function registryRoutes(ctx: RouterContext) {
       const ref = { id: server.id, endpoint: server.endpoint, secretId: server.secretId };
       const context = { spaceId: actor.spaceId, userId: actor.userId };
       const expiresAt = await mcpOAuth.grantExpiresAt(ref, context);
-      if (expiresAt !== undefined && expiresAt - Date.now() > RENEW_BEFORE_MS) continue;
+      if (expiresAt !== undefined && expiresAt - Date.now() > RENEW_BEFORE_MS) {
+        // A grant that is good while the last check failed: check again, so the page and
+        // the bots stop reading the error from before it arrived.
+        if (server.healthStatus !== "ok") await probeMcpServer(server, actor);
+        continue;
+      }
       // Without a grant the app is still added, and waits on the ordinary popup.
       const tokens = await grant();
       if (!tokens) continue;
@@ -192,6 +205,9 @@ export function registryRoutes(ctx: RouterContext) {
         context,
         tokens,
       );
+      // Probe with the grant just stored, so its tools load and its status reads ok.
+      const stored = await deps.prisma.mcpServer.findUniqueOrThrow({ where: { id: server.id } });
+      await probeMcpServer(stored, actor);
     }
   }
 
