@@ -186,6 +186,9 @@ def build(host: str, sets: dict, dst: Path, header: str, corp: bool) -> None:
                 if name == "api":
                     env["AGENTLOOM_MCP_CLIENT_ID"] = "${AGENTLOOM_MCP_CLIENT_ID}"
                     env["AGENTLOOM_MCP_CLIENT_SECRET"] = "${AGENTLOOM_MCP_CLIENT_SECRET}"
+                    # Every member gets every app, connected as them with no popup
+                    # (apps/api/src/routes/registry.ts).
+                    env["AGENTLOOM_REGISTRY_AUTO"] = "1"
         services[name] = svc
 
     if corp:

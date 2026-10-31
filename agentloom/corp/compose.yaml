@@ -209,6 +209,7 @@ services:
       AGENTLOOM_PRIVATE_MCP_ORIGINS: https://agents.corp.darkcompute.io,https://tasks.corp.darkcompute.io,https://calendar.corp.darkcompute.io,https://me.corp.darkcompute.io,https://inbox.corp.darkcompute.io,https://mail.corp.darkcompute.io,https://drive.corp.darkcompute.io,https://library.corp.darkcompute.io,https://research.corp.darkcompute.io,https://books.corp.darkcompute.io,https://timesheets.corp.darkcompute.io,https://chat.darkcompute.io,https://helm.corp.darkcompute.io,https://marketing.corp.darkcompute.io,https://viral.corp.darkcompute.io,https://video.corp.darkcompute.io,https://recorder.corp.darkcompute.io,https://code.corp.darkcompute.io,https://test.corp.darkcompute.io,https://jarvis.corp.darkcompute.io,https://inference.corp.darkcompute.io,https://gpu.corp.darkcompute.io,https://training.corp.darkcompute.io,https://spaces.darkcompute.io,https://flow.corp.darkcompute.io
       AGENTLOOM_MCP_CLIENT_ID: ${AGENTLOOM_MCP_CLIENT_ID}
       AGENTLOOM_MCP_CLIENT_SECRET: ${AGENTLOOM_MCP_CLIENT_SECRET}
+      AGENTLOOM_REGISTRY_AUTO: '1'
     volumes:
     - appdata:/data
     networks:
