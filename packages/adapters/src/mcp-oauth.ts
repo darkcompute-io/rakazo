@@ -33,7 +33,7 @@ import { getLogger } from "@rakazo/logging";
 import { sanitizeConnectorError } from "./connector-safety.js";
 import { MCP_DYNAMIC_REGISTRATION_UNSUPPORTED, needsMcpOAuthClient } from "./mcp-server-health.js";
 import { secureFetch, validateUrl, withEndpointOriginFallback } from "./mcp-transport.js";
-import type { RemoteTransportDependencies } from "./remote-mcp.js";
+import { isDeploymentPrivateMcpEndpoint, type RemoteTransportDependencies } from "./remote-mcp.js";
 import { persistPreparedSecret } from "./secret-persistence.js";
 import { deleteSecretBestEffort, holdSecretNotifications } from "./secret-store-factory.js";
 
@@ -928,6 +928,11 @@ export class McpOAuthBroker {
     private readonly allowPrivateEndpoint = false,
   ) {}
 
+  /** AgentLoom: the deployment's own MCP servers (and their issuer) sit on private addresses. */
+  private mayReachPrivate(endpoint: string | null | undefined): boolean {
+    return this.allowPrivateEndpoint || (!!endpoint && isDeploymentPrivateMcpEndpoint(endpoint));
+  }
+
   async statusFor(server: ServerRef, context: ActorRef): Promise<McpOAuthSummary["status"]> {
     return (await this.summaryFor(server, context)).status;
   }
@@ -1009,7 +1014,7 @@ export class McpOAuthBroker {
       target,
       this.network,
       server.endpoint ? loaded.material : withoutRequestCredentials(loaded.material),
-      this.allowPrivateEndpoint,
+      this.mayReachPrivate(server.endpoint),
     );
     try {
       if (server.endpoint)
@@ -1168,7 +1173,7 @@ export class McpOAuthBroker {
       // Only for redacting errors: the exchange sends the client secret, but none of
       // the server's static headers.
       { oauth: { clientInformation: pending.provider.clientInformation() } },
-      this.allowPrivateEndpoint,
+      this.mayReachPrivate(pending.endpoint),
     );
     try {
       if (pending.stdio)
@@ -1277,7 +1282,7 @@ export class McpOAuthBroker {
                 ),
             }
           : {}),
-        allowPrivateEndpoint: this.allowPrivateEndpoint,
+        allowPrivateEndpoint: this.mayReachPrivate(endpoint),
         ...options,
       },
     );
@@ -1299,7 +1304,7 @@ export class McpOAuthBroker {
     onPersisted?: ProviderOptions["onPersisted"],
   ): Promise<TokenGrant> {
     // Resolve the network before taking a connection for the lock.
-    const network = oauthFetch(target, this.network, {}, this.allowPrivateEndpoint);
+    const network = oauthFetch(target, this.network, {}, this.mayReachPrivate(endpoint));
     let stored: { id: string; ciphertext: string } | undefined;
     let rotated: { material: OAuthMaterial; grant: TokenGrant; spent: string } | undefined;
     try {
@@ -1327,7 +1332,7 @@ export class McpOAuthBroker {
                     material,
                     current,
                     network.fetch,
-                    this.allowPrivateEndpoint,
+                    this.mayReachPrivate(endpoint),
                   ),
                 };
                 grant.obtainedAt = Date.now();
