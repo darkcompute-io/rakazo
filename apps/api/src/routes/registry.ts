@@ -128,8 +128,13 @@ export function registryRoutes(ctx: RouterContext) {
       getLogger().warn("registry: SSO login could not be renewed", { userId, error: String(error) });
       return null;
     });
-    if (!login?.accessToken) {
-      getLogger().warn("registry: no live SSO login to exchange", { userId });
+    // With no refresh token (the login provider must issue offline_access) an old login
+    // comes back as it was stored, and authentik has forgotten it.
+    const expiresAt = login?.accessTokenExpiresAt ? new Date(login.accessTokenExpiresAt) : null;
+    if (!login?.accessToken || (expiresAt && expiresAt.getTime() <= Date.now() + 60_000)) {
+      getLogger().warn("registry: no live SSO login to exchange; the member signs in again", {
+        userId,
+      });
       return null;
     }
     const response = await fetch(await tokenUrl(), {
