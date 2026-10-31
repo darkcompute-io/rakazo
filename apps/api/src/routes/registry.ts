@@ -123,7 +123,10 @@ export function registryRoutes(ctx: RouterContext) {
     // Better Auth refreshes the login when it has lapsed, and stores the new one.
     const login = await runAsSystem("registry: renew the member's SSO login", () =>
       deps.auth.api.getAccessToken({ body: { accountId: account.accountId, userId } }),
-    ).catch(() => null);
+    ).catch((error) => {
+      getLogger().warn("registry: SSO login could not be renewed", { userId, error: String(error) });
+      return null;
+    });
     if (!login?.accessToken) {
       getLogger().warn("registry: no live SSO login to exchange", { userId });
       return null;
@@ -163,7 +166,12 @@ export function registryRoutes(ctx: RouterContext) {
   /** Every app for one member in one space, with a fresh grant where it needs one. */
   async function connectAll(actor: Actor, grant: () => ReturnType<typeof exchange>) {
     for (const entry of registryEntries()) {
-      const server = await ensureServer(actor, entry);
+      // One app that cannot be reached (a name this plane does not resolve) skips only itself.
+      const server = await ensureServer(actor, entry).catch((error) => {
+        getLogger().warn("registry: app not added", { app: entry.id, error: String(error) });
+        return null;
+      });
+      if (!server) continue;
       const ref = { id: server.id, endpoint: server.endpoint, secretId: server.secretId };
       const context = { spaceId: actor.spaceId, userId: actor.userId };
       const expiresAt = await mcpOAuth.grantExpiresAt(ref, context);
