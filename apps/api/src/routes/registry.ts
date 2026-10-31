@@ -116,13 +116,14 @@ export function registryRoutes(ctx: RouterContext) {
     const account = await runAsSystem("registry: the member's SSO login", () =>
       deps.prisma.account.findFirst({
         where: { userId, providerId: "oidc" },
-        select: { accountId: true },
+        select: { id: true },
       }),
     );
     if (!account) return null;
-    // Better Auth refreshes the login when it has lapsed, and stores the new one.
+    // Better Auth refreshes the login when it has lapsed, and stores the new one. Its
+    // accountId is the account row's id, not the provider's subject.
     const login = await runAsSystem("registry: renew the member's SSO login", () =>
-      deps.auth.api.getAccessToken({ body: { accountId: account.accountId, userId } }),
+      deps.auth.api.getAccessToken({ body: { accountId: account.id, userId } }),
     ).catch((error) => {
       getLogger().warn("registry: SSO login could not be renewed", { userId, error: String(error) });
       return null;
