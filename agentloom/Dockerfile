@@ -33,4 +33,7 @@ RUN cd /app/apps/web/dist \
 RUN cd /app/apps/web/dist \
  && sed -i 's#</head>#<script defer src="https://a.darkcompute.io/assets/app.js" data-website-id="bc1a2af4-3ec1-4bae-a690-293f5cf4afbd" data-host-url="https://a.darkcompute.io" data-domains="app.agentloom.com"></script></head>#' index.html \
  && grep -q 'bc1a2af4-3ec1-4bae-a690-293f5cf4afbd' index.html
+# The registry's app icons (agentloom/registry-icons, Lucide glyphs, ISC), served
+# same-origin at /registry-icons/<id>.svg so they load behind no app's login.
+COPY registry-icons/ /app/apps/web/dist/registry-icons/
 USER node

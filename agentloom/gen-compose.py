@@ -92,6 +92,9 @@ CORP_SECRET = {"OIDC_CLIENT_ID", "OIDC_CLIENT_SECRET", "WATCH_DB_PASSWORD", "WAT
 REGISTRY_KEYS = {"id", "name", "description", "endpoint", "open", "icon", "askWrites"}
 
 
+ICONS = Path(__file__).resolve().parent / "registry-icons"
+
+
 def registry(path: Path) -> dict:
     """The instance's one-click apps (packages/core agentloom-registry.ts): a title, where
     "Request a connector" posts (a capture API; its token is AGENTLOOM_CONNECTOR_REQUEST_TOKEN),
@@ -117,6 +120,9 @@ def registry(path: Path) -> dict:
         for k in ("endpoint", "open", "icon"):
             if k in e and not str(e[k]).startswith("https://"):
                 raise SystemExit(f"{path}: {e['id']}: {k} must be https")
+        # An app with an icon in registry-icons/ gets it, served from the instance itself.
+        if "icon" not in e and (ICONS / f"{e['id']}.svg").is_file():
+            e["icon"] = f"/registry-icons/{e['id']}.svg"
     return {"title": doc.get("title") or "Apps", "requestUrl": doc.get("request_url"), "apps": entries}
 REF = re.compile(r"\$\{([A-Za-z_][A-Za-z0-9_]*)(?::([-?])((?:[^{}]|\{[^{}]*\})*))?\}")
 

@@ -66,7 +66,12 @@ export function registryInfo(
         description: typeof r.description === "string" ? r.description.slice(0, 300) : "",
         endpoint,
         open: typeof r.open === "string" && /^https:\/\//.test(r.open) ? r.open : null,
-        icon: typeof r.icon === "string" && /^https:\/\//.test(r.icon) ? r.icon : null,
+        // An https URL, or one of the icons this image ships (agentloom/registry-icons).
+        icon:
+          typeof r.icon === "string" &&
+          (/^https:\/\//.test(r.icon) || /^\/registry-icons\/[a-z0-9-]+\.svg$/.test(r.icon))
+            ? r.icon
+            : null,
         askWrites: r.askWrites === true,
       },
     ];
