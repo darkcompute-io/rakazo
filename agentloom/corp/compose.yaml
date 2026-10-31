@@ -171,7 +171,7 @@ services:
       OIDC_CLIENT_ID: ${OIDC_CLIENT_ID}
       OIDC_CLIENT_SECRET: ${OIDC_CLIENT_SECRET}
       OIDC_NAME: authentik
-      OIDC_SCOPES: openid email profile
+      OIDC_SCOPES: openid email profile offline_access
       OIDC_ALLOW_SIGNUP_BYPASS: 'true'
       SIGNUPS_ENABLED: 'true'
       SCREEN_PROXY_SECRET: ${SCREEN_PROXY_SECRET}

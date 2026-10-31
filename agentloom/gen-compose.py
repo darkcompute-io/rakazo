@@ -66,6 +66,9 @@ CORP = {
     "OIDC_ISSUER": "https://auth.darkcompute.io/application/o/darkcompute-rakazo/",
     "OIDC_NAME": "authentik",
     "OIDC_ALLOW_SIGNUP_BYPASS": "true",
+    # A refresh token, so the registry can renew a lapsed login and exchange it for app
+    # tokens (registry.ts); the login token itself lives one hour.
+    "OIDC_SCOPES": "openid email profile offline_access",
     # corp-caddy
     "TRUSTED_PROXIES": "local-networks,10.56.30.243",
 }
