@@ -124,7 +124,10 @@ export function registryRoutes(ctx: RouterContext) {
     const login = await runAsSystem("registry: renew the member's SSO login", () =>
       deps.auth.api.getAccessToken({ body: { accountId: account.accountId, userId } }),
     ).catch(() => null);
-    if (!login?.accessToken) return null;
+    if (!login?.accessToken) {
+      getLogger().warn("registry: no live SSO login to exchange", { userId });
+      return null;
+    }
     const response = await fetch(await tokenUrl(), {
       method: "POST",
       headers: { "content-type": "application/x-www-form-urlencoded" },
@@ -165,8 +168,9 @@ export function registryRoutes(ctx: RouterContext) {
       const context = { spaceId: actor.spaceId, userId: actor.userId };
       const expiresAt = await mcpOAuth.grantExpiresAt(ref, context);
       if (expiresAt !== undefined && expiresAt - Date.now() > RENEW_BEFORE_MS) continue;
+      // Without a grant the app is still added, and waits on the ordinary popup.
       const tokens = await grant();
-      if (!tokens) return;
+      if (!tokens) continue;
       // The row was read before the server existed or before its secret moved; read it again.
       const fresh = await deps.prisma.mcpServer.findUniqueOrThrow({ where: { id: server.id } });
       await mcpOAuth.storeGrant(
