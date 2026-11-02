@@ -142,3 +142,30 @@ apps:
     endpoint: https://flow.corp.darkcompute.io/api/mcp
     open: https://flow.corp.darkcompute.io
     description: "The map of every app, its agents and how they connect."
+  # The lab itself (darkcompute scripts/lab-mcp.py on fleet-jump): one server per scope, each
+  # holding only its own credentials. Admins only. askWrites so every change is asked, Just go
+  # included; destructive tools are asked every time regardless.
+  - id: fleet
+    name: Fleet
+    endpoint: https://mcp-fleet.corp.darkcompute.io/api/mcp
+    open: https://fleet.corp.darkcompute.io
+    description: "Every server and VM - Proxmox, the BMCs, power and guest actions through the queue."
+    askWrites: true
+  - id: network
+    name: Network
+    endpoint: https://mcp-network.corp.darkcompute.io/api/mcp
+    open: https://dns.corp.darkcompute.io
+    description: "DNS on every plane's resolver, and the NetBird overlay - routes, policies, groups, setup keys."
+    askWrites: true
+  - id: identity
+    name: Identity
+    endpoint: https://mcp-identity.corp.darkcompute.io/api/mcp
+    open: https://authentik.darkcompute.io
+    description: "authentik users, groups, sessions and apps, and Infisical secret names per plane."
+    askWrites: true
+  - id: deploy
+    name: Deploy
+    endpoint: https://mcp-deploy.corp.darkcompute.io/api/mcp
+    open: https://coolify.corp.darkcompute.io
+    description: "Coolify on CORP, DMZ and PROD - apps, deploys, restarts, env and build logs."
+    askWrites: true
