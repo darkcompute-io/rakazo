@@ -218,7 +218,9 @@ def build(host: str, sets: dict, dst: Path, header: str, corp: bool) -> None:
     # (admin/services.yaml), the same on both instances but for who reaches its proxy.
     text = (HERE / "admin" / "services.yaml").read_text(encoding="utf-8")
     extra = yaml.safe_load(text.replace("@ORIGIN@", origin).replace(
-        "@INSTANCE@", "AgentLoom CORP" if corp else "AgentLoom"))
+        "@INSTANCE@", "AgentLoom CORP" if corp else "AgentLoom").replace(
+        # Billing view: the plan an account with no plans.json entry is on. CORP bills nobody.
+        "@DEFAULT_PLAN@", "internal" if corp else "starter"))
     for key in ("services", "volumes", "networks"):
         clash = set(doc.get(key) or {}) & set(extra.get(key) or {})
         if clash:

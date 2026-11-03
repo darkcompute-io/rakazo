@@ -6,7 +6,7 @@
 --
 -- Rakazo's own row policies apply to every role through a setting any role
 -- can change (app.rls_bypass), so they are not what holds this role. The
--- column grants are: names, counts, timestamps and spend, never a message,
+-- column grants are: names, counts, timestamps, tokens and spend, never a message,
 -- a prompt, an instruction, a session token or an address. The restrictive
 -- policy below is what makes its one write a pause and never a start.
 
@@ -21,11 +21,19 @@ grant update (active) on routines to agentloom_watch;
 grant select (id, "routineId", "userId", status, trigger, "modelProvider", "modelId",
               "createdAt", "startedAt", "completedAt") on runs to agentloom_watch;
 grant select (id, name, "userId", "archivedAt", "createdAt") on bots to agentloom_watch;
-grant select (id, name, "createdByUserId", "createdAt") on spaces to agentloom_watch;
+grant select (id, name, "createdByUserId", "organizationId", "createdAt") on spaces to agentloom_watch;
 grant select (id, name, email, "emailVerified", "createdAt") on "user" to agentloom_watch;
 grant select ("userId", "createdAt", "updatedAt", "expiresAt") on session to agentloom_watch;
-grant select ("userId", "botId", provider, model, "totalTokens", "costUsd", "createdAt")
+-- Turns and Billing: which call belongs to which turn and account, its tokens and its cost.
+grant select (id, "spaceId", "userId", "botId", "runId", "parentRunId", provider, model,
+              "inputTokens", "outputTokens", "cacheReadTokens", "totalTokens", "costUsd",
+              "costSource", "operationKind", "createdAt")
   on usage_records to agentloom_watch;
+grant select (id, name, "createdAt") on organization to agentloom_watch;
+grant select ("organizationId", "userId", role) on member to agentloom_watch;
+-- Whether a person connected their own key for a provider, so a call on it is theirs to pay.
+-- The two columns that say so, never the key.
+grant select ("userId", provider) on user_model_credentials to agentloom_watch;
 
 drop policy if exists watch_read on routines;
 create policy watch_read on routines for select to agentloom_watch using (true);
@@ -42,7 +50,8 @@ create policy watch_stop_only on routines as restrictive for update to agentloom
 do $$
 declare t text;
 begin
-  foreach t in array array['runs', 'bots', 'spaces', 'user', 'session', 'usage_records'] loop
+  foreach t in array array['runs', 'bots', 'spaces', 'user', 'session', 'usage_records',
+                         'organization', 'member', 'user_model_credentials'] loop
     execute format('drop policy if exists watch_read on %I', t);
     execute format('create policy watch_read on %I for select to agentloom_watch using (true)', t);
   end loop;

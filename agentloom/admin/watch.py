@@ -106,6 +106,52 @@ order by r.active desc, r."nextRunAt" nulls last, r.name
 """
 PAUSE = 'update routines set active = false where id = %s and active returning name'
 
+# A call is ours to pay when it cost something and its person connected no key of their own
+# for that provider: the run fell back to the instance's key. An estimate until the app's
+# own credit ledger (model_credit_entries) is switched on, which records exactly that.
+OURS = ('r."costUsd" > 0 and not exists (select 1 from user_model_credentials k '
+        'where k."userId" = r."userId" and k.provider = r.provider)')
+# One turn is one top-level run: its sub-runs fold into it, a call with no run stands alone.
+TURN = 'coalesce(r."parentRunId", r."runId", \'call:\' || r.id)'
+TURNS = f"""
+with t as (
+  select {TURN} turn, min(r."createdAt") at, r."userId", r."spaceId", max(r."botId") bot,
+         string_agg(distinct r.model, ', ') models, count(*) calls,
+         sum(coalesce(r."inputTokens", 0)) inp, sum(coalesce(r."cacheReadTokens", 0)) cached,
+         sum(coalesce(r."outputTokens", 0)) outp, sum(coalesce(r."costUsd", 0)) cost,
+         sum(case when {OURS} then r."costUsd" else 0 end) ours,
+         bool_or(r."costUsd" is null) unpriced
+  from usage_records r where r."createdAt" > {NOW} - interval '30 days'
+  group by 1, r."userId", r."spaceId"
+)
+select t.at, coalesce(u.email, t."userId"), coalesce(o.name, '-'), coalesce(b.name, t.bot, '-'),
+       x.trigger, x.status, t.models, t.calls, t.inp, t.cached, t.outp, t.cost, t.ours, t.unpriced
+from t
+left join "user" u on u.id = t."userId"
+left join spaces s on s.id = t."spaceId"
+left join organization o on o.id = s."organizationId"
+left join bots b on b.id = t.bot
+left join runs x on x.id = t.turn
+order by t.at desc limit 300
+"""
+ACCOUNTS = f"""
+select o.id, o.name,
+  (select min(u.email) from member m join "user" u on u.id = m."userId"
+     where m."organizationId" = o.id and m.role like '%owner%'),
+  (select count(*) from member m where m."organizationId" = o.id),
+  count(distinct {TURN}) filter (where r.id is not null),
+  coalesce(sum(r."costUsd"), 0),
+  coalesce(sum(case when {OURS} then r."costUsd" end), 0),
+  count(r.id) filter (where r."costUsd" = 0)
+from organization o
+left join spaces s on s."organizationId" = o.id
+left join usage_records r on r."spaceId" = s.id and r."createdAt" >= {MONTH}
+group by o.id, o.name
+order by 7 desc, 6 desc, o.name
+"""
+PLANS = json.loads(Path(__file__).with_name("plans.json").read_text())
+DEFAULT_PLAN = os.environ.get("WATCH_DEFAULT_PLAN", "starter")
+
 
 def init():
     """Owner side: the role, its column grants and its policies. Idempotent."""
@@ -214,7 +260,9 @@ button:disabled{opacity:.45;cursor:not-allowed}
 .note{padding:8px 12px;border-radius:6px;background:var(--card);border:1px solid var(--line);margin:0 0 16px}
 """
 
-TABS = (("", "Overview"), ("/users", "Users"), ("/spend", "Spend"), ("/routines", "Routines"))
+# Turns and Billing ride on /spend?v= so the proxies' /admin path rules need no new entry.
+TABS = (("", "Overview"), ("/users", "Users"), ("/spend", "Spend"), ("/spend?v=turns", "Turns"),
+        ("/spend?v=billing", "Billing"), ("/routines", "Routines"))
 
 
 def shell(cur, who, title, sub, content, note=""):
@@ -277,6 +325,75 @@ def spend(c, who):
                  "A local model records its calls and tokens at no cost.", content)
 
 
+def turns(c, who):
+    rows = []
+    for (at, user, account, bot, trigger, status, models, calls, inp, cached, outp, cost, ours,
+         unpriced) in c.execute(TURNS).fetchall():
+        payer = "ours" if ours else "theirs" if cost else "unpriced" if unpriced else "free"
+        flag = ' <span class=bad title="A call has no price yet">?</span>' if unpriced else ""
+        rows.append(
+            f"<tr><td>{utc(at)}</td><td>{e(user)}</td><td>{e(account)}</td><td>{e(bot)}</td>"
+            f"<td>{e(trigger or '-')}</td><td class={'bad' if status == 'failed' else ''}>{e(status or '-')}</td>"
+            f"<td>{e(models)}</td><td class=n>{num(calls)}</td><td class=n>{num(inp)}</td>"
+            f"<td class=n>{num(cached)}</td><td class=n>{num(outp)}</td>"
+            f"<td class=n>{usd(cost)}{flag}</td>"
+            f"<td class={'on' if payer == 'ours' else 'off'}>{payer}</td></tr>")
+    t = table(["When", "Person", "Account", "Bot", "Started by", "Status", "Models", "#Calls",
+               "#Input", "#Cached", "#Output", "#Cost", "Paid by"], rows, "No turns in 30 days.")
+    return shell("/spend?v=turns", who, "Turns", "One row per agent turn in the last 30 days, newest "
+                 "first, up to 300. A turn is one run with its sub-runs; Input is uncached tokens. "
+                 "Paid by: ours = the instance's key, theirs = a key the person connected, "
+                 "free = a local model. ? = a call whose price is not known yet.", t)
+
+
+def card_fee(x):
+    f = PLANS["fees"]
+    return x * f["card_pct"] + f["card_fixed"] if x > 0 else 0.0
+
+
+def billing(c, who):
+    markup, fee = PLANS["markup"], PLANS["fees"]["openrouter"]
+    rows, tot = [], {"rev": 0.0, "cost": 0.0, "margin": 0.0, "over": 0}
+    for (_, name, owner, members, nturns, cost, ours, free) in c.execute(ACCOUNTS).fetchall():
+        key = PLANS["accounts"].get(owner or "", DEFAULT_PLAN)
+        plan = PLANS["plans"][key]
+        charged = float(ours) * markup
+        included = plan["credits"]
+        over = max(0.0, charged - included) if included is not None else 0.0
+        left = max(0.0, included - charged) if included is not None else None
+        revenue = plan["price"] + over
+        ai = float(ours) * (1 + fee)
+        margin = revenue - ai - card_fee(revenue)
+        cap = plan["users"]
+        tot["rev"] += revenue
+        tot["cost"] += ai
+        tot["margin"] += margin
+        tot["over"] += over > 0
+        used = f"{100 * charged / included:.0f}%" if included else "-"
+        rows.append(
+            f"<tr><td>{e(name)}</td><td>{e(owner or '-')}</td><td>{e(plan['name'])}</td>"
+            f"<td class='n{' bad' if cap and members > cap else ''}'>{num(members)}{f' / {cap}' if cap else ''}</td>"
+            f"<td class=n>{num(nturns)}</td><td class=n>{num(free)}</td><td class=n>{usd(cost)}</td>"
+            f"<td class=n>{usd(ours)}</td><td class=n>{used}</td>"
+            f"<td class=n>{usd(left) if left is not None else '-'}</td>"
+            f"<td class='n{' bad' if over else ''}'>{usd(over)}</td><td class=n>{usd(revenue)}</td>"
+            f"<td class='n{' bad' if margin < 0 else ''}'>{usd(margin)}</td></tr>")
+    tiles = "".join([
+        tile("Would bill this month", usd(tot["rev"]), "plans plus overage"),
+        tile("Our AI cost", usd(tot["cost"]), f"model cost + {fee:.1%} OpenRouter fee"),
+        tile("Margin", usd(tot["margin"]), "after AI and card fees; hosting not counted"),
+        tile("Over allowance", num(tot["over"]), "accounts"),
+        tile("Credits charged at", f"{markup:g}x", "model cost, plans.json"),
+    ])
+    t = table(["Account", "Owner", "Plan", "#People", "#Turns", "#Free calls", "#All cost",
+               "#Ours", "#Credits used", "#Credits left", "#Overage", "#Would bill", "#Margin"],
+              rows, "No accounts yet.")
+    return shell("/spend?v=billing", who, "Billing", "This month, per account, against the plan it "
+                 f"would be on. Tracking only: nothing is charged. An account with no entry in "
+                 f"plans.json is on {PLANS['plans'][DEFAULT_PLAN]['name']}. Ours is the estimate "
+                 "described on Turns.", f"<div class=tiles>{tiles}</div><h2>Accounts</h2>{t}")
+
+
 def routines(c, who, note):
     body = []
     for (rid, owner, space, bot, name, crons, tz, active, last, nxt, lstatus, lat) in c.execute(ROUTINES).fetchall():
@@ -306,6 +423,7 @@ def routines(c, who, note):
 
 
 PAGES = {"": overview, "/": overview, "/users": users, "/spend": spend}
+VIEWS = {"turns": turns, "billing": billing}
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -345,6 +463,9 @@ class Handler(BaseHTTPRequestHandler):
             if sub == "/routines":
                 note = (parse_qs(url.query).get("note") or [""])[0][:200]
                 return self.send(200, routines(c, who, note))
+            view = (parse_qs(url.query).get("v") or [""])[0]
+            if sub == "/spend" and view in VIEWS:
+                return self.send(200, VIEWS[view](c, who))
             if sub in PAGES:
                 return self.send(200, PAGES[sub](c, who))
         self.send(404, "not found", "text/plain")

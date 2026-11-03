@@ -1,0 +1,12 @@
+{
+  "_": "What each plan includes, as agentloom.com sells it, and which account is on which. Read by watch.py for the Billing view; nothing charges anyone. An account is an organization, named by its owner's email. markup is what a dollar of model cost is charged at against credits (1.0 = at cost, as the site implies today). fees are what a charged dollar costs us before the model: OpenRouter's top-up fee and the card processor's.",
+  "markup": 1.0,
+  "fees": {"openrouter": 0.055, "card_pct": 0.029, "card_fixed": 0.30},
+  "plans": {
+    "starter":  {"name": "Starter",  "price": 20,  "credits": 10,  "users": 3},
+    "pro":      {"name": "Pro",      "price": 100, "credits": 60,  "users": 15},
+    "max":      {"name": "Max",      "price": 250, "credits": 175, "users": 50},
+    "internal": {"name": "Internal", "price": 0,   "credits": null, "users": null}
+  },
+  "accounts": {}
+}

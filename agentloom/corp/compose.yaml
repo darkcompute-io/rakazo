@@ -403,6 +403,7 @@ services:
       WATCH_DB_PASSWORD: ${WATCH_DB_PASSWORD}
       WATCH_ORIGIN: https://agentloom.corp.darkcompute.io
       WATCH_INSTANCE: AgentLoom CORP
+      WATCH_DEFAULT_PLAN: internal
       TRUSTED_PROXY: 10.231.70.10
     volumes:
     - watchdata:/data

@@ -339,6 +339,7 @@ services:
       WATCH_DB_PASSWORD: ${WATCH_DB_PASSWORD}
       WATCH_ORIGIN: https://app.agentloom.com
       WATCH_INSTANCE: AgentLoom
+      WATCH_DEFAULT_PLAN: starter
       TRUSTED_PROXY: 10.231.70.10
     volumes:
     - watchdata:/data

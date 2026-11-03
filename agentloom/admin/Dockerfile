@@ -3,6 +3,6 @@
 FROM python:3.12-slim
 RUN pip install --no-cache-dir "psycopg[binary]==3.2.3" \
  && mkdir /data && chown nobody /data
-COPY watch.py init.sql /app/
+COPY watch.py init.sql plans.json /app/
 USER nobody
 CMD ["python3", "/app/watch.py", "serve"]

@@ -30,6 +30,7 @@ services:
       WATCH_DB_PASSWORD: ${WATCH_DB_PASSWORD}
       WATCH_ORIGIN: "@ORIGIN@"
       WATCH_INSTANCE: "@INSTANCE@"
+      WATCH_DEFAULT_PLAN: "@DEFAULT_PLAN@"
       TRUSTED_PROXY: 10.231.70.10
     volumes: [watchdata:/data]
     networks:
