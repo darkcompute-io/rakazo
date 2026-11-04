@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { type ActionApprovalResolved, planActionGate } from "./action-approval.js";
 import {
   registryAlwaysAsks,
+  registryAppAllowed,
   registryEntries,
   registryInfo,
   registrySlug,
@@ -70,5 +71,47 @@ describe("AgentLoom registry", () => {
     expect(planActionGate({ ...base, resolved: deny, mode: "never", alwaysAsk: true })).toBe(
       "deny",
     );
+  });
+});
+
+describe("registry teams", () => {
+  const app = (extra: Record<string, unknown> = {}) => ({
+    id: "fleet",
+    name: "Fleet",
+    endpoint: "https://mcp-fleet.example/api/mcp",
+    ...extra,
+  });
+  const teams = {
+    org: { name: "Darkcompute", slug: "darkcompute" },
+    owner: "Owner@Example.test",
+    spaces: [
+      { id: "everyone", name: "Darkcompute", group: "Employees", default: true },
+      { id: "fleet", name: "Fleet", group: "team-fleet" },
+    ],
+  };
+
+  it("reads the teams block and an app's teams", () => {
+    const info = registryInfo(
+      JSON.stringify({ apps: [app({ teams: ["fleet"] }), app({ id: "mail" })], teams }),
+    );
+    expect(info.teams?.owner).toBe("owner@example.test");
+    expect(info.teams?.spaces.map((s) => [s.id, s.isDefault])).toEqual([
+      ["everyone", true],
+      ["fleet", false],
+    ]);
+    const [fleet, mail] = info.entries;
+    expect(registryAppAllowed(fleet!, "fleet")).toBe(true);
+    expect(registryAppAllowed(fleet!, "everyone")).toBe(false);
+    expect(registryAppAllowed(fleet!, null)).toBe(false);
+    expect(registryAppAllowed(mail!, null)).toBe(true);
+  });
+
+  it("drops a teams block it cannot trust whole", () => {
+    const two = { ...teams, spaces: teams.spaces.map((s) => ({ ...s, default: true })) };
+    expect(registryInfo(JSON.stringify({ apps: [], teams: two })).teams).toBeNull();
+    expect(
+      registryInfo(JSON.stringify({ apps: [], teams: { ...teams, owner: "nobody" } })).teams,
+    ).toBeNull();
+    expect(registryInfo(JSON.stringify({ apps: [] })).teams).toBeNull();
   });
 });

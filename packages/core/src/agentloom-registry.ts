@@ -19,6 +19,20 @@ export type RegistryEntry = {
   open: string | null;
   icon: string | null;
   askWrites: boolean;
+  /** Team spaces this app goes into, by team id; null = every space. */
+  teams: string[] | null;
+};
+
+/** A space the instance keeps in step with an authentik group (CORP): who is in the
+ * group is who is in the space, checked from each member's own token on every sweep. */
+export type RegistryTeam = { id: string; name: string; group: string; isDefault: boolean };
+
+export type RegistryTeams = {
+  /** The organization the team spaces live in, made once by slug. */
+  org: { name: string; slug: string };
+  /** The email of the account that owns every team space (rename, invite, delete). */
+  owner: string;
+  spaces: RegistryTeam[];
 };
 
 const ID = /^[a-z][a-z0-9-]{0,31}$/;
@@ -32,7 +46,29 @@ export type RegistryInfo = {
   /** The section's heading, e.g. "Darkcompute apps". */
   title: string;
   entries: RegistryEntry[];
+  teams: RegistryTeams | null;
 };
+
+function parseTeams(raw: unknown): RegistryTeams | null {
+  if (!raw || typeof raw !== "object") return null;
+  const t = raw as Record<string, unknown>;
+  const org = t.org as Record<string, unknown> | undefined;
+  if (!org || typeof org.name !== "string" || typeof org.slug !== "string" || !ID.test(org.slug))
+    return null;
+  if (typeof t.owner !== "string" || !t.owner.includes("@")) return null;
+  const spaces = (Array.isArray(t.spaces) ? t.spaces : []).flatMap((e): RegistryTeam[] => {
+    const r = (e ?? {}) as Record<string, unknown>;
+    if (typeof r.id !== "string" || !ID.test(r.id)) return [];
+    if (typeof r.name !== "string" || typeof r.group !== "string" || !r.group) return [];
+    return [{ id: r.id, name: r.name.slice(0, 60), group: r.group, isDefault: r.default === true }];
+  });
+  if (!spaces.length || spaces.filter((s) => s.isDefault).length > 1) return null;
+  return {
+    org: { name: org.name.slice(0, 60), slug: org.slug },
+    owner: t.owner.toLowerCase(),
+    spaces,
+  };
+}
 
 let cached: { raw: string | undefined; info: RegistryInfo } | undefined;
 
@@ -73,6 +109,9 @@ export function registryInfo(
             ? r.icon
             : null,
         askWrites: r.askWrites === true,
+        teams: Array.isArray(r.teams)
+          ? r.teams.filter((t): t is string => typeof t === "string" && ID.test(t))
+          : null,
       },
     ];
   });
@@ -80,6 +119,7 @@ export function registryInfo(
     title:
       typeof doc.title === "string" && doc.title.trim() ? doc.title.trim().slice(0, 60) : "Apps",
     entries,
+    teams: parseTeams(doc.teams),
   };
   cached = { raw, info };
   return info;
@@ -99,4 +139,9 @@ export function registryAlwaysAsks(
   return entries.some(
     (entry) => entry.askWrites && toolName.startsWith(`mcp__${registrySlug(entry.id)}__`),
   );
+}
+
+/** Whether a registry app belongs in a space: unrestricted, or that space is one of its teams. */
+export function registryAppAllowed(entry: RegistryEntry, spaceTeam: string | null): boolean {
+  return entry.teams === null || (spaceTeam !== null && entry.teams.includes(spaceTeam));
 }

@@ -89,7 +89,8 @@ CORP_SECRET = {"OIDC_CLIENT_ID", "OIDC_CLIENT_SECRET", "WATCH_DB_PASSWORD", "WAT
                "WATCH_OIDC_CLIENT_SECRET", "WATCH_COOKIE_SECRET",
                # the registry's authentik client (agentloom-mcp): a person's token for each app
                "AGENTLOOM_MCP_CLIENT_ID", "AGENTLOOM_MCP_CLIENT_SECRET"}
-REGISTRY_KEYS = {"id", "name", "description", "endpoint", "open", "icon", "askWrites"}
+REGISTRY_KEYS = {"id", "name", "description", "endpoint", "open", "icon", "askWrites", "teams"}
+TEAM_KEYS = {"id", "name", "group", "default"}
 
 
 ICONS = Path(__file__).resolve().parent / "registry-icons"
@@ -101,7 +102,7 @@ def registry(path: Path) -> dict:
     and the apps. Closed key sets, https only,
     ids unique: a bad file stops the generator rather than shipping half a list."""
     doc = (yaml.safe_load(path.read_text(encoding="utf-8")) if path.exists() else None) or {}
-    extra = set(doc) - {"title", "request_url", "apps"}
+    extra = set(doc) - {"title", "request_url", "apps", "teams"}
     if extra:
         raise SystemExit(f"{path}: unknown keys {sorted(extra)}")
     if "request_url" in doc and not str(doc["request_url"]).startswith("https://"):
@@ -115,6 +116,8 @@ def registry(path: Path) -> dict:
         if not re.fullmatch(r"[a-z][a-z0-9-]{0,31}", str(e.get("id", ""))) or e["id"] in seen:
             raise SystemExit(f"{path}: bad or repeated id {e.get('id')!r}")
         seen.add(e["id"])
+        if "teams" in e and not (isinstance(e["teams"], list) and all(isinstance(t, str) for t in e["teams"])):
+            raise SystemExit(f"{path}: {e['id']}: teams is a list of team ids")
         if "endpoint" not in e:
             raise SystemExit(f"{path}: {e['id']}: endpoint is required")
         for k in ("endpoint", "open", "icon"):
@@ -123,7 +126,22 @@ def registry(path: Path) -> dict:
         # An app with an icon in registry-icons/ gets it, served from the instance itself.
         if "icon" not in e and (ICONS / f"{e['id']}.svg").is_file():
             e["icon"] = f"/registry-icons/{e['id']}.svg"
-    return {"title": doc.get("title") or "Apps", "requestUrl": doc.get("request_url"), "apps": entries}
+    teams = doc.get("teams")
+    if teams is not None:
+        if set(teams) - {"org", "owner", "spaces"} or not isinstance(teams.get("org"), dict):
+            raise SystemExit(f"{path}: teams takes org {{name, slug}}, owner and spaces")
+        ids = [t.get("id") for t in teams.get("spaces") or []]
+        for t in teams.get("spaces") or []:
+            if set(t) - TEAM_KEYS or not t.get("group") or not re.fullmatch(r"[a-z][a-z0-9-]{0,31}", str(t.get("id", ""))):
+                raise SystemExit(f"{path}: team {t.get('id')!r}: keys {sorted(TEAM_KEYS)}, group required")
+        if len(ids) != len(set(ids)) or sum(1 for t in teams["spaces"] if t.get("default")) > 1:
+            raise SystemExit(f"{path}: team ids repeat, or more than one default")
+        for e in entries:
+            unknown = set(e.get("teams") or []) - set(ids)
+            if unknown:
+                raise SystemExit(f"{path}: {e['id']}: no team {sorted(unknown)}")
+    return {"title": doc.get("title") or "Apps", "requestUrl": doc.get("request_url"), "apps": entries,
+            **({"teams": teams} if teams else {})}
 REF = re.compile(r"\$\{([A-Za-z_][A-Za-z0-9_]*)(?::([-?])((?:[^{}]|\{[^{}]*\})*))?\}")
 
 
@@ -180,8 +198,9 @@ def build(host: str, sets: dict, dst: Path, header: str, corp: bool) -> None:
             reg = registry(dst.parent / "registry.yaml")
             apps = reg["apps"]
             env = svc.setdefault("environment", {})
-            env["AGENTLOOM_REGISTRY"] = json.dumps({"title": reg["title"], "apps": apps},
-                                                   separators=(",", ":"))
+            env["AGENTLOOM_REGISTRY"] = json.dumps(
+                {"title": reg["title"], "apps": apps, **({"teams": reg["teams"]} if "teams" in reg else {})},
+                separators=(",", ":"))
             if name == "api" and reg["requestUrl"]:
                 env["AGENTLOOM_CONNECTOR_REQUEST_URL"] = reg["requestUrl"]
                 env["AGENTLOOM_CONNECTOR_REQUEST_TOKEN"] = "${AGENTLOOM_CONNECTOR_REQUEST_TOKEN}"

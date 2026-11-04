@@ -79,6 +79,7 @@ import { useCreateMenu } from "./shell/sidebar-header";
 import { BotsSidebarLayout } from "./shell/sidebar-layout";
 import { SidebarRoster } from "./shell/sidebar-roster";
 import { commitSpaceRename, countUnreadChats, sidebarGroupsForSpaces } from "./shell/space-sidebar";
+import { SpaceSwitcher } from "./shell/space-switcher";
 import { Transcript } from "./shell/transcript";
 import { useBrowserNotifications } from "./shell/use-browser-notifications";
 import { useChatRead } from "./shell/use-chat-read";
@@ -375,13 +376,28 @@ function SpaceShell() {
           : [],
     [bootstrapMe, botSections, bots, groups, spaces],
   );
+  // AgentLoom: the roster lists the space you are in; the switcher above it reaches the rest.
+  const shownSpaces = useMemo(() => {
+    const current = sidebarSpaces.filter((space) => space.id === bootstrapMe?.spaceId);
+    return current.length ? current : sidebarSpaces;
+  }, [sidebarSpaces, bootstrapMe?.spaceId]);
+  const switcherSpaces = useMemo(
+    () =>
+      sidebarSpaces.map((space) => ({
+        id: space.id,
+        name: space.name,
+        shared: "shared" in space ? Boolean(space.shared) : false,
+        unread: countUnreadChats(sidebarGroupsForSpaces([space], "")),
+      })),
+    [sidebarSpaces],
+  );
   const sidebarGroups = useMemo(
     () =>
-      sidebarGroupsForSpaces(sidebarSpaces, miniSidebar ? "" : search.query, {
+      sidebarGroupsForSpaces(shownSpaces, miniSidebar ? "" : search.query, {
         pinned: t`Pinned`,
         unassigned: t`Unassigned`,
       }),
-    [sidebarSpaces, search.query, miniSidebar, t],
+    [shownSpaces, search.query, miniSidebar, t],
   );
   // The Dock badge ignores the roster search box: a filter must not hide unread chats.
   const unreadChatCount = useMemo(
@@ -739,37 +755,47 @@ function SpaceShell() {
         setNewSpaceOpen={dialogs.setNewSpaceOpen}
         setCreateBotOpen={dialogs.setCreateBotOpen}
         roster={
-          <SidebarRoster
-            mini={miniSidebar}
-            sidebarGroups={sidebarGroups}
-            collapsedSidebarSections={collapsedSidebarSections}
-            bootstrapMe={bootstrapMe}
-            botSections={botSections}
-            spaces={spaces}
-            rosterDropKey={rosterDrop.rosterDropKey}
-            setRosterDropKey={rosterDrop.setRosterDropKey}
-            rosterDropAction={rosterDrop.rosterDropAction}
-            applyRosterDrop={rosterDrop.applyRosterDrop}
-            openSpaceChat={openSpaceChat}
-            spaceMenuAnchor={dialogs.spaceMenuAnchor}
-            setSpaceMenu={dialogs.setSpaceMenu}
-            setRenameSectionTarget={dialogs.setRenameSectionTarget}
-            setDeleteSectionTarget={dialogs.setDeleteSectionTarget}
-            toggleSidebarSection={toggleSidebarSection}
-            inGroup={inGroup}
-            active={active}
-            activeGroup={activeGroup}
-            botsSidebarDensity={botsSidebarDensity}
-            dismissedRunErrorIds={composer.dismissedRunErrorIds}
-            displayedRunError={composer.displayedRunError}
-            draggedBotId={rosterDrop.draggedBotId}
-            setDraggedBotId={rosterDrop.setDraggedBotId}
-            botMenu={botMenu}
-            setBotMenu={setBotMenu}
-            reorderRosterBot={roster.reorderRosterBot}
-            activeSnapshot={activeSnapshot}
-            botMenuContent={botMenuContent}
-          />
+          <>
+            {switcherSpaces.length > 1 && !miniSidebar ? (
+              <SpaceSwitcher
+                spaces={switcherSpaces}
+                currentId={bootstrapMe?.spaceId}
+                onSelect={(spaceId) => openSpaceChat(spaceId, "/app")}
+                onNewSpace={() => dialogs.setNewSpaceOpen(true)}
+              />
+            ) : null}
+            <SidebarRoster
+              mini={miniSidebar}
+              sidebarGroups={sidebarGroups}
+              collapsedSidebarSections={collapsedSidebarSections}
+              bootstrapMe={bootstrapMe}
+              botSections={botSections}
+              spaces={spaces}
+              rosterDropKey={rosterDrop.rosterDropKey}
+              setRosterDropKey={rosterDrop.setRosterDropKey}
+              rosterDropAction={rosterDrop.rosterDropAction}
+              applyRosterDrop={rosterDrop.applyRosterDrop}
+              openSpaceChat={openSpaceChat}
+              spaceMenuAnchor={dialogs.spaceMenuAnchor}
+              setSpaceMenu={dialogs.setSpaceMenu}
+              setRenameSectionTarget={dialogs.setRenameSectionTarget}
+              setDeleteSectionTarget={dialogs.setDeleteSectionTarget}
+              toggleSidebarSection={toggleSidebarSection}
+              inGroup={inGroup}
+              active={active}
+              activeGroup={activeGroup}
+              botsSidebarDensity={botsSidebarDensity}
+              dismissedRunErrorIds={composer.dismissedRunErrorIds}
+              displayedRunError={composer.displayedRunError}
+              draggedBotId={rosterDrop.draggedBotId}
+              setDraggedBotId={rosterDrop.setDraggedBotId}
+              botMenu={botMenu}
+              setBotMenu={setBotMenu}
+              reorderRosterBot={roster.reorderRosterBot}
+              activeSnapshot={activeSnapshot}
+              botMenuContent={botMenuContent}
+            />
+          </>
         }
         archived={
           <ArchivedChats

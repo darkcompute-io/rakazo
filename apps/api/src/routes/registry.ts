@@ -9,12 +9,22 @@
 // exchanging their own login token at authentik for an agentloom-mcp one (that provider lists
 // the login provider under jwt_federation_providers, and still runs its own access policy).
 // It reruns on a timer, so a new member, bot or app, and an hour-old grant, are taken care of.
+//
+// With a `teams` block it first keeps the team spaces in step with authentik groups
+// (agentloom-teams.ts), and an app with `teams:` goes only into those team spaces.
 import { ORPCError } from "@orpc/server";
 import type { Actor } from "@rakazo/contracts";
 import { McpServerConfigInput } from "@rakazo/contracts";
-import { type RegistryEntry, registryEntries, registryInfo, registrySlug } from "@rakazo/core";
+import {
+  type RegistryEntry,
+  registryAppAllowed,
+  registryEntries,
+  registryInfo,
+  registrySlug,
+} from "@rakazo/core";
 import { runAsSystem, runAsTenant } from "@rakazo/db";
 import { getLogger } from "@rakazo/logging";
+import { syncTeams, teamSpaces, tokenGroups } from "../agentloom-teams.js";
 import type { RouterContext } from "./context.js";
 
 const SCOPE = "openid profile email offline_access";
@@ -133,7 +143,10 @@ export function registryRoutes(ctx: RouterContext) {
     const login = await runAsSystem("registry: renew the member's SSO login", () =>
       deps.auth.api.getAccessToken({ body: { accountId: account.id, userId } }),
     ).catch((error) => {
-      getLogger().warn("registry: SSO login could not be renewed", { userId, error: String(error) });
+      getLogger().warn("registry: SSO login could not be renewed", {
+        userId,
+        error: String(error),
+      });
       return null;
     });
     // With no refresh token (the login provider must issue offline_access) an old login
@@ -178,8 +191,25 @@ export function registryRoutes(ctx: RouterContext) {
   }
 
   /** Every app for one member in one space, with a fresh grant where it needs one. */
-  async function connectAll(actor: Actor, grant: () => ReturnType<typeof exchange>) {
+  async function connectAll(
+    actor: Actor,
+    grant: () => ReturnType<typeof exchange>,
+    spaceTeam: string | null,
+  ) {
     for (const entry of registryEntries()) {
+      if (!registryAppAllowed(entry, spaceTeam)) {
+        // An app kept to other teams: a connection made before the restriction stays, off.
+        await deps.prisma.mcpServer.updateMany({
+          where: {
+            spaceId: actor.spaceId,
+            userId: actor.userId,
+            slug: registrySlug(entry.id),
+            enabled: true,
+          },
+          data: { enabled: false },
+        });
+        continue;
+      }
       // One app that cannot be reached (a name this plane does not resolve) skips only itself.
       const server = await ensureServer(actor, entry).catch((error) => {
         getLogger().warn("registry: app not added", { app: entry.id, error: String(error) });
@@ -224,11 +254,46 @@ export function registryRoutes(ctx: RouterContext) {
       const members = await runAsSystem("registry: every SSO member's spaces", () =>
         deps.prisma.spaceMember.findMany({
           where: { member: { user: { accounts: { some: { providerId: "oidc" } } } } },
-          select: { spaceId: true, userId: true, member: { select: { user: { select: { email: true } } } } },
+          select: {
+            spaceId: true,
+            userId: true,
+            member: { select: { user: { select: { email: true } } } },
+          },
         }),
       );
       const grants = new Map<string, () => ReturnType<typeof exchange>>();
       for (const row of members) {
+        if (!grants.has(row.userId)) grants.set(row.userId, grantFor(row.userId));
+      }
+      const teams = registryInfo().teams;
+      let rows = members;
+      if (teams) {
+        const people = new Map<string, string>();
+        for (const row of members) people.set(row.userId, row.member.user.email);
+        const withGroups = await Promise.all(
+          [...people].map(async ([userId, email]) => ({
+            userId,
+            email,
+            groups: tokenGroups((await grants.get(userId)!())?.access_token),
+          })),
+        );
+        await syncTeams(deps.prisma, teams, withGroups).catch((error) =>
+          getLogger().warn("teams: sweep failed", { error: String(error) }),
+        );
+        // Joining a team space adds rows; read them again so the new space gets its apps.
+        rows = await runAsSystem("registry: every SSO member's spaces", () =>
+          deps.prisma.spaceMember.findMany({
+            where: { member: { user: { accounts: { some: { providerId: "oidc" } } } } },
+            select: {
+              spaceId: true,
+              userId: true,
+              member: { select: { user: { select: { email: true } } } },
+            },
+          }),
+        );
+      }
+      const spaceTeam = await teamSpaces(deps.prisma, teams);
+      for (const row of rows) {
         const actor: Actor = {
           spaceId: row.spaceId,
           userId: row.userId,
@@ -236,8 +301,9 @@ export function registryRoutes(ctx: RouterContext) {
           isDeploymentOwner: false,
         };
         if (!grants.has(row.userId)) grants.set(row.userId, grantFor(row.userId));
-        await runAsTenant(actor, () => connectAll(actor, grants.get(row.userId)!)).catch((error) =>
-          getLogger().warn("registry auto-connect failed", { error: String(error) }),
+        const team = spaceTeam.get(row.spaceId) ?? null;
+        await runAsTenant(actor, () => connectAll(actor, grants.get(row.userId)!, team)).catch(
+          (error) => getLogger().warn("registry auto-connect failed", { error: String(error) }),
         );
       }
     } finally {
@@ -254,9 +320,12 @@ export function registryRoutes(ctx: RouterContext) {
   return {
     registry: {
       list: authed.registry.list.handler(async ({ context }) => {
-        const { title, entries } = registryInfo();
+        const info = registryInfo();
+        const team = (await teamSpaces(deps.prisma, info.teams)).get(context.actor.spaceId) ?? null;
+        const title = info.title;
+        const entries = info.entries.filter((entry) => registryAppAllowed(entry, team));
         if (autoEnabled() && mcpClient()) {
-          await connectAll(context.actor, grantFor(context.actor.userId)).catch((error) =>
+          await connectAll(context.actor, grantFor(context.actor.userId), team).catch((error) =>
             getLogger().warn("registry auto-connect failed", { error: String(error) }),
           );
         }
@@ -284,7 +353,9 @@ export function registryRoutes(ctx: RouterContext) {
         };
       }),
       add: authed.registry.add.handler(async ({ context, input }) => {
-        const entry = registryEntries().find((e) => e.id === input.id);
+        const info = registryInfo();
+        const team = (await teamSpaces(deps.prisma, info.teams)).get(context.actor.spaceId) ?? null;
+        const entry = info.entries.find((e) => e.id === input.id && registryAppAllowed(e, team));
         if (!entry) {
           throw new ORPCError("NOT_FOUND", { message: "That app is not offered here." });
         }
