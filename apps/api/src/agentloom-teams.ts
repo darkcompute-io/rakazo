@@ -11,9 +11,10 @@
 // The organization keeps a map of team id -> space id in its metadata, so a space somebody
 // made by hand in it is never touched, and a renamed space keeps its team.
 import { randomUUID } from "node:crypto";
-import type { RegistryTeams } from "@rakazo/core";
-import type { PrismaClient } from "@rakazo/db";
-import { leaveSpace, runAsSystem } from "@rakazo/db";
+import type { RegistryTeams, SpaceTemplate } from "@rakazo/core";
+import type { PrismaClient, createRepos } from "@rakazo/db";
+import { applyTemplate } from "./agentloom-templates.js";
+import { leaveSpace, runAsSystem, runAsTenant } from "@rakazo/db";
 import { getLogger } from "@rakazo/logging";
 
 export type TeamMember = { userId: string; email: string; groups: string[] | null };
@@ -188,5 +189,51 @@ export function tokenGroups(accessToken: string | undefined): string[] | null {
       : null;
   } catch {
     return null;
+  }
+}
+
+/** Once per team space: the template with the team's id goes into a space that still has
+ * no bots, as its owner, and the organization records that it was done. A space somebody
+ * already filled, or emptied after seeding, is never seeded again. */
+export async function seedTeamSpaces(
+  deps: { prisma: PrismaClient; repos: ReturnType<typeof createRepos> },
+  teams: RegistryTeams,
+  templates: SpaceTemplate[],
+): Promise<void> {
+  const org = await runAsSystem("teams: read the team organization", () =>
+    deps.prisma.organization.findUnique({ where: { slug: teams.org.slug } }),
+  );
+  if (!org) return;
+  const meta = readMeta(org.metadata) as TeamMeta & { agentloomSeeded?: string[] };
+  const seeded = new Set(meta.agentloomSeeded ?? []);
+  const owner = await runAsSystem("teams: the owner", () =>
+    deps.prisma.user.findFirst({
+      where: { email: { equals: teams.owner, mode: "insensitive" } },
+      select: { id: true, email: true },
+    }),
+  );
+  if (!owner) return;
+  let changed = false;
+  for (const [team, spaceId] of Object.entries(meta.agentloomTeams ?? {})) {
+    const template = templates.find((t) => t.id === team);
+    if (!template || seeded.has(team)) continue;
+    const bots = await runAsSystem("teams: is the space empty", () =>
+      deps.prisma.bot.count({ where: { spaceId, archivedAt: null } }),
+    );
+    if (bots === 0) {
+      const actor = { userId: owner.id, spaceId, email: owner.email, isDeploymentOwner: false };
+      const made = await runAsTenant(actor, () => applyTemplate(deps, actor, template));
+      getLogger().info("teams: template applied", { team, spaceId, ...made });
+    }
+    seeded.add(team);
+    changed = true;
+  }
+  if (changed) {
+    await runAsSystem("teams: record seeded spaces", () =>
+      deps.prisma.organization.update({
+        where: { id: org.id },
+        data: { metadata: JSON.stringify({ ...meta, agentloomSeeded: [...seeded] }) },
+      }),
+    );
   }
 }

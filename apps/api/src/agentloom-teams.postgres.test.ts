@@ -1,9 +1,10 @@
 import { randomUUID } from "node:crypto";
 import type { RegistryTeams } from "@rakazo/core";
+import { spaceTemplates } from "@rakazo/core";
 import type { PrismaClient } from "@rakazo/db";
-import { asSystem, createDb } from "@rakazo/db";
+import { asSystem, createDb, createRepos } from "@rakazo/db";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { syncTeams, teamSpaces, tokenGroups } from "./agentloom-teams.js";
+import { seedTeamSpaces, syncTeams, teamSpaces, tokenGroups } from "./agentloom-teams.js";
 
 const describePostgres =
   process.env.VERIFY_DATABASE && process.env.DATABASE_URL ? describe.sequential : describe.skip;
@@ -126,6 +127,43 @@ describePostgres("team spaces follow authentik groups (PostgreSQL)", () => {
     await syncTeams(db.prisma, teams, [{ ...bob, groups: [] }]);
     expect((await teamSpaces(db.prisma, teams)).has(hand)).toBe(false);
     expect(await spacesOf(bob.userId)).toEqual([]);
+  });
+
+  it("seeds each team space once from its template, bots made with paused routines", async () => {
+    const repos = createRepos(db.prisma);
+    const templates = spaceTemplates(
+      JSON.stringify([
+        {
+          id: "fleet",
+          name: "Fleet",
+          bots: [
+            {
+              key: "watch",
+              name: "Fleet watch",
+              instructions: "Watch the fleet.",
+              routines: [{ name: "Morning", prompt: "Check every host.", cron: "0 8 * * 1-5", timezone: "America/New_York" }],
+            },
+            { key: "desk", name: "Change desk", instructions: "Make changes." },
+          ],
+        },
+      ]),
+    );
+    const map = await teamSpaces(db.prisma, teams);
+    const fleet = [...map].find(([, team]) => team === "fleet")![0];
+    const marketing = [...map].find(([, team]) => team === "marketing")![0];
+
+    await seedTeamSpaces({ prisma: db.prisma, repos }, teams, templates);
+    const bots = await system.bot.findMany({ where: { spaceId: fleet }, select: { id: true, name: true } });
+    expect(bots.map((b) => b.name).sort()).toEqual(["Change desk", "Fleet watch"]);
+    const routines = await system.routine.findMany({ where: { spaceId: fleet }, select: { active: true, nextRunAt: true } });
+    expect(routines).toEqual([{ active: false, nextRunAt: null }]);
+    expect(await system.bot.count({ where: { spaceId: marketing } })).toBe(0);
+
+    // Seeded once: a bot removed afterwards is not put back.
+    await system.bot.update({ where: { id: bots[0]!.id }, data: { archivedAt: new Date() } });
+    await seedTeamSpaces({ prisma: db.prisma, repos }, teams, templates);
+    expect(await system.bot.count({ where: { spaceId: fleet } })).toBe(2);
+    expect(await system.bot.count({ where: { spaceId: fleet, archivedAt: null } })).toBe(1);
   });
 
   it("reads groups from a token and refuses what is not one", () => {

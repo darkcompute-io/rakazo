@@ -22,7 +22,7 @@ import {
   RadioGroupItem,
 } from "@rakazo/ui-web";
 import { Lock } from "lucide-react";
-import { useId, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { errorText } from "../../lib/user-error";
 
 /** Each dialog is mounted only while open, so `open` is always true and the
@@ -34,11 +34,20 @@ function closeUnlessBusy(busy: boolean, onCancel: () => void) {
   };
 }
 
+export type NewSpaceTemplate = {
+  id: string;
+  name: string;
+  description: string;
+  bots: { name: string }[];
+};
+
 export function NewSpaceDialog({
   onCancel,
   onCreate,
   loadItems,
   chooseItems,
+  loadTemplates,
+  applyTemplate,
   onDone,
 }: {
   onCancel: () => void;
@@ -46,7 +55,11 @@ export function NewSpaceDialog({
   /** The user's own skills, servers, plugins and tool sources, across their spaces. */
   loadItems: () => Promise<AccountItem[]>;
   chooseItems: (spaceId: string, items: AccountItem[]) => Promise<void>;
-  onDone: (spaceId: string) => void;
+  /** AgentLoom: what the space can start from, and putting one in. Unset: no choice. */
+  loadTemplates?: () => Promise<NewSpaceTemplate[]>;
+  applyTemplate?: (spaceId: string, templateId: string) => Promise<void>;
+  /** `seeded`: a template put bots in, so there is no first bot to make. */
+  onDone: (spaceId: string, seeded: boolean) => void;
 }) {
   const { t } = useLingui();
   const nameId = useId();
@@ -55,7 +68,22 @@ export function NewSpaceDialog({
   const [error, setError] = useState<string | null>(null);
   const [created, setCreated] = useState<{ id: string; items: AccountItem[] } | null>(null);
   const [chosen, setChosen] = useState<Set<string>>(new Set());
+  const [seededDone, setSeededDone] = useState(false);
   const key = (item: AccountItem) => `${item.kind}:${item.id}`;
+  const templatesLabelId = useId();
+  const [templates, setTemplates] = useState<NewSpaceTemplate[]>([]);
+  const [templateId, setTemplateId] = useState("");
+  useEffect(() => {
+    let live = true;
+    void loadTemplates?.()
+      .then((list) => {
+        if (live) setTemplates(list);
+      })
+      .catch(() => undefined);
+    return () => {
+      live = false;
+    };
+  }, [loadTemplates]);
 
   const create = () => {
     const trimmed = name.trim();
@@ -71,9 +99,20 @@ export function NewSpaceDialog({
         setSaving(false);
         return;
       }
+      let seeded = false;
+      if (templateId && applyTemplate) {
+        try {
+          await applyTemplate(spaceId, templateId);
+          seeded = true;
+        } catch (reason) {
+          // The space exists either way; say so rather than leave it half made.
+          setError(errorText(reason, t`The space was made, but its bots were not`));
+        }
+      }
+      setSeededDone(seeded);
       // Without items of their own there is nothing to choose, so the space is ready.
       const items = await loadItems().catch(() => []);
-      if (!items.length) return onDone(spaceId);
+      if (!items.length) return onDone(spaceId, seeded);
       setChosen(new Set(items.filter((item) => item.availability.allSpaces).map(key)));
       setCreated({ id: spaceId, items });
       setSaving(false);
@@ -88,7 +127,7 @@ export function NewSpaceDialog({
       created.id,
       created.items.filter((item) => chosen.has(key(item))),
     )
-      .then(() => onDone(created.id))
+      .then(() => onDone(created.id, seededDone))
       .catch((reason: unknown) => {
         setError(errorText(reason, t`Could not save`));
         setSaving(false);
@@ -166,6 +205,39 @@ export function NewSpaceDialog({
             className="mt-2"
           />
         </label>
+        {templates.length ? (
+          <div data-testid="new-space-templates" className="space-y-2">
+            <p id={templatesLabelId} className="text-[13.5px] text-foreground/75">
+              <Trans>Start from</Trans>
+            </p>
+            <RadioGroup
+              aria-labelledby={templatesLabelId}
+              value={templateId}
+              onValueChange={(value) => setTemplateId(String(value))}
+              className="max-h-72 overflow-y-auto"
+            >
+              {[{ id: "", name: t`Blank`, description: t`No bots yet.`, bots: [] }, ...templates].map(
+                (template) => (
+                  // biome-ignore lint/a11y/noLabelWithoutControl: the wrapped RadioGroupItem is the control.
+                  <label
+                    key={template.id || "blank"}
+                    className="flex cursor-pointer gap-3 rounded-lg border border-border p-3"
+                  >
+                    <RadioGroupItem value={template.id} className="mt-0.5" />
+                    <span className="min-w-0">
+                      <span className="block text-[14px] text-foreground">{template.name}</span>
+                      <span className="mt-0.5 block text-[12.5px] text-muted-foreground">
+                        {template.bots.length
+                          ? template.bots.map((bot) => bot.name).join(" · ")
+                          : template.description}
+                      </span>
+                    </span>
+                  </label>
+                ),
+              )}
+            </RadioGroup>
+          </div>
+        ) : null}
         {error ? <p className="text-[13.5px] text-destructive">{error}</p> : null}
         <DialogFooter>
           <Button variant="outline" disabled={saving} onClick={onCancel}>

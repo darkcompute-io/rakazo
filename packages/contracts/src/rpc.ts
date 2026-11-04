@@ -1218,6 +1218,25 @@ export const appContract = {
       )
       .output(z.object({ ok: z.literal(true) })),
   },
+  // AgentLoom: what a new space can start from (packages/core agentloom-templates.ts).
+  templates: {
+    list: oc.output(
+      z.array(
+        z.object({
+          id: z.string(),
+          name: z.string(),
+          description: z.string(),
+          apps: z.array(z.string()),
+          bots: z.array(
+            z.object({ name: z.string(), description: z.string(), routines: z.number().int() }),
+          ),
+        }),
+      ),
+    ),
+    apply: oc
+      .input(z.object({ spaceId: z.string().min(1).max(64), templateId: z.string().min(1).max(32) }))
+      .output(z.object({ bots: z.number().int(), routines: z.number().int() })),
+  },
   autoReview: {
     get: oc.input(settingsScopeInput.optional()).output(ActionAutoReviewSettingsSchema),
     set: oc

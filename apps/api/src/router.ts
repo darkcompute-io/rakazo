@@ -46,6 +46,7 @@ import { memoryRoutes } from "./routes/memory.js";
 import { messagingRoutes } from "./routes/messaging.js";
 import { modelsRoutes } from "./routes/models.js";
 import { registryRoutes } from "./routes/registry.js";
+import { templatesRoutes } from "./routes/templates.js";
 import { paymentWalletRoutes } from "./routes/payment-wallet.js";
 import { routinesRoutes } from "./routes/routines.js";
 import { spacesRoutes } from "./routes/spaces.js";
@@ -160,6 +161,7 @@ export function createRouter(deps: RouterDeps) {
     ...messagingRoutes(ctx),
     ...contentRoutes(ctx),
     ...registryRoutes(ctx),
+    ...templatesRoutes(ctx),
     ...paymentWalletRoutes(ctx),
   });
 }

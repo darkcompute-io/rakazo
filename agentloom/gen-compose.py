@@ -142,6 +142,39 @@ def registry(path: Path) -> dict:
                 raise SystemExit(f"{path}: {e['id']}: no team {sorted(unknown)}")
     return {"title": doc.get("title") or "Apps", "requestUrl": doc.get("request_url"), "apps": entries,
             **({"teams": teams} if teams else {})}
+TEMPLATE_KEYS = {"id", "name", "description", "apps", "bots"}
+TEMPLATE_BOT_KEYS = {"key", "name", "description", "instructions", "routines"}
+TEMPLATE_ROUTINE_KEYS = {"name", "prompt", "cron", "timezone"}
+
+
+def space_templates(path: Path, app_ids: set) -> list:
+    """The instance's space templates (packages/core agentloom-templates.ts). Closed keys at
+    every level, ids unique, apps named in the registry: a bad file stops the generator."""
+    doc = (yaml.safe_load(path.read_text(encoding="utf-8")) if path.exists() else None) or {}
+    if set(doc) - {"templates"}:
+        raise SystemExit(f"{path}: unknown keys {sorted(set(doc) - {'templates'})}")
+    out, seen = [], set()
+    for t in doc.get("templates") or []:
+        where = f"{path}: template {t.get('id')!r}"
+        if set(t) - TEMPLATE_KEYS or not re.fullmatch(r"[a-z][a-z0-9-]{0,31}", str(t.get("id", ""))) \
+                or t["id"] in seen or not t.get("name"):
+            raise SystemExit(f"{where}: keys {sorted(TEMPLATE_KEYS)}, a unique id and a name")
+        seen.add(t["id"])
+        if set(t.get("apps") or []) - app_ids:
+            raise SystemExit(f"{where}: apps not in the registry {sorted(set(t['apps']) - app_ids)}")
+        keys = set()
+        for b in t.get("bots") or []:
+            if set(b) - TEMPLATE_BOT_KEYS or not b.get("name") or not b.get("instructions") \
+                    or not re.fullmatch(r"[a-z][a-z0-9-]{0,31}", str(b.get("key", ""))) or b["key"] in keys:
+                raise SystemExit(f"{where}: bot {b.get('key')!r}: keys {sorted(TEMPLATE_BOT_KEYS)}")
+            keys.add(b["key"])
+            for r in b.get("routines") or []:
+                if set(r) - TEMPLATE_ROUTINE_KEYS or not (r.get("name") and r.get("prompt") and r.get("cron")):
+                    raise SystemExit(f"{where}: bot {b['key']}: a routine needs name, prompt, cron")
+        out.append(t)
+    return out
+
+
 REF = re.compile(r"\$\{([A-Za-z_][A-Za-z0-9_]*)(?::([-?])((?:[^{}]|\{[^{}]*\})*))?\}")
 
 
@@ -201,6 +234,10 @@ def build(host: str, sets: dict, dst: Path, header: str, corp: bool) -> None:
             env["AGENTLOOM_REGISTRY"] = json.dumps(
                 {"title": reg["title"], "apps": apps, **({"teams": reg["teams"]} if "teams" in reg else {})},
                 separators=(",", ":"))
+            templates = space_templates(dst.parent / "space-templates.yaml", {e["id"] for e in apps})
+            if name == "api" and templates:
+                # $ is compose's interpolation; a prompt that says $5 must stay $5.
+                env["AGENTLOOM_SPACE_TEMPLATES"] = json.dumps(templates, separators=(",", ":")).replace("$", "$$")
             if name == "api" and reg["requestUrl"]:
                 env["AGENTLOOM_CONNECTOR_REQUEST_URL"] = reg["requestUrl"]
                 env["AGENTLOOM_CONNECTOR_REQUEST_TOKEN"] = "${AGENTLOOM_CONNECTOR_REQUEST_TOKEN}"

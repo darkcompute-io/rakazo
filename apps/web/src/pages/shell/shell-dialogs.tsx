@@ -128,6 +128,7 @@ export function ShellDialogs({
   deleteRoutineDialogProps: ComponentProps<typeof DeleteItemDialog> | null;
 }) {
   const { t } = useLingui();
+  const loadSpaceTemplates = useCallback(() => rpc.templates.list(), [rpc]);
   const {
     deleteTarget,
     setDeleteTarget,
@@ -324,14 +325,19 @@ export function ShellDialogs({
               items: items.map(({ kind, id }) => ({ kind, id })),
             });
           }}
-          onDone={(spaceId) => {
+          loadTemplates={loadSpaceTemplates}
+          applyTemplate={async (spaceId, templateId) => {
+            await rpc.templates.apply({ spaceId, templateId });
+          }}
+          onDone={(spaceId, seeded) => {
             if (!alive.current) return;
             if (!selectSpace(spaceId)) {
               setNewSpaceOpen(false);
               void refreshBots();
               return;
             }
-            window.location.assign("/onboarding");
+            // A template already made the bots; onboarding would make one more.
+            window.location.assign(seeded ? "/app" : "/onboarding");
           }}
         />
       ) : null}

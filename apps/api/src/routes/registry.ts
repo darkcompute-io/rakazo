@@ -21,10 +21,11 @@ import {
   registryEntries,
   registryInfo,
   registrySlug,
+  spaceTemplates,
 } from "@rakazo/core";
 import { runAsSystem, runAsTenant } from "@rakazo/db";
 import { getLogger } from "@rakazo/logging";
-import { syncTeams, teamSpaces, tokenGroups } from "../agentloom-teams.js";
+import { seedTeamSpaces, syncTeams, teamSpaces, tokenGroups } from "../agentloom-teams.js";
 import type { RouterContext } from "./context.js";
 
 const SCOPE = "openid profile email offline_access";
@@ -279,6 +280,9 @@ export function registryRoutes(ctx: RouterContext) {
         );
         await syncTeams(deps.prisma, teams, withGroups).catch((error) =>
           getLogger().warn("teams: sweep failed", { error: String(error) }),
+        );
+        await seedTeamSpaces({ prisma: deps.prisma, repos: ctx.repos }, teams, spaceTemplates()).catch(
+          (error) => getLogger().warn("teams: seeding failed", { error: String(error) }),
         );
         // Joining a team space adds rows; read them again so the new space gets its apps.
         rows = await runAsSystem("registry: every SSO member's spaces", () =>
