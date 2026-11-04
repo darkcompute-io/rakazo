@@ -127,11 +127,6 @@ apps:
     endpoint: https://test.corp.darkcompute.io/api/mcp
     open: https://test.corp.darkcompute.io
     description: "Say what to test and a tester runs it."
-  - id: jarvis
-    name: Jarvis
-    endpoint: https://jarvis.corp.darkcompute.io/api/mcp
-    open: https://jarvis.corp.darkcompute.io
-    description: "The scheduler and router over every app."
   - id: inference
     name: Inference
     endpoint: https://inference.corp.darkcompute.io/api/mcp

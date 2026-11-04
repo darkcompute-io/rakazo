@@ -281,9 +281,11 @@ export function registryRoutes(ctx: RouterContext) {
         await syncTeams(deps.prisma, teams, withGroups).catch((error) =>
           getLogger().warn("teams: sweep failed", { error: String(error) }),
         );
-        await seedTeamSpaces({ prisma: deps.prisma, repos: ctx.repos }, teams, spaceTemplates()).catch(
-          (error) => getLogger().warn("teams: seeding failed", { error: String(error) }),
-        );
+        await seedTeamSpaces(
+          { prisma: deps.prisma, repos: ctx.repos },
+          teams,
+          spaceTemplates(),
+        ).catch((error) => getLogger().warn("teams: seeding failed", { error: String(error) }));
         // Joining a team space adds rows; read them again so the new space gets its apps.
         rows = await runAsSystem("registry: every SSO member's spaces", () =>
           deps.prisma.spaceMember.findMany({
@@ -296,6 +298,17 @@ export function registryRoutes(ctx: RouterContext) {
           }),
         );
       }
+      // An app taken out of the registry: every connection made to it is switched off, not
+      // removed, so its bots stop calling a server that is going away.
+      const offered = registryEntries().map((entry) => registrySlug(entry.id));
+      const retired = await runAsSystem("registry: switch off apps no longer offered", () =>
+        deps.prisma.mcpServer.updateMany({
+          where: { slug: { startsWith: registrySlug(""), notIn: offered }, enabled: true },
+          data: { enabled: false },
+        }),
+      );
+      if (retired.count)
+        getLogger().info("registry: retired connections off", { count: retired.count });
       const spaceTeam = await teamSpaces(deps.prisma, teams);
       for (const row of rows) {
         const actor: Actor = {
