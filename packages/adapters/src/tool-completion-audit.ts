@@ -76,6 +76,13 @@ export function toolCompletionAuditPayload(
   if (error !== undefined) {
     payload.error = sanitizeConnectorError(error, secrets);
   }
+  // AgentLoom: before the check below, because a connector's answer is not an auditable result.
+  const answer = completion.result as { content?: unknown; details?: unknown } | undefined;
+  const view = toolViewFrom(completion.name, [
+    ...(Array.isArray(answer?.content) ? answer.content : []),
+    { text: JSON.stringify(answer?.details ?? null) },
+  ]);
+  if (view) payload.view = view;
   if (!isAuditableToolResult(completion.result)) return payload;
 
   payload.contentTypes = completion.result.content.flatMap((part) => {
@@ -83,8 +90,6 @@ export function toolCompletionAuditPayload(
     const type = (part as { type?: unknown }).type;
     return type === "text" || type === "image" ? [type] : [];
   });
-  const view = toolViewFrom(completion.name, completion.result.content);
-  if (view) payload.view = view;
   const details = completion.result.details;
   if (!details || typeof details !== "object" || Array.isArray(details)) {
     return payload;
