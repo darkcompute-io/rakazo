@@ -18,7 +18,7 @@ type Row = {
   runs: { status: string; createdAt: Date }[];
 };
 
-export function routineBoard(rows: Row[]) {
+export function routineBoard(rows: Row[], spent: Map<string, number> = new Map()) {
   return rows
     .map((row) => {
       const last = row.runs[0];
@@ -32,6 +32,7 @@ export function routineBoard(rows: Row[]) {
         lastRunAt: last?.createdAt.toISOString() ?? null,
         lastStatus: last?.status ?? null,
         stuck: last ? STUCK.has(last.status) : false,
+        spent24h: spent.get(row.id) ?? 0,
       };
     })
     .sort(

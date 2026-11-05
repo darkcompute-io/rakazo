@@ -419,6 +419,11 @@ msgstr "@{0}"
 msgid "${0} / month"
 msgstr "每月 ${0}"
 
+#. placeholder {0}: spent.toFixed(2)
+#: src/pages/Routines.tsx
+msgid "${0} in 24 hours"
+msgstr ""
+
 #: src/components/integrations/space-availability.tsx
 msgid "1 space"
 msgstr ""
@@ -1794,6 +1799,10 @@ msgstr "複製列"
 #: src/pages/AccountSettingsOverlay.tsx
 msgid "Cost"
 msgstr "費用"
+
+#: src/pages/Routines.tsx
+msgid "Cost, 24 hours"
+msgstr ""
 
 #: src/pages/ScratchpadSection.tsx
 msgid "Could not add"

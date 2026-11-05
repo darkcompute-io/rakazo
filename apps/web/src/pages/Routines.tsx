@@ -21,6 +21,7 @@ export function RoutinesPage() {
   if (board.isPending) return <PageLoading />;
   const rows = board.data ?? [];
   const stuck = rows.filter((row) => row.stuck).length;
+  const spent = rows.reduce((total, row) => total + row.spent24h, 0);
   return (
     <div className="flex h-full min-w-0 flex-col bg-background text-foreground/90">
       <header className="flex items-center gap-2 border-b px-4 py-3">
@@ -40,6 +41,9 @@ export function RoutinesPage() {
             <Trans>{stuck} need attention</Trans>
           </span>
         ) : null}
+        <span data-testid="routines-spent" className="ms-auto text-sm text-muted-foreground">
+          <Trans>${spent.toFixed(2)} in 24 hours</Trans>
+        </span>
       </header>
       <div className="min-h-0 flex-1 overflow-auto p-4">
         {board.isError ? (
@@ -69,8 +73,11 @@ export function RoutinesPage() {
                 <th className="py-2 pe-4 text-start font-normal">
                   <Trans>Result</Trans>
                 </th>
-                <th className="py-2 text-start font-normal">
+                <th className="py-2 pe-4 text-start font-normal">
                   <Trans>Next run</Trans>
+                </th>
+                <th className="py-2 text-end font-normal">
+                  <Trans>Cost, 24 hours</Trans>
                 </th>
               </tr>
             </thead>
@@ -94,7 +101,8 @@ export function RoutinesPage() {
                   <td className="py-2 pe-4">
                     {row.lastStatus ? statusLabel(row.lastStatus as never) : "-"}
                   </td>
-                  <td className="py-2">{when(row.active ? row.nextRunAt : null)}</td>
+                  <td className="py-2 pe-4">{when(row.active ? row.nextRunAt : null)}</td>
+                  <td className="py-2 text-end">${row.spent24h.toFixed(2)}</td>
                 </tr>
               ))}
             </tbody>

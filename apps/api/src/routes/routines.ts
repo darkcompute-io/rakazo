@@ -73,7 +73,28 @@ export function routinesRoutes(ctx: RouterContext) {
             },
           },
         });
-        return routineBoard(rows);
+        const runs = await deps.prisma.run.findMany({
+          where: {
+            spaceId: context.actor.spaceId,
+            trigger: "routine",
+            routineId: { not: null },
+            createdAt: { gte: new Date(Date.now() - 86_400_000) },
+          },
+          select: { id: true, routineId: true },
+        });
+        const usage = runs.length
+          ? await deps.prisma.usageRecord.findMany({
+              where: { runId: { in: runs.map((run) => run.id) } },
+              select: { runId: true, costUsd: true },
+            })
+          : [];
+        const routineOf = new Map(runs.map((run) => [run.id, run.routineId as string]));
+        const spent = new Map<string, number>();
+        for (const row of usage) {
+          const routineId = row.runId ? routineOf.get(row.runId) : undefined;
+          if (routineId) spent.set(routineId, (spent.get(routineId) ?? 0) + (row.costUsd ?? 0));
+        }
+        return routineBoard(rows, spent);
       }),
       list: authed.routines.list.handler(async ({ context, input }) => {
         await repos.getBot(context.actor, input.botId);

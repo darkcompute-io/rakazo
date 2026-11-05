@@ -754,6 +754,7 @@ export const appContract = {
           lastRunAt: z.string().nullable(),
           lastStatus: z.string().nullable(),
           stuck: z.boolean(),
+          spent24h: z.number(),
         }),
       ),
     ),

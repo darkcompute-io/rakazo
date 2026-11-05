@@ -62,6 +62,8 @@ APP = {
 }
 # What only our own instance decides.
 CORP = {
+    # What one space's routines may spend in 24 hours before a tick is skipped (apps stay up).
+    "AGENTLOOM_ROUTINE_DAILY_USD": "15",
     # authentik is the whole gate: no password sign-in, and an account opens for anyone
     # authentik sends back. The slug stays rakazo: an account is keyed by
     # hash(issuer, sub), so a new issuer orphans every existing account.

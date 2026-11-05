@@ -14,6 +14,7 @@ import {
 } from "@rakazo/core";
 import { getLogger } from "@rakazo/logging";
 import { sanitizedError } from "@rakazo/logging/monitoring";
+import { routineOverBudget } from "./agentloom-routine-budget.js";
 import { protectedComputerLifecycleRefusal } from "./desktop-command-guard.js";
 import type { ExecutorDeps } from "./executor-deps.js";
 import { routineRunModelPin } from "./model-selection.js";
@@ -177,6 +178,44 @@ export async function wakeRoutine(deps: ExecutorDeps, routineId: string, schedul
           new Date(Date.now()),
           routine.timezone,
         );
+  // AgentLoom: past the space's daily ceiling, skip this tick and keep the schedule. A change
+  // trigger keeps its old reading, so what it saw still fires once the day has room.
+  const overBudget = nextRunAt ? await routineOverBudget(deps.prisma, routine.spaceId) : null;
+  if (overBudget && nextRunAt) {
+    const skipped = await deps.prisma.routine.updateMany({
+      where: { id: routine.id, active: true, nextRunAt: scheduledAt },
+      data: { nextRunAt },
+    });
+    if (skipped.count === 1) {
+      getLogger().warn("routine.over_budget", {
+        "routine.id": routine.id,
+        spent: overBudget.spent,
+        cap: overBudget.cap,
+      });
+      await deps.jobs.enqueue(routineWakeupJob(routine.id, nextRunAt));
+      if (routine.watch == null) {
+        await notifyRun(
+          deps,
+          {
+            spaceId: routine.spaceId,
+            userId: routine.userId,
+            botId: bot.id,
+            threadId: thread.id,
+            trigger: "routine",
+            routineId: routine.id,
+          },
+          {
+            kind: "failure",
+            title: `${routine.name} skipped`,
+            body: `This space's routines spent $${overBudget.spent.toFixed(2)} in 24 hours, past the $${overBudget.cap} limit.`,
+            botId: bot.id,
+            threadId: thread.id,
+          },
+        ).catch(() => undefined);
+      }
+    }
+    return;
+  }
   const skillRecords = await listAgentSkillRecords(deps.prisma, {
     spaceId: routine.spaceId,
     userId: routine.userId,
