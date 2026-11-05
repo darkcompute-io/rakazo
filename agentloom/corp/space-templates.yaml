@@ -60,6 +60,9 @@ templates:
           folder named for what it is, and give the person the path. Check the path with
           list_folder after saving. List the folder first and reuse one that exists. Never
           trash, move or rename anything in Drive unless asked. Use another drive only if they ask.
+          When a routine runs you, save its result at /reports/<routine name>/<YYYY-MM-DD>.md
+          in that drive, even when nothing changed: the morning digest counts a missing file
+          as that routine not reporting.
         routines:
           - name: Morning sweep
             prompt: >-
@@ -99,6 +102,9 @@ templates:
           folder named for what it is, and give the person the path. Check the path with
           list_folder after saving. List the folder first and reuse one that exists. Never
           trash, move or rename anything in Drive unless asked. Use another drive only if they ask.
+          When a routine runs you, save its result at /reports/<routine name>/<YYYY-MM-DD>.md
+          in that drive, even when nothing changed: the morning digest counts a missing file
+          as that routine not reporting.
         routines: []
       - key: deploy-watch
         name: Deploy watch
@@ -114,6 +120,9 @@ templates:
           folder named for what it is, and give the person the path. Check the path with
           list_folder after saving. List the folder first and reuse one that exists. Never
           trash, move or rename anything in Drive unless asked. Use another drive only if they ask.
+          When a routine runs you, save its result at /reports/<routine name>/<YYYY-MM-DD>.md
+          in that drive, even when nothing changed: the morning digest counts a missing file
+          as that routine not reporting.
         routines:
           - name: Failed deploys
             prompt: >-
@@ -157,6 +166,9 @@ templates:
           folder named for what it is, and give the person the path. Check the path with
           list_folder after saving. List the folder first and reuse one that exists. Never
           trash, move or rename anything in Drive unless asked. Use another drive only if they ask.
+          When a routine runs you, save its result at /reports/<routine name>/<YYYY-MM-DD>.md
+          in that drive, even when nothing changed: the morning digest counts a missing file
+          as that routine not reporting.
         routines:
           - name: Week ahead
             prompt: >-
@@ -177,6 +189,9 @@ templates:
           folder named for what it is, and give the person the path. Check the path with
           list_folder after saving. List the folder first and reuse one that exists. Never
           trash, move or rename anything in Drive unless asked. Use another drive only if they ask.
+          When a routine runs you, save its result at /reports/<routine name>/<YYYY-MM-DD>.md
+          in that drive, even when nothing changed: the morning digest counts a missing file
+          as that routine not reporting.
         routines: []
       - key: video
         name: Video
@@ -191,6 +206,9 @@ templates:
           folder named for what it is, and give the person the path. Check the path with
           list_folder after saving. List the folder first and reuse one that exists. Never
           trash, move or rename anything in Drive unless asked. Use another drive only if they ask.
+          When a routine runs you, save its result at /reports/<routine name>/<YYYY-MM-DD>.md
+          in that drive, even when nothing changed: the morning digest counts a missing file
+          as that routine not reporting.
         routines: []
 
   - id: admin
@@ -211,6 +229,9 @@ templates:
           folder named for what it is, and give the person the path. Check the path with
           list_folder after saving. List the folder first and reuse one that exists. Never
           trash, move or rename anything in Drive unless asked. Use another drive only if they ask.
+          When a routine runs you, save its result at /reports/<routine name>/<YYYY-MM-DD>.md
+          in that drive, even when nothing changed: the morning digest counts a missing file
+          as that routine not reporting.
         routines:
           - name: Unpaid invoices
             prompt: >-
@@ -228,7 +249,8 @@ templates:
 
           A person's mail is theirs alone. Save anything about it as a file in their own
           Drive (space "home"), in the existing folder Inbox triage, never in a shared drive.
-          Give them the path.
+          Give them the path. When a routine runs you, save its result at
+          /reports/<routine name>/<YYYY-MM-DD>.md in their own Drive, even when nothing changed.
         routines:
           - name: Morning inbox
             prompt: >-
@@ -255,6 +277,9 @@ templates:
           folder named for what it is, and give the person the path. Check the path with
           list_folder after saving. List the folder first and reuse one that exists. Never
           trash, move or rename anything in Drive unless asked. Use another drive only if they ask.
+          When a routine runs you, save its result at /reports/<routine name>/<YYYY-MM-DD>.md
+          in that drive, even when nothing changed: the morning digest counts a missing file
+          as that routine not reporting.
         routines: []
       - key: release
         name: Release
@@ -269,6 +294,9 @@ templates:
           folder named for what it is, and give the person the path. Check the path with
           list_folder after saving. List the folder first and reuse one that exists. Never
           trash, move or rename anything in Drive unless asked. Use another drive only if they ask.
+          When a routine runs you, save its result at /reports/<routine name>/<YYYY-MM-DD>.md
+          in that drive, even when nothing changed: the morning digest counts a missing file
+          as that routine not reporting.
         routines: []
 
   - id: plccode
@@ -289,6 +317,9 @@ templates:
           folder named for what it is, and give the person the path. Check the path with
           list_folder after saving. List the folder first and reuse one that exists. Never
           trash, move or rename anything in Drive unless asked. Use another drive only if they ask.
+          When a routine runs you, save its result at /reports/<routine name>/<YYYY-MM-DD>.md
+          in that drive, even when nothing changed: the morning digest counts a missing file
+          as that routine not reporting.
         routines: []
       - key: release-notes
         name: Release notes
@@ -303,4 +334,7 @@ templates:
           folder named for what it is, and give the person the path. Check the path with
           list_folder after saving. List the folder first and reuse one that exists. Never
           trash, move or rename anything in Drive unless asked. Use another drive only if they ask.
+          When a routine runs you, save its result at /reports/<routine name>/<YYYY-MM-DD>.md
+          in that drive, even when nothing changed: the morning digest counts a missing file
+          as that routine not reporting.
         routines: []
