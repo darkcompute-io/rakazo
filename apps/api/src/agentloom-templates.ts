@@ -1,14 +1,32 @@
 // AgentLoom: put a space template's bots into a space (packages/core agentloom-templates.ts).
 // Each bot is made under a spawn key, so applying twice makes nothing new, and its routines
-// are made paused. Used by the New space dialog (routes/templates.ts) and, once per team
+// are made paused unless the template marks one active. Used by the New space dialog (routes/templates.ts) and, once per team
 // space, by the registry sweep.
 import { createHash } from "node:crypto";
 import type { Actor } from "@rakazo/contracts";
 import { CreateRoutineInput } from "@rakazo/contracts";
-import type { SpaceTemplate } from "@rakazo/core";
+import type { SpaceTemplate, TemplateRoutine } from "@rakazo/core";
 import { templateSpawnKey } from "@rakazo/core";
-import type { PrismaClient, createRepos } from "@rakazo/db";
+import type { createRepos, PrismaClient } from "@rakazo/db";
 import { routineNextRunAt, routineRowData } from "./routines.js";
+
+async function makeRoutine(
+  prisma: PrismaClient,
+  actor: Actor,
+  botId: string,
+  routine: TemplateRoutine,
+) {
+  const input = CreateRoutineInput.parse({
+    botId,
+    name: routine.name,
+    prompt: routine.prompt,
+    crons: routine.cron ? [routine.cron] : [],
+    timezone: routine.timezone,
+    active: routine.active,
+    ...(routine.watch ? { watch: { kind: "tool", ...routine.watch } } : {}),
+  });
+  await prisma.routine.create({ data: routineRowData(actor, input, routineNextRunAt(input)) });
+}
 
 export async function applyTemplate(
   deps: { prisma: PrismaClient; repos: ReturnType<typeof createRepos> },
@@ -33,17 +51,7 @@ export async function applyTemplate(
     });
     bots += 1;
     for (const routine of bot.routines) {
-      const input = CreateRoutineInput.parse({
-        botId: row.id,
-        name: routine.name,
-        prompt: routine.prompt,
-        crons: [routine.cron],
-        timezone: routine.timezone,
-        active: false,
-      });
-      await deps.prisma.routine.create({
-        data: routineRowData(actor, input, routineNextRunAt(input)),
-      });
+      await makeRoutine(deps.prisma, actor, row.id, routine);
       routines += 1;
     }
   }
@@ -69,9 +77,24 @@ export async function refreshTemplateBots(
   for (const bot of template.bots) {
     const row = await deps.prisma.bot.findFirst({
       where: { spaceId: actor.spaceId, spawnKey: templateSpawnKey(template.id, bot.key) },
-      select: { id: true, instructions: true },
+      select: { id: true, instructions: true, archivedAt: true },
     });
     if (!row) continue;
+    // A routine the template gained reaches a bot made before it, once: each name is recorded
+    // the first time it is seen, so one a person deleted does not come back on the next sweep.
+    if (!row.archivedAt && bot.routines.length > 0) {
+      const existing = await deps.prisma.routine.findMany({
+        where: { botId: row.id, spaceId: actor.spaceId },
+        select: { name: true },
+      });
+      const names = new Set(existing.map((r) => r.name));
+      for (const routine of bot.routines) {
+        const seen = `routine:${row.id}:${routine.name}`;
+        if (next[seen]) continue;
+        if (!names.has(routine.name)) await makeRoutine(deps.prisma, actor, row.id, routine);
+        next[seen] = "1";
+      }
+    }
     const want = textHash(bot.instructions);
     const have = textHash(row.instructions);
     if (have === want) {
@@ -80,7 +103,10 @@ export async function refreshTemplateBots(
     }
     const last = known[row.id];
     if (last && last !== have) continue;
-    await deps.prisma.bot.update({ where: { id: row.id }, data: { instructions: bot.instructions } });
+    await deps.prisma.bot.update({
+      where: { id: row.id },
+      data: { instructions: bot.instructions },
+    });
     next[row.id] = want;
     updated += 1;
   }

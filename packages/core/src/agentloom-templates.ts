@@ -4,7 +4,22 @@
 // compose as AGENTLOOM_SPACE_TEMPLATES. A template's routines are made paused: nothing runs
 // on a schedule until a person turns it on.
 
-export type TemplateRoutine = { name: string; prompt: string; cron: string; timezone: string };
+/** A checker, not a model, reads this tool; the routine runs only when its result changes. */
+export type TemplateWatch = {
+  tool: string;
+  args: Record<string, unknown>;
+  track: string[];
+  everyMinutes: number;
+};
+export type TemplateRoutine = {
+  name: string;
+  prompt: string;
+  cron: string;
+  timezone: string;
+  /** Starts on instead of paused. Only for routines that read, or that only ask a person. */
+  active: boolean;
+  watch: TemplateWatch | null;
+};
 export type TemplateBot = {
   key: string;
   name: string;
@@ -50,12 +65,26 @@ export function spaceTemplates(
       const routines: TemplateRoutine[] = [];
       for (const ro of Array.isArray(x.routines) ? x.routines : []) {
         const y = (ro ?? {}) as Record<string, unknown>;
-        if (!str(y.name, 80) || !str(y.prompt, 8000) || !str(y.cron, 120)) return [];
+        const w = y.watch as Record<string, unknown> | undefined;
+        const watch: TemplateWatch | null =
+          w && str(w.tool, 200)
+            ? {
+                tool: str(w.tool, 200),
+                args: (w.args ?? {}) as Record<string, unknown>,
+                track: (Array.isArray(w.track) ? w.track : []).filter(
+                  (t): t is string => typeof t === "string",
+                ),
+                everyMinutes: typeof w.everyMinutes === "number" ? w.everyMinutes : 15,
+              }
+            : null;
+        if (!str(y.name, 80) || !str(y.prompt, 8000) || (!str(y.cron, 120) && !watch)) return [];
         routines.push({
           name: str(y.name, 80),
           prompt: str(y.prompt, 8000),
           cron: str(y.cron, 120),
           timezone: str(y.timezone, 64) || "UTC",
+          active: y.active === true,
+          watch,
         });
       }
       bots.push({

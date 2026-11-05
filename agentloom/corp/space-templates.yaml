@@ -4,8 +4,9 @@
 # into the api's environment as AGENTLOOM_SPACE_TEMPLATES.
 #
 # Keys are closed: a template has id, name, description, apps, bots; a bot has key, name,
-# description, instructions, routines; a routine has name, prompt, cron, timezone.
-# Every routine is made PAUSED - a person turns it on. `apps` is what the bots are written
+# description, instructions, routines; a routine has name, prompt, cron or watch, timezone, active.
+# A routine is made PAUSED unless it says active: true, kept for routines that read or only ask.
+# watch is a checker, not a model: it reads one read-only tool and runs the routine on a change. `apps` is what the bots are written
 # to use, shown in the picker; the registry decides what a space actually has.
 templates:
   - id: everyone
@@ -67,6 +68,17 @@ templates:
               yesterday, one line per host. End with the count of hosts that are fine.
             cron: "0 8 * * 1-5"
             timezone: America/New_York
+            active: true
+          - name: Nightly check
+            prompt: >-
+              Check the apps themselves. Call one read-only tool on every app you have, and note
+              any that fail or time out. Save the result to the Fleet drive at
+              /nightly-checks/<date>.md. For each failure, create one task in Tasks titled with
+              the app and the error, unless an open task already says so. When all answer, say
+              so in one line.
+            cron: "0 6 * * *"
+            timezone: America/New_York
+            active: true
       - key: change-desk
         name: Change desk
         description: Makes DNS, NetBird, authentik and power changes when asked.
@@ -110,6 +122,20 @@ templates:
               the last relevant log line. If all are healthy, say so in one line.
             cron: "0 9,15 * * 1-5"
             timezone: America/New_York
+            active: true
+          - name: App status changed
+            prompt: >-
+              An application's status changed on corp-coolify. Name which, from what to what, and
+              if it stopped or failed read its last deployment log and quote the failing line.
+              Create one task in Tasks for a real failure, unless an open task already says so.
+              Ignore running:unknown, which only means the app has no healthcheck. Do not redeploy.
+            timezone: America/New_York
+            active: true
+            watch:
+              tool: mcp__dc-deploy__coolify_apps
+              args: {instance: corp-coolify}
+              track: [name, status]
+              everyMinutes: 15
 
   - id: marketing
     name: Marketing

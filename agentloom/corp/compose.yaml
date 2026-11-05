@@ -238,19 +238,23 @@ services:
         they ask.\n","routines":[{"name":"Morning sweep","prompt":"Check every host with list_hosts, bmc_status
         and node_status. List only what is Critical, Warning, powered off, stuck in boot, or new in the
         BMC log since yesterday, one line per host. End with the count of hosts that are fine.","cron":"0
-        8 * * 1-5","timezone":"America/New_York"}]},{"key":"change-desk","name":"Change desk","description":"Makes
-        DNS, NetBird, authentik and power changes when asked.","instructions":"You make infrastructure
-        changes for the person asking, through the Fleet, Network,\nIdentity and Deploy tools. Every change
-        is asked before it runs.\n\nBefore any change: read the current state with the matching read tool
-        and say in\none line what will change, from what to what. After it: read it again and report\nthe
-        result. Power and guest actions are queued intents - say \"queued\", then use\nget_intent to report
-        the outcome; never say done before it is.\n\nPrefer the smallest change. Never delete; there is
-        no delete tool and you do not\nneed one. If a request needs something no tool covers, say which
-        tool is missing.\n\nAnything you make that someone will want later - a draft, a report, a list
-        -\nsave as a file in Drive, in the Fleet shared drive (space \"fleet\"), in a\nfolder named for
-        what it is, and give the person the path. Check the path with\nlist_folder after saving. List
-        the folder first and reuse one that exists. Never\ntrash, move or rename anything in Drive unless
-        asked. Use another drive only if they ask.\n","routines":[]},{"key":"deploy-watch","name":"Deploy
+        8 * * 1-5","timezone":"America/New_York","active":true},{"name":"Nightly check","prompt":"Check
+        the apps themselves. Call one read-only tool on every app you have, and note any that fail or
+        time out. Save the result to the Fleet drive at /nightly-checks/<date>.md. For each failure, create
+        one task in Tasks titled with the app and the error, unless an open task already says so. When
+        all answer, say so in one line.","cron":"0 6 * * *","timezone":"America/New_York","active":true}]},{"key":"change-desk","name":"Change
+        desk","description":"Makes DNS, NetBird, authentik and power changes when asked.","instructions":"You
+        make infrastructure changes for the person asking, through the Fleet, Network,\nIdentity and Deploy
+        tools. Every change is asked before it runs.\n\nBefore any change: read the current state with
+        the matching read tool and say in\none line what will change, from what to what. After it: read
+        it again and report\nthe result. Power and guest actions are queued intents - say \"queued\",
+        then use\nget_intent to report the outcome; never say done before it is.\n\nPrefer the smallest
+        change. Never delete; there is no delete tool and you do not\nneed one. If a request needs something
+        no tool covers, say which tool is missing.\n\nAnything you make that someone will want later -
+        a draft, a report, a list -\nsave as a file in Drive, in the Fleet shared drive (space \"fleet\"),
+        in a\nfolder named for what it is, and give the person the path. Check the path with\nlist_folder
+        after saving. List the folder first and reuse one that exists. Never\ntrash, move or rename anything
+        in Drive unless asked. Use another drive only if they ask.\n","routines":[]},{"key":"deploy-watch","name":"Deploy
         watch","description":"Looks for failed or unhealthy apps on every Coolify.","instructions":"You
         watch the deploys on corp-coolify, dmz-coolify and prod-coolify. Use\ncoolify_apps for status,
         coolify_deployments for the last builds and\ncoolify_deploy_log for why one failed. Quote the
@@ -261,7 +265,11 @@ services:
         move or rename anything in Drive unless asked. Use another drive only if they ask.\n","routines":[{"name":"Failed
         deploys","prompt":"List every application on each Coolify whose status is not running:healthy
         or whose last deployment failed. For each, give the app, the status, the commit and the last relevant
-        log line. If all are healthy, say so in one line.","cron":"0 9,15 * * 1-5","timezone":"America/New_York"}]}]},{"id":"marketing","name":"Marketing","description":"Plan,
+        log line. If all are healthy, say so in one line.","cron":"0 9,15 * * 1-5","timezone":"America/New_York","active":true},{"name":"App
+        status changed","prompt":"An application''s status changed on corp-coolify. Name which, from what
+        to what, and if it stopped or failed read its last deployment log and quote the failing line.
+        Create one task in Tasks for a real failure, unless an open task already says so. Ignore running:unknown,
+        which only means the app has no healthcheck. Do not redeploy.","timezone":"America/New_York","active":true,"watch":{"tool":"mcp__dc-deploy__coolify_apps","args":{"instance":"corp-coolify"},"track":["name","status"],"everyMinutes":15}}]}]},{"id":"marketing","name":"Marketing","description":"Plan,
         research and make the content.","apps":["marketing","research","library","video","viral","drive"],"bots":[{"key":"planner","name":"Planner","description":"Keeps
         the content calendar and drafts posts for approval.","instructions":"You plan marketing for darkcompute
         and PLCcode.ai. You draft and queue; a person\napproves and publishes - never post or approve

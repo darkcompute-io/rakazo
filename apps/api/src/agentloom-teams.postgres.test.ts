@@ -141,7 +141,14 @@ describePostgres("team spaces follow authentik groups (PostgreSQL)", () => {
               key: "watch",
               name: "Fleet watch",
               instructions: "Watch the fleet.",
-              routines: [{ name: "Morning", prompt: "Check every host.", cron: "0 8 * * 1-5", timezone: "America/New_York" }],
+              routines: [
+                {
+                  name: "Morning",
+                  prompt: "Check every host.",
+                  cron: "0 8 * * 1-5",
+                  timezone: "America/New_York",
+                },
+              ],
             },
             { key: "desk", name: "Change desk", instructions: "Make changes." },
           ],
@@ -153,9 +160,15 @@ describePostgres("team spaces follow authentik groups (PostgreSQL)", () => {
     const marketing = [...map].find(([, team]) => team === "marketing")![0];
 
     await seedTeamSpaces({ prisma: db.prisma, repos }, teams, templates);
-    const bots = await system.bot.findMany({ where: { spaceId: fleet }, select: { id: true, name: true } });
+    const bots = await system.bot.findMany({
+      where: { spaceId: fleet },
+      select: { id: true, name: true },
+    });
     expect(bots.map((b) => b.name).sort()).toEqual(["Change desk", "Fleet watch"]);
-    const routines = await system.routine.findMany({ where: { spaceId: fleet }, select: { active: true, nextRunAt: true } });
+    const routines = await system.routine.findMany({
+      where: { spaceId: fleet },
+      select: { active: true, nextRunAt: true },
+    });
     expect(routines).toEqual([{ active: false, nextRunAt: null }]);
     expect(await system.bot.count({ where: { spaceId: marketing } })).toBe(0);
 
@@ -167,8 +180,13 @@ describePostgres("team spaces follow authentik groups (PostgreSQL)", () => {
 
     // A changed template reaches a bot nobody edited, and never one a person did.
     const live = await system.bot.findFirstOrThrow({ where: { spaceId: fleet, archivedAt: null } });
-    const edited = await system.bot.findFirstOrThrow({ where: { spaceId: fleet, archivedAt: { not: null } } });
-    await system.bot.update({ where: { id: edited.id }, data: { instructions: "a person wrote this" } });
+    const edited = await system.bot.findFirstOrThrow({
+      where: { spaceId: fleet, archivedAt: { not: null } },
+    });
+    await system.bot.update({
+      where: { id: edited.id },
+      data: { instructions: "a person wrote this" },
+    });
     const changed = templates.map((t) => ({
       ...t,
       bots: t.bots.map((b) => ({ ...b, instructions: `${b.instructions} v2` })),
@@ -178,6 +196,33 @@ describePostgres("team spaces follow authentik groups (PostgreSQL)", () => {
     expect(after.instructions.endsWith(" v2")).toBe(true);
     const kept = await system.bot.findUniqueOrThrow({ where: { id: edited.id } });
     expect(kept.instructions).toBe("a person wrote this");
+
+    // A routine the template gains reaches the live bot once; deleted, it stays deleted.
+    const gained = changed.map((t) => ({
+      ...t,
+      bots: t.bots.map((b) => ({
+        ...b,
+        routines: [
+          ...b.routines,
+          {
+            name: "Changed",
+            prompt: "Say what changed.",
+            cron: "",
+            timezone: "UTC",
+            active: true,
+            watch: { tool: "mcp__dc-x__list_things", args: {}, track: ["name"], everyMinutes: 15 },
+          },
+        ],
+      })),
+    }));
+    const find = { where: { botId: live.id, name: "Changed" } };
+    await seedTeamSpaces({ prisma: db.prisma, repos }, teams, gained);
+    const made = await system.routine.findFirstOrThrow(find);
+    expect(made.active).toBe(true);
+    expect(made.crons).toEqual([]);
+    await system.routine.delete({ where: { id: made.id } });
+    await seedTeamSpaces({ prisma: db.prisma, repos }, teams, gained);
+    expect(await system.routine.count(find)).toBe(0);
   });
 
   it("reads groups from a token and refuses what is not one", () => {

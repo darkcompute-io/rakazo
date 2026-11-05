@@ -147,7 +147,7 @@ def registry(path: Path) -> dict:
             **({"teams": teams} if teams else {})}
 TEMPLATE_KEYS = {"id", "name", "description", "apps", "bots"}
 TEMPLATE_BOT_KEYS = {"key", "name", "description", "instructions", "routines"}
-TEMPLATE_ROUTINE_KEYS = {"name", "prompt", "cron", "timezone"}
+TEMPLATE_ROUTINE_KEYS = {"name", "prompt", "cron", "timezone", "active", "watch"}
 
 
 def space_templates(path: Path, app_ids: set) -> list:
@@ -172,8 +172,8 @@ def space_templates(path: Path, app_ids: set) -> list:
                 raise SystemExit(f"{where}: bot {b.get('key')!r}: keys {sorted(TEMPLATE_BOT_KEYS)}")
             keys.add(b["key"])
             for r in b.get("routines") or []:
-                if set(r) - TEMPLATE_ROUTINE_KEYS or not (r.get("name") and r.get("prompt") and r.get("cron")):
-                    raise SystemExit(f"{where}: bot {b['key']}: a routine needs name, prompt, cron")
+                if set(r) - TEMPLATE_ROUTINE_KEYS or not (r.get("name") and r.get("prompt") and (r.get("cron") or r.get("watch"))):
+                    raise SystemExit(f"{where}: bot {b['key']}: a routine needs name, prompt, and cron or watch")
         out.append(t)
     return out
 
