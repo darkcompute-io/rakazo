@@ -158,6 +158,12 @@ apps:
     endpoint: https://flow.corp.darkcompute.io/api/mcp
     open: https://flow.corp.darkcompute.io
     description: "The map of every app, its agents and how they connect."
+  - id: alerts
+    name: Alerts
+    endpoint: https://alerts.corp.darkcompute.io/api/mcp
+    open: https://alerts.corp.darkcompute.io
+    description: "Raise, acknowledge and resolve alerts, and choose who gets called and texted."
+    askWrites: true
   # The lab itself (darkcompute scripts/lab-mcp.py on fleet-jump): one server per scope, each
   # holding only its own credentials. Admins only, and only in the Fleet team space. askWrites so every change is asked, Just go
   # included; destructive tools are asked every time regardless.
