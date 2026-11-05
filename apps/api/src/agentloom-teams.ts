@@ -12,10 +12,11 @@
 // made by hand in it is never touched, and a renamed space keeps its team.
 import { randomUUID } from "node:crypto";
 import type { RegistryTeams, SpaceTemplate } from "@rakazo/core";
-import type { PrismaClient, createRepos } from "@rakazo/db";
-import { applyTemplate, refreshTemplateBots } from "./agentloom-templates.js";
-import { leaveSpace, runAsSystem, runAsTenant } from "@rakazo/db";
+import { templateSpawnKey } from "@rakazo/core";
+import type { createRepos, PrismaClient } from "@rakazo/db";
+import { createGroupRepos, leaveSpace, runAsSystem, runAsTenant } from "@rakazo/db";
 import { getLogger } from "@rakazo/logging";
+import { applyTemplate, refreshTemplateBots } from "./agentloom-templates.js";
 
 export type TeamMember = { userId: string; email: string; groups: string[] | null };
 
@@ -207,9 +208,11 @@ export async function seedTeamSpaces(
   const meta = readMeta(org.metadata) as TeamMeta & {
     agentloomSeeded?: string[];
     agentloomTemplateText?: Record<string, string>;
+    agentloomGrouped?: string[];
   };
   const seeded = new Set(meta.agentloomSeeded ?? []);
   let known = meta.agentloomTemplateText ?? {};
+  const grouped = new Set(meta.agentloomGrouped ?? []);
   const owner = await runAsSystem("teams: the owner", () =>
     deps.prisma.user.findFirst({
       where: { email: { equals: teams.owner, mode: "insensitive" } },
@@ -241,6 +244,34 @@ export async function seedTeamSpaces(
     }
     if (JSON.stringify(refreshed.known) !== JSON.stringify(known)) changed = true;
     known = refreshed.known;
+    // One group chat per team space, holding its bots, so a request can go to all of them.
+    // Made once, and a group already bearing the name counts, so removing it is final.
+    if (!grouped.has(team)) {
+      const name = `${teams.spaces.find((space) => space.id === team)?.name ?? team} team`;
+      await runAsTenant(actor, async () => {
+        const bots = await deps.prisma.bot.findMany({
+          where: {
+            spaceId,
+            archivedAt: null,
+            spawnKey: { in: template.bots.map((bot) => templateSpawnKey(template.id, bot.key)) },
+          },
+          select: { id: true },
+          orderBy: { createdAt: "asc" },
+        });
+        if (bots.length < 2) return;
+        const exists = await deps.prisma.chatGroup.count({
+          where: { spaceId, name, archivedAt: null },
+        });
+        if (exists === 0) {
+          await createGroupRepos(deps.prisma).createGroup(actor, {
+            name,
+            botIds: bots.map((bot) => bot.id),
+          });
+        }
+        grouped.add(team);
+        changed = true;
+      });
+    }
   }
   if (changed) {
     await runAsSystem("teams: record seeded spaces", () =>
@@ -251,6 +282,7 @@ export async function seedTeamSpaces(
             ...meta,
             agentloomSeeded: [...seeded],
             agentloomTemplateText: known,
+            agentloomGrouped: [...grouped],
           }),
         },
       }),

@@ -172,6 +172,14 @@ describePostgres("team spaces follow authentik groups (PostgreSQL)", () => {
     expect(routines).toEqual([{ active: false, nextRunAt: null }]);
     expect(await system.bot.count({ where: { spaceId: marketing } })).toBe(0);
 
+    // The bots get one group chat, once; a space with no bots gets none.
+    const groups = await system.chatGroup.findMany({
+      where: { spaceId: fleet },
+      include: { members: true },
+    });
+    expect(groups.map((g) => [g.name, g.members.length])).toEqual([["Fleet team", 2]]);
+    expect(await system.chatGroup.count({ where: { spaceId: marketing } })).toBe(0);
+
     // Seeded once: a bot removed afterwards is not put back.
     await system.bot.update({ where: { id: bots[0]!.id }, data: { archivedAt: new Date() } });
     await seedTeamSpaces({ prisma: db.prisma, repos }, teams, templates);
