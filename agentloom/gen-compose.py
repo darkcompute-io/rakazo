@@ -37,6 +37,9 @@ COMMON = {
     "RAKAZO_COMPUTER_IMAGE_TAG": tag,
     "SIGNUPS_ENABLED": "true",
     "SANDBOX_PROVIDER": "docker",
+    # The checker's model can queue behind other work; at the 10 s default a timeout stops a
+    # routine read to ask a person. 30 s is the most the app accepts.
+    "RAKAZO_AUTO_REVIEW_TIMEOUT_MS": "30000",
     # Auto Review on for everyone who has not chosen: the deployment's model judges a
     # fetch to a new site instead of stopping to ask, which a sub-agent cannot do.
     # Umami: the tag agentloom/Dockerfile adds loads from and posts to this origin,
