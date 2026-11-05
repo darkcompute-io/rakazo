@@ -29,6 +29,7 @@ import {
   promptInvokesSkill,
   redactSecrets,
   renderBotDirectory,
+  renderCrossSpaceDirectory,
   userRunError,
   userTurnMessageForRun,
 } from "@rakazo/core";
@@ -51,6 +52,7 @@ import {
 import { enrichLogContext, getLogger } from "@rakazo/logging";
 import { sanitizedError } from "@rakazo/logging/monitoring";
 import { formatAgentEnvironmentInstruction } from "./agent-environment.js";
+import { crossSpaceBots } from "./agentloom-cross-space.js";
 import { createApprovedEffectReplayQueue } from "./approval-effect.js";
 import { PARTIAL_REPLY_NOTE } from "./automated-messages.js";
 import { loadBotMessageContext } from "./bot-messages.js";
@@ -1445,8 +1447,13 @@ export function createRunExecutor(deps: ExecutorDeps) {
               }),
           !thread.groupId ? loadBotGroupDirectory(deps.prisma, run) : undefined,
         ]);
+        const crossSpace = thread.groupId
+          ? []
+          : await crossSpaceBots(deps.prisma, { userId: run.userId, spaceId: run.spaceId });
         const botDirectory =
-          [renderBotDirectory(teammates), groupDirectory].filter(Boolean).join("\n\n") || undefined;
+          [renderBotDirectory(teammates), groupDirectory, renderCrossSpaceDirectory(crossSpace)]
+            .filter(Boolean)
+            .join("\n\n") || undefined;
 
         if (heldForTakeover) {
           const releasedCheckpoint = takeoverCheckpointOf(

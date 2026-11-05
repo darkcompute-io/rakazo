@@ -21,6 +21,9 @@ request_url: https://tasks.corp.darkcompute.io/api/capture
 teams:
   org: {name: Darkcompute, slug: darkcompute}
   owner: james@darkcompute.io
+  # A bot may ask a bot in the same person's other spaces, which does the work with its own apps
+  # and approvals. On for everyone; a person listed here is walled into each space.
+  crossSpaceOff: []
   spaces:
     - {id: everyone, name: Darkcompute, group: Employees, default: true}
     - {id: admin, name: Admin, group: team-admin}

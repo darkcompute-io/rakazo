@@ -131,7 +131,7 @@ def registry(path: Path) -> dict:
             e["icon"] = f"/registry-icons/{e['id']}.svg"
     teams = doc.get("teams")
     if teams is not None:
-        if set(teams) - {"org", "owner", "spaces"} or not isinstance(teams.get("org"), dict):
+        if set(teams) - {"org", "owner", "spaces", "crossSpaceOff"} or not isinstance(teams.get("org"), dict):
             raise SystemExit(f"{path}: teams takes org {{name, slug}}, owner and spaces")
         ids = [t.get("id") for t in teams.get("spaces") or []]
         for t in teams.get("spaces") or []:

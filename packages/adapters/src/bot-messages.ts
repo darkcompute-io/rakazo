@@ -13,9 +13,11 @@ import type { PrismaClient } from "@rakazo/db";
 import {
   appendEventInTransaction,
   createThreadMessageInTransaction,
+  runAsSystem,
   withTransactionRetry,
 } from "@rakazo/db";
 import { getLogger } from "@rakazo/logging";
+import { crossSpaceBots } from "./agentloom-cross-space.js";
 import type { ExecutorDeps } from "./executor-deps.js";
 
 /**
@@ -99,11 +101,20 @@ export async function messageBot(
     where: { spaceId: run.spaceId, archivedAt: null },
     select: { id: true, name: true, thread: { select: { id: true } } },
   });
-  const target = resolveBotAddress(candidates, {
-    botId: input.bot_id,
-    name: input.confirm_name,
-  });
+  const address = { botId: input.bot_id, name: input.confirm_name };
+  const local = resolveBotAddress(candidates, address);
+  // AgentLoom: not in this space, so look in this person's other spaces.
+  const elsewhere = local
+    ? null
+    : resolveBotAddress(
+        await crossSpaceBots(deps.prisma, { userId: run.userId, spaceId: run.spaceId }),
+        address,
+      );
+  const target = local ?? elsewhere;
   if (!target) return { ok: false as const, error: "no bot found with that id or name" };
+  const targetSpaceId = elsewhere?.spaceId ?? run.spaceId;
+  const inTenant = <T>(work: () => Promise<T>) =>
+    elsewhere ? runAsSystem("deliver a message to another of this person's spaces", work) : work();
   if (target.id === sender.id) return { ok: false as const, error: "a bot cannot message itself" };
   if (!target.thread)
     return { ok: false as const, error: `${target.name} has no chat to deliver to` };
@@ -163,128 +174,132 @@ export async function messageBot(
       };
   try {
     committed = await withTransactionRetry(() =>
-      deps.prisma.$transaction(async (tx) => {
-        for (const threadId of [run.threadId, targetThreadId].sort()) {
-          await tx.$queryRaw`SELECT id FROM threads WHERE id = ${threadId} FOR UPDATE`;
-        }
-        // Claim the delivery key inside the transaction so a concurrent retry
-        // either sees the winner or loses on the unique (threadId, clientNonce).
-        if (deliveryKey) {
-          const already = await tx.message.findUnique({
-            where: { threadId_clientNonce: { threadId: targetThreadId, clientNonce: deliveryKey } },
+      inTenant(() =>
+        deps.prisma.$transaction(async (tx) => {
+          for (const threadId of [run.threadId, targetThreadId].sort()) {
+            await tx.$queryRaw`SELECT id FROM threads WHERE id = ${threadId} FOR UPDATE`;
+          }
+          // Claim the delivery key inside the transaction so a concurrent retry
+          // either sees the winner or loses on the unique (threadId, clientNonce).
+          if (deliveryKey) {
+            const already = await tx.message.findUnique({
+              where: {
+                threadId_clientNonce: { threadId: targetThreadId, clientNonce: deliveryKey },
+              },
+              select: { id: true },
+            });
+            if (already) return { ok: true as const, replayed: true as const };
+          }
+
+          const senderStillRunning = await tx.run.findFirst({
+            where: {
+              id: run.id,
+              spaceId: run.spaceId,
+              threadId: run.threadId,
+              botId: run.botId,
+              userId: run.userId,
+              status: options?.allowTerminalSource
+                ? { in: ["completed", "failed", "cancelled"] }
+                : "running",
+            },
             select: { id: true },
           });
-          if (already) return { ok: true as const, replayed: true as const };
-        }
+          if (!senderStillRunning)
+            return { ok: false as const, error: "source run is no longer active" };
 
-        const senderStillRunning = await tx.run.findFirst({
-          where: {
-            id: run.id,
+          // Re-read the target inside the transaction: it can be archived between
+          // resolving it above and committing here.
+          const stillAddressable = await tx.bot.findFirst({
+            where: {
+              id: target.id,
+              spaceId: targetSpaceId,
+              archivedAt: null,
+            },
+            select: { id: true },
+          });
+          if (!stillAddressable)
+            return { ok: false as const, error: `${target.name} is no longer available` };
+
+          // Echo into the sender's chat in the same transaction so a failed notify
+          // cannot leave one side delivered and the other blank.
+          const outbound = await createThreadMessageInTransaction(tx, {
+            threadId: run.threadId,
+            role: "bot",
+            blocks: [outboundBlock],
+            botId: run.botId,
+            runId: run.id,
+            markUnread: options?.forceUnread === true,
+            allowCancelledRun: options?.allowTerminalSource === true,
+          });
+          const inboundBlock: MessageBlock = {
+            kind: "bot_message_received",
+            fromBotId: sender.id,
+            fromBotName: sender.name,
+            text: message,
+            hop,
+            intent,
+            returnToMessageId: outbound.id,
+          };
+          const inbound = await createThreadMessageInTransaction(tx, {
+            threadId: targetThreadId,
+            role: "user",
+            blocks: [inboundBlock],
+            replyToMessageId:
+              sourceContext?.fromBotId === target.id && intent !== "fyi"
+                ? sourceContext.returnToMessageId
+                : undefined,
+            clientNonce: deliveryKey,
+            markUnread: options?.forceUnread === true,
+          });
+          const task = await tx.task.create({
+            data: {
+              spaceId: targetSpaceId,
+              botId: target.id,
+              threadId: targetThreadId,
+              userId: run.userId,
+              prompt: wakePrompt,
+              status: "queued",
+            },
+          });
+          const nextRun = await tx.run.create({
+            data: {
+              spaceId: targetSpaceId,
+              botId: target.id,
+              threadId: targetThreadId,
+              taskId: task.id,
+              userId: run.userId,
+              status: "queued",
+              trigger: "bot_message",
+              sourceMessageId: inbound.id,
+            },
+            select: { id: true },
+          });
+          await tx.message.update({ where: { id: inbound.id }, data: { runId: nextRun.id } });
+          const inboundEvent = await appendEventInTransaction(tx, {
+            spaceId: targetSpaceId,
+            threadId: targetThreadId,
+            botId: target.id,
+            type: "thread.message.created",
+            runId: nextRun.id,
+            payload: { messageId: inbound.id, role: "user", blocks: [inboundBlock] },
+          });
+          const outboundEvent = await appendEventInTransaction(tx, {
             spaceId: run.spaceId,
             threadId: run.threadId,
             botId: run.botId,
-            userId: run.userId,
-            status: options?.allowTerminalSource
-              ? { in: ["completed", "failed", "cancelled"] }
-              : "running",
-          },
-          select: { id: true },
-        });
-        if (!senderStillRunning)
-          return { ok: false as const, error: "source run is no longer active" };
-
-        // Re-read the target inside the transaction: it can be archived between
-        // resolving it above and committing here.
-        const stillAddressable = await tx.bot.findFirst({
-          where: {
-            id: target.id,
-            spaceId: run.spaceId,
-            archivedAt: null,
-          },
-          select: { id: true },
-        });
-        if (!stillAddressable)
-          return { ok: false as const, error: `${target.name} is no longer available` };
-
-        // Echo into the sender's chat in the same transaction so a failed notify
-        // cannot leave one side delivered and the other blank.
-        const outbound = await createThreadMessageInTransaction(tx, {
-          threadId: run.threadId,
-          role: "bot",
-          blocks: [outboundBlock],
-          botId: run.botId,
-          runId: run.id,
-          markUnread: options?.forceUnread === true,
-          allowCancelledRun: options?.allowTerminalSource === true,
-        });
-        const inboundBlock: MessageBlock = {
-          kind: "bot_message_received",
-          fromBotId: sender.id,
-          fromBotName: sender.name,
-          text: message,
-          hop,
-          intent,
-          returnToMessageId: outbound.id,
-        };
-        const inbound = await createThreadMessageInTransaction(tx, {
-          threadId: targetThreadId,
-          role: "user",
-          blocks: [inboundBlock],
-          replyToMessageId:
-            sourceContext?.fromBotId === target.id && intent !== "fyi"
-              ? sourceContext.returnToMessageId
-              : undefined,
-          clientNonce: deliveryKey,
-          markUnread: options?.forceUnread === true,
-        });
-        const task = await tx.task.create({
-          data: {
-            spaceId: run.spaceId,
-            botId: target.id,
-            threadId: targetThreadId,
-            userId: run.userId,
-            prompt: wakePrompt,
-            status: "queued",
-          },
-        });
-        const nextRun = await tx.run.create({
-          data: {
-            spaceId: run.spaceId,
-            botId: target.id,
-            threadId: targetThreadId,
-            taskId: task.id,
-            userId: run.userId,
-            status: "queued",
-            trigger: "bot_message",
-            sourceMessageId: inbound.id,
-          },
-          select: { id: true },
-        });
-        await tx.message.update({ where: { id: inbound.id }, data: { runId: nextRun.id } });
-        const inboundEvent = await appendEventInTransaction(tx, {
-          spaceId: run.spaceId,
-          threadId: targetThreadId,
-          botId: target.id,
-          type: "thread.message.created",
-          runId: nextRun.id,
-          payload: { messageId: inbound.id, role: "user", blocks: [inboundBlock] },
-        });
-        const outboundEvent = await appendEventInTransaction(tx, {
-          spaceId: run.spaceId,
-          threadId: run.threadId,
-          botId: run.botId,
-          type: "thread.message.created",
-          runId: run.id,
-          allowCancelledRun: options?.allowTerminalSource === true,
-          payload: { messageId: outbound.id, role: "bot", blocks: [outboundBlock] },
-        });
-        return {
-          ok: true as const,
-          runId: nextRun.id,
-          targetEventSeq: inboundEvent.seq,
-          senderEventSeq: outboundEvent.seq,
-        };
-      }),
+            type: "thread.message.created",
+            runId: run.id,
+            allowCancelledRun: options?.allowTerminalSource === true,
+            payload: { messageId: outbound.id, role: "bot", blocks: [outboundBlock] },
+          });
+          return {
+            ok: true as const,
+            runId: nextRun.id,
+            targetEventSeq: inboundEvent.seq,
+            senderEventSeq: outboundEvent.seq,
+          };
+        }),
+      ),
     );
   } catch (error) {
     // Two concurrent retries can both miss the in-transaction lookup; the

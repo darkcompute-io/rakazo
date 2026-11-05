@@ -35,6 +35,8 @@ export type RegistryTeams = {
   /** The email of the account that owns every team space (rename, invite, delete). */
   owner: string;
   spaces: RegistryTeam[];
+  /** People whose bots may not reach their other spaces; everyone else's may. */
+  crossSpaceOff: string[];
 };
 
 const ID = /^[a-z][a-z0-9-]{0,31}$/;
@@ -69,6 +71,9 @@ function parseTeams(raw: unknown): RegistryTeams | null {
     org: { name: org.name.slice(0, 60), slug: org.slug },
     owner: t.owner.toLowerCase(),
     spaces,
+    crossSpaceOff: (Array.isArray(t.crossSpaceOff) ? t.crossSpaceOff : []).filter(
+      (address): address is string => typeof address === "string",
+    ),
   };
 }
 
@@ -173,7 +178,7 @@ export function registryElsewhereNote(raw?: string): string | undefined {
     const name = info.teams?.spaces.find((space) => space.id === team)?.name ?? team;
     return `${apps.join(", ")} only in the ${name} space`;
   });
-  return `Some apps are not in every space: ${parts.join("; ")}. If someone needs one and you do not have its tools, tell them to switch to that space with the space switcher, and do not offer to add or reconnect it.`;
+  return `Some apps are not in every space: ${parts.join("; ")}. If someone needs one and you do not have its tools, ask a bot in that space if your directory lists one, otherwise tell them to switch to that space with the space switcher. Do not offer to add or reconnect it.`;
 }
 
 /** Whether a registry app belongs in a space: unrestricted, or that space is one of its teams. */

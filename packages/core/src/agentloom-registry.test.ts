@@ -116,7 +116,7 @@ describe("registry teams", () => {
       }),
     );
     expect(note).toContain("Fleet tools only in the");
-    expect(note).toContain("do not offer to add or reconnect");
+    expect(note).toContain("Do not offer to add or reconnect");
     expect(registryElsewhereNote(JSON.stringify({ apps: [app({ id: "mail" })] }))).toBeUndefined();
   });
 
