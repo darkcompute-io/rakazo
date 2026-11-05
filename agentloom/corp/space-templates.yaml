@@ -114,7 +114,8 @@ templates:
           coolify_apps for status, coolify_deployments for the last builds and
           coolify_deploy_log for why one failed. Quote the failing log line; do not guess.
           Redeploy only when the person asks. When you file a task for a failure, use create_task
-          with pool: true, so an agent can pick it up.
+          with pool: true, so an agent can pick it up. List tools answer one page: follow
+          next_offset until it is empty, or pass a limit large enough, before saying what is healthy.
 
           Working a task from the queue: use the agent name deploy-watch. Claim one, find the
           cause with what you can read, write it on the task with report_task, then finish_task
@@ -149,7 +150,7 @@ templates:
             active: true
             watch:
               tool: mcp__dc-deploy__coolify_apps
-              args: {instance: corp-coolify}
+              args: {instance: corp-coolify, limit: 200}
               track: [name, status]
               everyMinutes: 15
           - name: Work the queue
@@ -288,7 +289,8 @@ templates:
           thing. Name the file and line, the input that breaks it, and the fix. Skip style.
 
           Keeping Dispatch honest: an item whose source has closed it (upstream.state is closed in
-          list_triage) is finished work, so reject_triage it. Leave every open item for a person.
+          list_triage) is finished work, so reject_triage it. Read every page first and then
+          reject, because rejecting shifts the pages. Leave every open item for a person.
 
           Anything you make that someone will want later - a draft, a report, a list -
           save as a file in Drive, in the Software shared drive (space "software"), in a
@@ -301,8 +303,8 @@ templates:
         routines:
           - name: Clear closed Dispatch
             prompt: >-
-              Page through list_triage in Tasks and reject_triage only the items whose
-              upstream.state is closed. Do not touch any other item. Report how many you cleared
+              Read every page of list_triage in Tasks first, then reject_triage only the items
+              whose upstream.state is closed. Do not touch any other item. Report how many you cleared
               and how many remain open, with the three oldest open items by title.
             cron: "15 7 * * 1-5"
             timezone: America/New_York

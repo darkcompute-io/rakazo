@@ -32,22 +32,30 @@ teams:
     - {id: development, name: Development, group: team-development}
     - {id: fleet, name: Fleet, group: team-fleet}
 # The approval policy, approved by the owner 2026-11-05. A bot works alone on what is not named
-# here: reads, drafts, filing its own work, tasks and branches.
+# here: reads, drafts, filing its own work, tasks and branches. An app's tier and destructive
+# flags do not reach this gate, only readOnly does, so a tool that must ask is named here.
 # never: only a person's own message can start it, and that person approves it each time. A
 #   routine or another bot is refused, so a bot's "yes" can never stand in for a person's.
 # ask: a person approves it in every mode, whoever started the run. askWrites on an app does the
 #   same for everything that app can change.
 policy:
   never:
-    # moving money
+    # moving money and committing to it
     - mcp__dc-books__record_payment
     - mcp__dc-books__approve_payroll
     - mcp__dc-books__void_*
+    - mcp__dc-books__match_bill_payments
+    - mcp__dc-books__approve_person_invoice
+    - mcp__dc-timesheets__issue_invoice*
+    - mcp__dc-timesheets__discard_invoice_draft
+    - mcp__dc-portal__timesheets_sendInvoice
     # deleting
     - mcp__dc-*__*delete*
     - mcp__dc-drive__trash
     - mcp__dc-drive__empty_trash
+    - mcp__dc-inbox__trash_message
     - mcp__dc-books__remove_*
+    - mcp__dc-test__set_irreversible
     # granting access
     - mcp__dc-drive__set_space_access
     - mcp__dc-identity__ak_create_user
@@ -58,6 +66,17 @@ policy:
     - mcp__dc-network__netbird_update_policy
     - mcp__dc-network__netbird_set_peer_groups
     - mcp__dc-network__netbird_create_setup_key
+    - mcp__dc-mail__assign_mailbox
+    - mcp__dc-mail__add_group_member
+    - mcp__dc-mail__create_mailbox
+    - mcp__dc-marketing__add_user
+    - mcp__dc-marketing__update_user_access
+    - mcp__dc-spaces__add_member
+    - mcp__dc-calendar__share_calendar
+    - mcp__dc-portal__drive_share_shareWith
+    - mcp__dc-tasks__make_token
+    - mcp__dc-code__mint_cli_token
+    - mcp__dc-test__share_sign_in
     # powering a node off or on
     - mcp__dc-fleet__queue_destructive_action
   ask:
@@ -65,11 +84,25 @@ policy:
     - mcp__dc-inbox__send_mail
     - mcp__dc-inbox__reply
     - mcp__dc-inbox__forward_message
+    - mcp__dc-calendar__create_event
+    - mcp__dc-calendar__update_event
+    - mcp__dc-calendar__cancel_event
+    - mcp__dc-calendar__resend_invitations
+    - mcp__dc-calendar__retry_mail
+    - mcp__dc-mail__test_send
+    - mcp__dc-portal__chat_sendMessage
     - mcp__dc-marketing__update_engine_settings
     - mcp__dc-marketing__*approve*
     - mcp__dc-marketing__*publish*
+    - mcp__dc-recorder__set_published
+    - mcp__dc-research__publish
     - mcp__dc-*__*merge*
     - mcp__dc-drive__share_link
+    - mcp__dc-spaces__share_chat
+    - mcp__dc-tasks__reject_triage_many
+    - mcp__dc-books__issue_document
+    - mcp__dc-books__approve_week
+    - mcp__dc-timesheets__approve_sheet
 # Not listed yet, though their MCP takes a person's token: scan (DMZ Coolify still builds
 # the archived darkcompute-scan repo, so the code is not deployed) and computers (no
 # published name; corp-caddy needs a computers.corp site first).
@@ -164,6 +197,7 @@ apps:
     name: Recorder
     endpoint: https://recorder.corp.darkcompute.io/api/mcp
     open: https://recorder.corp.darkcompute.io
+    viewHosts: [guides.corp.darkcompute.io]
     description: "Walkthrough recordings, sites and guides."
   - id: code
     name: Code
