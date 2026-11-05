@@ -18,6 +18,7 @@ import {
   loginFieldLabelsArgument,
 } from "./bot-secrets.js";
 import { shortenToolResultText } from "./context-selection.js";
+import { mcpImageResult } from "./mcp-image-result.js";
 import type { PiAgentRuntimeOptions } from "./pi-runtime.js";
 import { sanitizeSensitiveText } from "./pi-runtime-errors.js";
 import { clipToolResultContent, clipToolResultText } from "./pi-runtime-limits.js";
@@ -473,6 +474,8 @@ function toAgentTool(tool: ConnectorTool, host: ToolHost, exposedName: string): 
                   if (isToolPauseResult(result)) host.pausePending = true;
                   return boundAgentToolResult(result);
                 }
+                const withImage = mcpImageResult(result);
+                if (withImage) return boundAgentToolResult(withImage);
                 return {
                   content: [
                     {
