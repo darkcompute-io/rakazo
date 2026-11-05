@@ -22,6 +22,7 @@ import {
   redactSecrets,
   registryAlwaysAsks,
   registryReadStaysInside,
+  registryToolPolicy,
   resolveActionApprovalForTools,
   toolRequiresApproval,
   toolRequiresExplicitApproval,
@@ -255,6 +256,19 @@ export async function gateToolCall(
     unidentifiedAction && resolvedRules.decision === "allow"
       ? { ...resolvedRules, decision: "ask" as const }
       : resolvedRules;
+  // AgentLoom: money, deleting, access and node power only ever start with a person's own message.
+  if (
+    !ctx.source.ownerStartedRun &&
+    approvalToolNames.some(
+      (toolName) => registryToolPolicy(toolName, declaredReadOnlyFor(toolName)) === "never",
+    )
+  ) {
+    return {
+      result: {
+        error: `${name} is reserved for a person: a routine or another bot cannot run it, even with approval. Tell the person what you found and what they would need to do.`,
+      },
+    };
+  }
   const mode = approvalModeFromPreference(await ctx.trust.loadAutoReviewPreference());
   const reviewable = mode === "auto" && !requiresMandatoryApproval;
   const injectedReview = reviewable ? deps.autoReview : undefined;
@@ -295,8 +309,10 @@ export async function gateToolCall(
           resolved: approvalResolved,
           mode,
           mandatory: requiresMandatoryApproval,
-          alwaysAsk: approvalToolNames.some((toolName) =>
-            registryAlwaysAsks(toolName, declaredReadOnlyFor(toolName)),
+          alwaysAsk: approvalToolNames.some(
+            (toolName) =>
+              registryAlwaysAsks(toolName, declaredReadOnlyFor(toolName)) ||
+              registryToolPolicy(toolName, declaredReadOnlyFor(toolName)) !== null,
           ),
           steerable:
             requiresMandatoryApproval && mode === "never"

@@ -105,7 +105,7 @@ def registry(path: Path) -> dict:
     and the apps. Closed key sets, https only,
     ids unique: a bad file stops the generator rather than shipping half a list."""
     doc = (yaml.safe_load(path.read_text(encoding="utf-8")) if path.exists() else None) or {}
-    extra = set(doc) - {"title", "request_url", "apps", "teams"}
+    extra = set(doc) - {"title", "request_url", "apps", "teams", "policy"}
     if extra:
         raise SystemExit(f"{path}: unknown keys {sorted(extra)}")
     if "request_url" in doc and not str(doc["request_url"]).startswith("https://"):
@@ -143,7 +143,12 @@ def registry(path: Path) -> dict:
             unknown = set(e.get("teams") or []) - set(ids)
             if unknown:
                 raise SystemExit(f"{path}: {e['id']}: no team {sorted(unknown)}")
-    return {"title": doc.get("title") or "Apps", "requestUrl": doc.get("request_url"), "apps": entries,
+    policy = doc.get("policy")
+    if policy is not None:
+        if set(policy) - {"never", "ask"} or any(
+                not str(p).startswith("mcp__") for v in policy.values() for p in v):
+            raise SystemExit(f"{path}: policy takes never and ask, lists of mcp__ tool patterns")
+    return {**({"policy": policy} if policy else {}), "title": doc.get("title") or "Apps", "requestUrl": doc.get("request_url"), "apps": entries,
             **({"teams": teams} if teams else {})}
 TEMPLATE_KEYS = {"id", "name", "description", "apps", "bots"}
 TEMPLATE_BOT_KEYS = {"key", "name", "description", "instructions", "routines"}
@@ -235,7 +240,7 @@ def build(host: str, sets: dict, dst: Path, header: str, corp: bool) -> None:
             apps = reg["apps"]
             env = svc.setdefault("environment", {})
             env["AGENTLOOM_REGISTRY"] = json.dumps(
-                {"title": reg["title"], "apps": apps, **({"teams": reg["teams"]} if "teams" in reg else {})},
+                {"title": reg["title"], "apps": apps, **({"policy": reg["policy"]} if "policy" in reg else {}), **({"teams": reg["teams"]} if "teams" in reg else {})},
                 separators=(",", ":"))
             templates = space_templates(dst.parent / "space-templates.yaml", {e["id"] for e in apps})
             if name == "api" and templates:

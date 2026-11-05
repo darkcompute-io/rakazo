@@ -31,6 +31,45 @@ teams:
     - {id: plccode, name: PLCcode, group: team-plccode}
     - {id: development, name: Development, group: team-development}
     - {id: fleet, name: Fleet, group: team-fleet}
+# The approval policy, approved by the owner 2026-11-05. A bot works alone on what is not named
+# here: reads, drafts, filing its own work, tasks and branches.
+# never: only a person's own message can start it, and that person approves it each time. A
+#   routine or another bot is refused, so a bot's "yes" can never stand in for a person's.
+# ask: a person approves it in every mode, whoever started the run. askWrites on an app does the
+#   same for everything that app can change.
+policy:
+  never:
+    # moving money
+    - mcp__dc-books__record_payment
+    - mcp__dc-books__approve_payroll
+    - mcp__dc-books__void_*
+    # deleting
+    - mcp__dc-*__*delete*
+    - mcp__dc-drive__trash
+    - mcp__dc-drive__empty_trash
+    - mcp__dc-books__remove_*
+    # granting access
+    - mcp__dc-drive__set_space_access
+    - mcp__dc-identity__ak_create_user
+    - mcp__dc-identity__ak_group_member
+    - mcp__dc-identity__ak_recovery_link
+    - mcp__dc-identity__ak_set_active
+    - mcp__dc-network__netbird_add_policy
+    - mcp__dc-network__netbird_update_policy
+    - mcp__dc-network__netbird_set_peer_groups
+    - mcp__dc-network__netbird_create_setup_key
+    # powering a node off or on
+    - mcp__dc-fleet__queue_destructive_action
+  ask:
+    # what others feel: mail, posts and merges (DNS and deploys are askWrites already)
+    - mcp__dc-inbox__send_mail
+    - mcp__dc-inbox__reply
+    - mcp__dc-inbox__forward_message
+    - mcp__dc-marketing__update_engine_settings
+    - mcp__dc-marketing__*approve*
+    - mcp__dc-marketing__*publish*
+    - mcp__dc-*__*merge*
+    - mcp__dc-drive__share_link
 # Not listed yet, though their MCP takes a person's token: scan (DMZ Coolify still builds
 # the archived darkcompute-scan repo, so the code is not deployed) and computers (no
 # published name; corp-caddy needs a computers.corp site first).

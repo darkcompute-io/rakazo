@@ -8,6 +8,7 @@ import {
   registryInfo,
   registryReadStaysInside,
   registrySlug,
+  registryToolPolicy,
 } from "./agentloom-registry.js";
 
 const RAW = JSON.stringify([
@@ -128,6 +129,28 @@ describe("registry teams", () => {
     expect(inside("mcp__dc-fleet__queue_action", false)).toBe(false);
     expect(inside("mcp__dc-fleet__unknown")).toBe(false);
     expect(inside("mcp__someone-else__read", true)).toBe(false);
+  });
+
+  it("reads the approval policy, most severe first, and leaves reads alone", () => {
+    const { policy } = registryInfo(
+      JSON.stringify({
+        apps: [],
+        policy: {
+          never: ["mcp__dc-books__record_payment", "mcp__dc-*__*delete*", "not-a-tool"],
+          ask: ["mcp__dc-inbox__send_mail", "mcp__dc-books__*"],
+        },
+      }),
+    );
+    expect(policy.never).toHaveLength(2);
+    const level = (name: string, readOnly?: boolean) => registryToolPolicy(name, readOnly, policy);
+    expect(level("mcp__dc-books__record_payment")).toBe("never");
+    expect(level("mcp__dc-tasks__delete_task")).toBe("never");
+    expect(level("mcp__dc-inbox__send_mail")).toBe("ask");
+    expect(level("mcp__dc-books__add_document")).toBe("ask");
+    expect(level("mcp__dc-books__record_payment", true)).toBeNull();
+    expect(level("mcp__dc-tasks__create_task")).toBeNull();
+    expect(level("mcp__dc-books.record_payment")).toBeNull();
+    expect(registryToolPolicy("mcp__dc-x__delete", undefined, { never: [], ask: [] })).toBeNull();
   });
 
   it("drops a teams block it cannot trust whole", () => {

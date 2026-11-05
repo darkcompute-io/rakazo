@@ -51,6 +51,8 @@ export type RegistryInfo = {
   title: string;
   entries: RegistryEntry[];
   teams: RegistryTeams | null;
+  /** Tool name patterns, `*` matching anything; see registryToolPolicy. */
+  policy: { never: string[]; ask: string[] };
 };
 
 function parseTeams(raw: unknown): RegistryTeams | null {
@@ -75,6 +77,39 @@ function parseTeams(raw: unknown): RegistryTeams | null {
       (address): address is string => typeof address === "string",
     ),
   };
+}
+
+function parsePolicy(raw: unknown): RegistryInfo["policy"] {
+  const doc = (raw ?? {}) as Record<string, unknown>;
+  const list = (value: unknown) =>
+    (Array.isArray(value) ? value : []).filter(
+      (item): item is string => typeof item === "string" && item.startsWith("mcp__"),
+    );
+  return { never: list(doc.never), ask: list(doc.ask) };
+}
+
+const globMatch = (pattern: string, name: string) =>
+  new RegExp(
+    `^${pattern
+      .split("*")
+      .map((part) => part.replace(/[.+?^${}()|[\]\\]/g, "\\$&"))
+      .join(".*")}$`,
+  ).test(name);
+
+/**
+ * The instance's approval policy for a tool. "never": a person's own chat may ask for it, each
+ * time; a routine or another bot may not. "ask": a person approves it in every mode. A tool
+ * declared read-only is outside the policy, and so is everything the file does not name.
+ */
+export function registryToolPolicy(
+  toolName: string,
+  readOnly: boolean | undefined,
+  policy: RegistryInfo["policy"] = registryInfo().policy,
+): "never" | "ask" | null {
+  if (readOnly === true) return null;
+  if (policy.never.some((pattern) => globMatch(pattern, toolName))) return "never";
+  if (policy.ask.some((pattern) => globMatch(pattern, toolName))) return "ask";
+  return null;
 }
 
 let cached: { raw: string | undefined; info: RegistryInfo } | undefined;
@@ -130,6 +165,7 @@ export function registryInfo(
       typeof doc.title === "string" && doc.title.trim() ? doc.title.trim().slice(0, 60) : "Apps",
     entries,
     teams: parseTeams(doc.teams),
+    policy: parsePolicy(doc.policy),
   };
   cached = { raw, info };
   return info;
