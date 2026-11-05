@@ -53,7 +53,11 @@ export function clipToolResultContent<T>(
       remaining -= text.length;
       continue;
     }
-    clipped.push({ ...part, text: clipToolResultText(text, remaining) });
+    // AgentLoom: say a list was cut, so a bot reports it or narrows it instead of guessing.
+    clipped.push({
+      ...part,
+      text: `${clipToolResultText(text, remaining)}\n[Cut at ${remaining} of ${text.length} characters. Ask again with a filter, limit or offset, or tell the person this is incomplete.]`,
+    });
     remaining = 0;
   }
   return clipped;

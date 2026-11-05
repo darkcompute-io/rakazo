@@ -170,9 +170,8 @@ describe("clipToolResultContent", () => {
     expect(clipped[1]).toEqual(image);
     const overflow = clipped[2] as { type: "text"; text: string };
     expect(overflow.type).toBe("text");
-    expect(overflow.text.endsWith("…")).toBe(true);
+    expect(overflow.text).toContain("…\n[Cut at 10 of");
     expect(overflow.text.startsWith("b")).toBe(true);
-    expect(overflow.text.length).toBe(11);
     const textChars = clipped
       .filter((part) => part.type === "text")
       .reduce((sum, part) => sum + part.text.replace(/…$/, "").length, 0);

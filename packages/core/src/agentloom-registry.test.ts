@@ -3,6 +3,7 @@ import { type ActionApprovalResolved, planActionGate } from "./action-approval.j
 import {
   registryAlwaysAsks,
   registryAppAllowed,
+  registryElsewhereNote,
   registryEntries,
   registryInfo,
   registrySlug,
@@ -104,6 +105,15 @@ describe("registry teams", () => {
     expect(registryAppAllowed(fleet!, "everyone")).toBe(false);
     expect(registryAppAllowed(fleet!, null)).toBe(false);
     expect(registryAppAllowed(mail!, null)).toBe(true);
+  });
+
+  it("names the apps only some spaces have, for a bot that lacks them", () => {
+    const note = registryElsewhereNote(
+      JSON.stringify({ apps: [app({ name: "Fleet tools", teams: ["fleet"] }), app({ id: "mail" })], teams }),
+    );
+    expect(note).toContain("Fleet tools only in the");
+    expect(note).toContain("do not offer to add or reconnect");
+    expect(registryElsewhereNote(JSON.stringify({ apps: [app({ id: "mail" })] }))).toBeUndefined();
   });
 
   it("drops a teams block it cannot trust whole", () => {

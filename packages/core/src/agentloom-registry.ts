@@ -141,6 +141,26 @@ export function registryAlwaysAsks(
   );
 }
 
+/**
+ * One line for a bot's instructions naming the apps only some spaces have, so a bot without
+ * them sends the person to the right space instead of offering to reconnect them.
+ */
+export function registryElsewhereNote(raw?: string): string | undefined {
+  const info = raw === undefined ? registryInfo() : registryInfo(raw);
+  const byTeam = new Map<string, string[]>();
+  for (const entry of info.entries) {
+    for (const team of entry.teams ?? []) {
+      byTeam.set(team, [...(byTeam.get(team) ?? []), entry.name]);
+    }
+  }
+  if (byTeam.size === 0) return undefined;
+  const parts = [...byTeam].map(([team, apps]) => {
+    const name = info.teams?.spaces.find((space) => space.id === team)?.name ?? team;
+    return `${apps.join(", ")} only in the ${name} space`;
+  });
+  return `Some apps are not in every space: ${parts.join("; ")}. If someone needs one and you do not have its tools, tell them to switch to that space with the space switcher, and do not offer to add or reconnect it.`;
+}
+
 /** Whether a registry app belongs in a space: unrestricted, or that space is one of its teams. */
 export function registryAppAllowed(entry: RegistryEntry, spaceTeam: string | null): boolean {
   return entry.teams === null || (spaceTeam !== null && entry.teams.includes(spaceTeam));

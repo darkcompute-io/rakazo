@@ -1,5 +1,9 @@
 import { FLEET_WRITE_TOOL_NAMES } from "@rakazo/contracts";
-import { runReadsThreadHistory, toolRequiresExplicitApproval } from "@rakazo/core";
+import {
+  registryElsewhereNote,
+  runReadsThreadHistory,
+  toolRequiresExplicitApproval,
+} from "@rakazo/core";
 import { MODEL_CANNOT_SEE_MESSAGE } from "./model-vision.js";
 import { replyGuidanceForOfferedTools } from "./run-replies.js";
 import type { UserComputerState } from "./run-tools-user-computer.js";
@@ -368,6 +372,7 @@ export function userTurnInstructions(parts: {
       "add_mcp_server",
       "When the user asks you to add or connect an MCP server (and gives you its details), use add_mcp_server. When add_mcp_server posts an approval card, end with one short sentence asking the user to approve it. You will be told when they connect it.",
     ),
+    registryElsewhereNote(),
     "Never print API keys, access tokens, or secret values. Prefer tools over claiming you already did the work.",
     "Treat pagination cursors as opaque: copy the returned continuation value exactly, never calculate or guess it. When the tool reports no next page, stop; if a cursor is rejected, recheck the last successful result before retrying.",
     replyGuidanceForOfferedTools(parts.replyGuidance, parts.disabledBuiltinTools),
