@@ -99,21 +99,16 @@ describe("group handoff ownership", () => {
     );
   });
 
-  it("refuses to bounce a handed-off stage straight back to its sender", async () => {
+  it("lets a stage go back to its sender, bounded by the hop limit", async () => {
     const { deps, runCreate } = harness([
       { kind: "handoff", fromBotId: "bot-b", toBotId: "bot-a", text: "Investigate", hop: 1 },
     ]);
 
-    await expect(
-      handoffToGroupBot(deps as never, run, "group-1", {
-        bot_id: "bot-b",
-        message: "You investigate it",
-      }),
-    ).resolves.toEqual({
-      error:
-        "do not hand this stage back to its sender; post the result in the shared thread instead",
+    await handoffToGroupBot(deps as never, run, "group-1", {
+      bot_id: "bot-b",
+      message: "Found it, your stage next",
     });
-    expect(runCreate).not.toHaveBeenCalled();
+    expect(runCreate).toHaveBeenCalledTimes(1);
   });
 
   it("caps longer multi-agent handoff chains", async () => {

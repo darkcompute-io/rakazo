@@ -143,12 +143,8 @@ export async function handoffToGroupBot(
     const sourceHandoff = sourceBlocks.find(
       (block): block is Extract<MessageBlock, { kind: "handoff" }> => block.kind === "handoff",
     );
-    if (sourceHandoff?.fromBotId === targetId) {
-      return {
-        error:
-          "do not hand this stage back to its sender; post the result in the shared thread instead",
-      } as const;
-    }
+    // AgentLoom: a coordinator hands out a stage and takes the next one back, so a hand-back to
+    // the sender is allowed; the hop limit below is what stops a loop.
     const hop = nextBotMessageHop(sourceHandoff?.hop ?? botMessageContext(sourceBlocks)?.hop);
     if (botMessageHopExhausted(hop)) {
       return {
