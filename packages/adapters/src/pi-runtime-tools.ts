@@ -163,6 +163,12 @@ export function describeToolActivity(toolName: string, args: unknown): string {
     return `Deleting skill: ${detail(record.name ?? record.skillId)}`;
   const mcp = toolName.match(/^mcp__(.+?)__(.+)$/);
   if (mcp) return `Using ${mcp[1]}: ${mcp[2]}`;
+  // AgentLoom: a lazy catalog's one wrapper hides every app behind one name; its id says which.
+  if (toolName.endsWith("_execute_tool") && typeof record.id === "string") {
+    const [app, tool] = record.id.split("__");
+    if (app && tool) return `Using ${detail(app.replace(/^dc-/, ""))}: ${detail(tool)}`;
+    return `Using ${detail(record.id)}`;
+  }
   return `Using ${toolName}`;
 }
 

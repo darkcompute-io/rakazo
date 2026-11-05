@@ -164,6 +164,20 @@ describePostgres("team spaces follow authentik groups (PostgreSQL)", () => {
     await seedTeamSpaces({ prisma: db.prisma, repos }, teams, templates);
     expect(await system.bot.count({ where: { spaceId: fleet } })).toBe(2);
     expect(await system.bot.count({ where: { spaceId: fleet, archivedAt: null } })).toBe(1);
+
+    // A changed template reaches a bot nobody edited, and never one a person did.
+    const live = await system.bot.findFirstOrThrow({ where: { spaceId: fleet, archivedAt: null } });
+    const edited = await system.bot.findFirstOrThrow({ where: { spaceId: fleet, archivedAt: { not: null } } });
+    await system.bot.update({ where: { id: edited.id }, data: { instructions: "a person wrote this" } });
+    const changed = templates.map((t) => ({
+      ...t,
+      bots: t.bots.map((b) => ({ ...b, instructions: `${b.instructions} v2` })),
+    }));
+    await seedTeamSpaces({ prisma: db.prisma, repos }, teams, changed);
+    const after = await system.bot.findUniqueOrThrow({ where: { id: live.id } });
+    expect(after.instructions.endsWith(" v2")).toBe(true);
+    const kept = await system.bot.findUniqueOrThrow({ where: { id: edited.id } });
+    expect(kept.instructions).toBe("a person wrote this");
   });
 
   it("reads groups from a token and refuses what is not one", () => {
