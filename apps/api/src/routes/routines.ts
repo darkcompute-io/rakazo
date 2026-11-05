@@ -14,6 +14,7 @@ import {
 } from "@rakazo/core";
 import { IsolationError, Prisma } from "@rakazo/db";
 import { getLogger } from "@rakazo/logging";
+import { routineBoard } from "../agentloom-routine-board.js";
 import { assertRoutineModel } from "../model-pins.js";
 import { listRoutineRuns } from "../routine-runs.js";
 import {
@@ -55,6 +56,25 @@ export function routinesRoutes(ctx: RouterContext) {
       history: authed.routines.history.handler(async ({ context, input }) =>
         listRoutineRuns(deps.prisma, context.actor, input.routineId, input.before, input.limit),
       ),
+      board: authed.routines.board.handler(async ({ context }) => {
+        const rows = await deps.prisma.routine.findMany({
+          where: { spaceId: context.actor.spaceId, bot: { archivedAt: null } },
+          select: {
+            id: true,
+            name: true,
+            botId: true,
+            active: true,
+            nextRunAt: true,
+            bot: { select: { name: true } },
+            runs: {
+              orderBy: { createdAt: "desc" },
+              take: 1,
+              select: { status: true, createdAt: true },
+            },
+          },
+        });
+        return routineBoard(rows);
+      }),
       list: authed.routines.list.handler(async ({ context, input }) => {
         await repos.getBot(context.actor, input.botId);
         return listRoutinesDto(deps, context.actor, input.botId);

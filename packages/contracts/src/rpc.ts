@@ -741,6 +741,22 @@ export const appContract = {
       .input(z.object({ botIds: z.array(Id).min(1).max(ROUTINE_MENTION_BATCH_MAX) }))
       .output(z.array(z.object({ botId: Id, routines: z.array(RoutineSchema) }))),
     list: oc.input(botId).output(z.array(RoutineSchema)),
+    // AgentLoom: every routine in the current space, stuck ones first.
+    board: oc.output(
+      z.array(
+        z.object({
+          id: Id,
+          name: z.string(),
+          botId: Id,
+          botName: z.string(),
+          active: z.boolean(),
+          nextRunAt: z.string().nullable(),
+          lastRunAt: z.string().nullable(),
+          lastStatus: z.string().nullable(),
+          stuck: z.boolean(),
+        }),
+      ),
+    ),
     history: oc
       .input(
         z.object({
@@ -1234,7 +1250,9 @@ export const appContract = {
       ),
     ),
     apply: oc
-      .input(z.object({ spaceId: z.string().min(1).max(64), templateId: z.string().min(1).max(32) }))
+      .input(
+        z.object({ spaceId: z.string().min(1).max(64), templateId: z.string().min(1).max(32) }),
+      )
       .output(z.object({ bots: z.number().int(), routines: z.number().int() })),
   },
   autoReview: {

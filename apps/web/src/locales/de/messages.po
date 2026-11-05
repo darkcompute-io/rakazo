@@ -369,6 +369,10 @@ msgstr "{size} B"
 msgid "{skillCount, plural, one {# skill} other {# skills}}"
 msgstr ""
 
+#: src/pages/Routines.tsx
+msgid "{stuck} need attention"
+msgstr ""
+
 #. js-lingui-explicit-id
 #: src/lib/run-error.ts
 msgid "{summary} Backup models failed or were unavailable for this request."
@@ -1062,6 +1066,7 @@ msgstr "Bot"
 #: src/lib/identity-display.ts
 #: src/pages/IntegrationSetup.tsx
 #: src/pages/MessagingSettingsPanel.tsx
+#: src/pages/Routines.tsx
 #: src/pages/Shell.tsx
 #: src/pages/shell/avatar-studio-popover.tsx
 #: src/pages/shell/message-view.tsx
@@ -1098,6 +1103,7 @@ msgid "Both"
 msgstr ""
 
 #: src/pages/Artifacts.tsx
+#: src/pages/Routines.tsx
 msgid "Bots"
 msgstr ""
 
@@ -2042,6 +2048,10 @@ msgstr ""
 #: src/pages/model-settings/use-model-settings.ts
 msgid "Could not load model settings"
 msgstr "Modelleinstellungen konnten nicht geladen werden"
+
+#: src/pages/Routines.tsx
+msgid "Could not load routines"
+msgstr ""
 
 #: src/pages/RoutineRunHistory.tsx
 msgid "Could not load run history"
@@ -3454,6 +3464,10 @@ msgstr "Letzte Prüfung {0}: geändert"
 msgid "Last check {0}: no changes"
 msgstr "Letzte Prüfung {0}: keine Änderungen"
 
+#: src/pages/Routines.tsx
+msgid "Last run"
+msgstr ""
+
 #: src/components/DesktopUpdates.tsx
 msgid "Later"
 msgstr ""
@@ -4067,6 +4081,10 @@ msgstr ""
 msgid "Next page"
 msgstr "Nächste Seite"
 
+#: src/pages/Routines.tsx
+msgid "Next run"
+msgstr ""
+
 #: src/pages/SettingsOverlay.tsx
 msgid "Next settings sections"
 msgstr ""
@@ -4155,6 +4173,10 @@ msgstr ""
 #: src/pages/SpaceSearch.tsx
 msgid "No results"
 msgstr "Keine Ergebnisse"
+
+#: src/pages/Routines.tsx
+msgid "No routines in this space yet."
+msgstr ""
 
 #: src/components/markdown-copy.tsx
 msgid "No rows"
@@ -4284,6 +4306,10 @@ msgstr ""
 #: src/pages/ModelSettingsOverlay.tsx
 #: src/pages/Onboarding.tsx
 msgid "Ollama Cloud"
+msgstr ""
+
+#: src/pages/Routines.tsx
+msgid "On"
 msgstr ""
 
 #: src/pages/RoutineEditor.tsx
@@ -4497,6 +4523,7 @@ msgid "Paste your API key, then test again."
 msgstr "Füge deinen API-Schlüssel ein und teste erneut."
 
 #: src/pages/RoutineEditor.tsx
+#: src/pages/Routines.tsx
 #: src/pages/shell/import-status.ts
 msgid "Paused"
 msgstr ""
@@ -5048,6 +5075,10 @@ msgstr "Wiederhergestellt"
 msgid "Restoring your workspace"
 msgstr ""
 
+#: src/pages/Routines.tsx
+msgid "Result"
+msgstr ""
+
 #: src/components/AccountAccess.tsx
 #: src/components/integrations/plugin-marketplace.tsx
 #: src/components/integrations/skills-dialog.tsx
@@ -5097,11 +5128,14 @@ msgstr ""
 
 #: src/lib/identity-display.ts
 #: src/pages/RoutineEditor.tsx
+#: src/pages/Routines.tsx
 #: src/pages/shell/use-routine-editor.ts
 msgid "Routine"
 msgstr "Routine"
 
+#: src/components/SidebarFooter.tsx
 #: src/pages/RoutineEditor.tsx
+#: src/pages/Routines.tsx
 #: src/pages/shell/agent-import.tsx
 msgid "Routines"
 msgstr "Routinen"
@@ -5702,6 +5736,10 @@ msgstr "Startet"
 #: src/pages/Onboarding.tsx
 msgid "Starting…"
 msgstr "Wird gestartet…"
+
+#: src/pages/Routines.tsx
+msgid "State"
+msgstr ""
 
 #: src/pages/ActivityList.tsx
 #: src/pages/Board.tsx
