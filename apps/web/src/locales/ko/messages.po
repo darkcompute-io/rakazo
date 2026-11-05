@@ -1028,6 +1028,10 @@ msgstr "Bearer 토큰"
 msgid "Billing"
 msgstr ""
 
+#: src/pages/shell/dialogs.tsx
+msgid "Blank"
+msgstr ""
+
 #: src/components/ApprovalRulePreview.tsx
 #: src/components/ApprovalRulesSettings.tsx
 msgid "Block"
@@ -4051,6 +4055,7 @@ msgid "New skill"
 msgstr "새 스킬"
 
 #: src/pages/shell/dialogs.tsx
+#: src/pages/shell/space-switcher.tsx
 msgid "New space"
 msgstr "새 스페이스"
 
@@ -4089,6 +4094,10 @@ msgstr ""
 #: src/pages/GroupPanel.tsx
 #: src/pages/shell/bot-picker.tsx
 msgid "No bots match"
+msgstr ""
+
+#: src/pages/shell/dialogs.tsx
+msgid "No bots yet."
 msgstr ""
 
 #: src/components/AskCard.tsx
@@ -5426,6 +5435,7 @@ msgstr ""
 
 #: src/pages/MemorySettingsOverlay.tsx
 #: src/pages/shell/bot-panel.tsx
+#: src/pages/shell/space-switcher.tsx
 msgid "Shared"
 msgstr "함께 사용"
 
@@ -5674,6 +5684,10 @@ msgstr ""
 msgid "Start {trialDays}-day free trial"
 msgstr "{trialDays}일 무료 체험 시작"
 
+#: src/pages/shell/dialogs.tsx
+msgid "Start from"
+msgstr ""
+
 #: src/components/teach/TeachComputerOverlay.tsx
 msgid "Start recording"
 msgstr "작업 녹화 시작"
@@ -5791,6 +5805,10 @@ msgstr ""
 msgid "Switch bot"
 msgstr ""
 
+#: src/pages/shell/space-switcher.tsx
+msgid "Switch space"
+msgstr ""
+
 #: src/pages/model-settings/space-bots-model.tsx
 msgid "Switching…"
 msgstr "전환 중…"
@@ -5903,6 +5921,10 @@ msgstr "화면 링크가 만료되었습니다."
 #: src/pages/MemorySettingsOverlay.tsx
 msgid "The selected memory provider is not available in this build."
 msgstr "선택한 기억 서비스는 현재 빌드에서 사용할 수 없습니다."
+
+#: src/pages/shell/dialogs.tsx
+msgid "The space was made, but its bots were not"
+msgstr ""
 
 #: src/pages/model-settings/space-bots-model.tsx
 msgid "Their own model is cleared. You can pick one again in each bot."
