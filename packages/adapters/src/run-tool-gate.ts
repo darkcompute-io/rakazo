@@ -21,6 +21,7 @@ import {
   planActionGate,
   redactSecrets,
   registryAlwaysAsks,
+  registryReadStaysInside,
   resolveActionApprovalForTools,
   toolRequiresApproval,
   toolRequiresExplicitApproval,
@@ -197,6 +198,11 @@ export async function gateToolCall(
     !unidentifiedAction &&
     approvalToolNames.every(
       (toolName) => !connectorToolRequiresApproval(toolName, declaredReadOnlyFor(toolName)),
+    ) &&
+    // AgentLoom: a declared read on a registry app only reaches the company's own server, so
+    // chosen arguments have nowhere to leak to, and a routine must not stop for one unattended.
+    !approvalToolNames.every((toolName) =>
+      registryReadStaysInside(toolName, declaredReadOnlyFor(toolName)),
     ) &&
     connectorReadRequiresApproval({
       tainted: await isRunTainted(ctx),

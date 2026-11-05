@@ -6,6 +6,7 @@ import {
   registryElsewhereNote,
   registryEntries,
   registryInfo,
+  registryReadStaysInside,
   registrySlug,
 } from "./agentloom-registry.js";
 
@@ -109,11 +110,24 @@ describe("registry teams", () => {
 
   it("names the apps only some spaces have, for a bot that lacks them", () => {
     const note = registryElsewhereNote(
-      JSON.stringify({ apps: [app({ name: "Fleet tools", teams: ["fleet"] }), app({ id: "mail" })], teams }),
+      JSON.stringify({
+        apps: [app({ name: "Fleet tools", teams: ["fleet"] }), app({ id: "mail" })],
+        teams,
+      }),
     );
     expect(note).toContain("Fleet tools only in the");
     expect(note).toContain("do not offer to add or reconnect");
     expect(registryElsewhereNote(JSON.stringify({ apps: [app({ id: "mail" })] }))).toBeUndefined();
+  });
+
+  it("lets only a declared read on a registry app skip the taint review", () => {
+    const entries = [app({ id: "fleet" })] as ReturnType<typeof registryEntries>;
+    const inside = (name: string, readOnly?: boolean) =>
+      registryReadStaysInside(name, readOnly, entries);
+    expect(inside("mcp__dc-fleet__node_status", true)).toBe(true);
+    expect(inside("mcp__dc-fleet__queue_action", false)).toBe(false);
+    expect(inside("mcp__dc-fleet__unknown")).toBe(false);
+    expect(inside("mcp__someone-else__read", true)).toBe(false);
   });
 
   it("drops a teams block it cannot trust whole", () => {

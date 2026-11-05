@@ -129,6 +129,16 @@ export function registryEntries(raw?: string): RegistryEntry[] {
   return (raw === undefined ? registryInfo() : registryInfo(raw)).entries;
 }
 
+/** A tool declared read-only on a registry app: its arguments reach only that company server. */
+export function registryReadStaysInside(
+  toolName: string,
+  readOnly: boolean | undefined,
+  entries: RegistryEntry[] = registryEntries(),
+): boolean {
+  if (readOnly !== true) return false;
+  return entries.some((entry) => toolName.startsWith(`mcp__${registrySlug(entry.id)}__`));
+}
+
 /** A call into an askWrites entry's tool that is not declared read-only. */
 export function registryAlwaysAsks(
   toolName: string,
