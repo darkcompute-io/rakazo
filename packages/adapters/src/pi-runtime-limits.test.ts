@@ -174,7 +174,7 @@ describe("clipToolResultContent", () => {
     expect(overflow.text.startsWith("b")).toBe(true);
     const textChars = clipped
       .filter((part) => part.type === "text")
-      .reduce((sum, part) => sum + part.text.replace(/…$/, "").length, 0);
+      .reduce((sum, part) => sum + part.text.replace(/…\n\[Cut at[\s\S]*$/, "").length, 0);
     expect(textChars).toBe(TOOL_RESULT_TEXT_LIMIT);
   });
 });
