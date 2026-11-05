@@ -34,6 +34,7 @@ type Props = {
   onLink?: (link: NavLink) => void;
   onArtifacts: () => void;
   onRoutines?: () => void;
+  onPeople?: () => void;
   onSettings: () => void;
   onUsage: () => void;
   onInvite?: () => void;
@@ -63,6 +64,7 @@ export function SidebarFooter({
   onLink,
   onArtifacts,
   onRoutines,
+  onPeople,
   onSettings,
   onUsage,
   onInvite,
@@ -171,6 +173,16 @@ export function SidebarFooter({
               <FolderOpen className="text-muted-foreground" strokeWidth={1.75} />
               <Trans>Artifacts</Trans>
             </Button>
+            {onPeople ? (
+              <Button
+                variant="ghost"
+                className="h-9 w-full justify-start gap-2.5 font-normal"
+                onClick={onPeople}
+              >
+                <FolderOpen className="text-muted-foreground" strokeWidth={1.75} />
+                <Trans>People</Trans>
+              </Button>
+            ) : null}
             {onRoutines ? (
               <Button
                 variant="ghost"

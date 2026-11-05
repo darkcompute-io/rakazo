@@ -482,6 +482,10 @@ msgstr "Account label"
 msgid "Account menu for {name}"
 msgstr "Account menu for {name}"
 
+#: src/pages/People.tsx
+msgid "Across spaces"
+msgstr "Across spaces"
+
 #. placeholder {0}: bot.name
 #. placeholder {0}: group.spaceName
 #. placeholder {0}: section.name
@@ -1108,6 +1112,7 @@ msgid "Both"
 msgstr "Both"
 
 #: src/pages/Artifacts.tsx
+#: src/pages/People.tsx
 #: src/pages/Routines.tsx
 msgid "Bots"
 msgstr "Bots"
@@ -3495,6 +3500,11 @@ msgstr "Leave {0}?"
 msgid "Leave space"
 msgstr "Leave space"
 
+#. placeholder {0}: person.name
+#: src/pages/People.tsx
+msgid "Let {0}'s bots reach their other spaces"
+msgstr "Let {0}'s bots reach their other spaces"
+
 #: src/components/ComputerDeviceSettings.tsx
 msgid "Let bots use this computer"
 msgstr "Let bots use this computer"
@@ -4303,6 +4313,10 @@ msgstr "OAuth connection failed"
 msgid "OAuth expired"
 msgstr "OAuth expired"
 
+#: src/pages/People.tsx
+msgid "Off in the registry, so this cannot be turned on"
+msgstr "Off in the registry, so this cannot be turned on"
+
 #: src/components/ComputerDeviceSettings.tsx
 msgid "Offline"
 msgstr "Offline"
@@ -4334,6 +4348,10 @@ msgstr "on day {day} at {time}"
 msgid "on the 1st at {0}"
 msgstr "on the 1st at {0}"
 
+#: src/pages/People.tsx
+msgid "On: this person's bots can ask bots in their other spaces, which do the work with their own apps and approvals. Off: each of their spaces stands alone."
+msgstr "On: this person's bots can ask bots in their other spaces, which do the work with their own apps and approvals. Off: each of their spaces stands alone."
+
 #: src/components/integrations/RegistrySection.tsx
 msgid "Once it is added it shows here for everyone."
 msgstr "Once it is added it shows here for everyone."
@@ -4345,6 +4363,10 @@ msgstr "One-time"
 #: src/components/ModelCredits.tsx
 msgid "One-time purchase. Credits do not expire."
 msgstr "One-time purchase. Credits do not expire."
+
+#: src/pages/People.tsx
+msgid "Only the owner can see this page."
+msgstr "Only the owner can see this page."
 
 #: src/components/markdown-link-prompt.tsx
 #: src/pages/PaymentWalletSettingsPanel.tsx
@@ -4547,9 +4569,18 @@ msgstr "Paused"
 msgid "Pending"
 msgstr "Pending"
 
+#: src/components/SidebarFooter.tsx
+#: src/pages/People.tsx
+msgid "People"
+msgstr "People"
+
 #: src/pages/shell/bot-panel.tsx
 msgid "Permissions"
 msgstr "Permissions"
+
+#: src/pages/People.tsx
+msgid "Person"
+msgstr "Person"
 
 #: src/pages/shell/agent-import.tsx
 msgid "Persona"
@@ -5696,6 +5727,7 @@ msgstr "Space"
 msgid "Space default"
 msgstr "Space default"
 
+#: src/pages/People.tsx
 #: src/pages/SettingsOverlay.tsx
 msgid "Spaces"
 msgstr "Spaces"
@@ -5931,6 +5963,10 @@ msgstr "Testing"
 #: src/pages/McpServersOverlay.tsx
 msgid "Testing…"
 msgstr "Testing…"
+
+#: src/pages/People.tsx
+msgid "That change did not save."
+msgstr "That change did not save."
 
 #: src/pages/shell/composer-error.tsx
 msgid "The bot can use the file but won't see the picture."

@@ -9,6 +9,7 @@ import {
   InputGroupInput,
   Sidebar,
 } from "@rakazo/ui-web";
+import { useQuery } from "@tanstack/react-query";
 import { Search, SlidersHorizontal } from "lucide-react";
 import type { ReactNode } from "react";
 import { useState } from "react";
@@ -18,6 +19,7 @@ import { SidebarFooter } from "../../components/SidebarFooter";
 import { useBilling } from "../../components/SubscriptionGate";
 import { formatBillingDate } from "../../lib/billing";
 import type { BotsSidebarDensity } from "../../lib/bots-sidebar-density-pref";
+import { useSpaceQueries } from "../../lib/query";
 import type { Panel } from "../../lib/right-panel-state";
 import { clearSpaceSelection } from "../../lib/rpc";
 import { useSignOut } from "../../lib/sign-out";
@@ -286,6 +288,13 @@ function ShellSidebarFooter({
   openIntegrations: () => void;
   openSkills: () => void;
 }) {
+  const peopleQueries = useSpaceQueries();
+  // AgentLoom: the People page is the owner's; the API refuses anyone else, so the menu follows it.
+  const canSeePeople = useQuery({
+    ...peopleQueries.people.list.queryOptions({}),
+    retry: false,
+    staleTime: 300_000,
+  }).isSuccess;
   const { t, i18n } = useLingui();
   const { status: billing, showPlans } = useBilling();
   const freeUntil =
@@ -358,6 +367,15 @@ function ShellSidebarFooter({
           closeMobileSidebar();
           navigate("/app/artifacts");
         }}
+        onPeople={
+          canSeePeople
+            ? () => {
+                setMenuOpen(false);
+                closeMobileSidebar();
+                navigate("/app/people");
+              }
+            : undefined
+        }
         onRoutines={() => {
           setMenuOpen(false);
           closeMobileSidebar();

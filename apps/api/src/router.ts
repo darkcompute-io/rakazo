@@ -45,11 +45,12 @@ import { mcpRoutes } from "./routes/mcp.js";
 import { memoryRoutes } from "./routes/memory.js";
 import { messagingRoutes } from "./routes/messaging.js";
 import { modelsRoutes } from "./routes/models.js";
-import { registryRoutes } from "./routes/registry.js";
-import { templatesRoutes } from "./routes/templates.js";
 import { paymentWalletRoutes } from "./routes/payment-wallet.js";
+import { peopleRoutes } from "./routes/people.js";
+import { registryRoutes } from "./routes/registry.js";
 import { routinesRoutes } from "./routes/routines.js";
 import { spacesRoutes } from "./routes/spaces.js";
+import { templatesRoutes } from "./routes/templates.js";
 import { threadsRoutes } from "./routes/threads.js";
 import type { VoiceDeps } from "./voice.js";
 
@@ -161,6 +162,7 @@ export function createRouter(deps: RouterDeps) {
     ...messagingRoutes(ctx),
     ...contentRoutes(ctx),
     ...registryRoutes(ctx),
+    ...peopleRoutes(ctx),
     ...templatesRoutes(ctx),
     ...paymentWalletRoutes(ctx),
   });

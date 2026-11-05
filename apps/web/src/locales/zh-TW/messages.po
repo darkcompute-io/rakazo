@@ -483,6 +483,10 @@ msgstr "帳號標籤"
 msgid "Account menu for {name}"
 msgstr "{name} 的帳號選單"
 
+#: src/pages/People.tsx
+msgid "Across spaces"
+msgstr ""
+
 #. placeholder {0}: bot.name
 #. placeholder {0}: group.spaceName
 #. placeholder {0}: section.name
@@ -1109,6 +1113,7 @@ msgid "Both"
 msgstr "兩者都有"
 
 #: src/pages/Artifacts.tsx
+#: src/pages/People.tsx
 #: src/pages/Routines.tsx
 msgid "Bots"
 msgstr "機器人"
@@ -3496,6 +3501,11 @@ msgstr ""
 msgid "Leave space"
 msgstr ""
 
+#. placeholder {0}: person.name
+#: src/pages/People.tsx
+msgid "Let {0}'s bots reach their other spaces"
+msgstr ""
+
 #: src/components/ComputerDeviceSettings.tsx
 msgid "Let bots use this computer"
 msgstr ""
@@ -4304,6 +4314,10 @@ msgstr "OAuth 連線失敗"
 msgid "OAuth expired"
 msgstr "OAuth 已過期"
 
+#: src/pages/People.tsx
+msgid "Off in the registry, so this cannot be turned on"
+msgstr ""
+
 #: src/components/ComputerDeviceSettings.tsx
 msgid "Offline"
 msgstr ""
@@ -4335,6 +4349,10 @@ msgstr "{day} 日 {time}"
 msgid "on the 1st at {0}"
 msgstr "每月 1 日 {0}"
 
+#: src/pages/People.tsx
+msgid "On: this person's bots can ask bots in their other spaces, which do the work with their own apps and approvals. Off: each of their spaces stands alone."
+msgstr ""
+
 #: src/components/integrations/RegistrySection.tsx
 msgid "Once it is added it shows here for everyone."
 msgstr ""
@@ -4346,6 +4364,10 @@ msgstr "一次性"
 #: src/components/ModelCredits.tsx
 msgid "One-time purchase. Credits do not expire."
 msgstr "單次購買，額度不會到期。"
+
+#: src/pages/People.tsx
+msgid "Only the owner can see this page."
+msgstr ""
 
 #: src/components/markdown-link-prompt.tsx
 #: src/pages/PaymentWalletSettingsPanel.tsx
@@ -4548,9 +4570,18 @@ msgstr "已暫停"
 msgid "Pending"
 msgstr "待處理"
 
+#: src/components/SidebarFooter.tsx
+#: src/pages/People.tsx
+msgid "People"
+msgstr ""
+
 #: src/pages/shell/bot-panel.tsx
 msgid "Permissions"
 msgstr "權限"
+
+#: src/pages/People.tsx
+msgid "Person"
+msgstr ""
 
 #: src/pages/shell/agent-import.tsx
 msgid "Persona"
@@ -5697,6 +5728,7 @@ msgstr "空間"
 msgid "Space default"
 msgstr "空間預設"
 
+#: src/pages/People.tsx
 #: src/pages/SettingsOverlay.tsx
 msgid "Spaces"
 msgstr "空間"
@@ -5932,6 +5964,10 @@ msgstr ""
 #: src/pages/McpServersOverlay.tsx
 msgid "Testing…"
 msgstr "正在測試…"
+
+#: src/pages/People.tsx
+msgid "That change did not save."
+msgstr ""
 
 #: src/pages/shell/composer-error.tsx
 msgid "The bot can use the file but won't see the picture."

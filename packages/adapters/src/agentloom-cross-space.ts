@@ -15,6 +15,17 @@ export function crossSpaceOn(email: string | null | undefined, raw?: string): bo
   return Boolean(email) && !off.has(String(email).toLowerCase());
 }
 
+/** The owner's per-person switch. Metadata that cannot be read counts as off: this is a wall. */
+export function switchedOff(metadata: string | null | undefined, userId: string): boolean {
+  try {
+    const meta = JSON.parse(metadata || "{}") as { agentloomCrossSpaceOff?: unknown };
+    const off = meta.agentloomCrossSpaceOff;
+    return Array.isArray(off) && off.includes(userId);
+  } catch {
+    return true;
+  }
+}
+
 export type CrossSpaceBot = {
   id: string;
   name: string;
@@ -36,6 +47,11 @@ export async function crossSpaceBots(
       select: { email: true },
     });
     if (!crossSpaceOn(user?.email)) return [];
+    const slug = registryInfo().teams?.org.slug;
+    const org = slug
+      ? await prisma.organization.findUnique({ where: { slug }, select: { metadata: true } })
+      : null;
+    if (switchedOff(org?.metadata, input.userId)) return [];
     const memberships = await prisma.spaceMember.findMany({
       where: { userId: input.userId, spaceId: { not: input.spaceId } },
       select: { spaceId: true, space: { select: { name: true } } },

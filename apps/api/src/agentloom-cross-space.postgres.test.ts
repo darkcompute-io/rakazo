@@ -3,6 +3,7 @@ import { messageBot } from "@rakazo/adapters";
 import type { PrismaClient } from "@rakazo/db";
 import { asSystem, createDb } from "@rakazo/db";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
+import { patchTeamMeta } from "./agentloom-teams.js";
 
 const describePostgres =
   process.env.VERIFY_DATABASE && process.env.DATABASE_URL ? describe.sequential : describe.skip;
@@ -143,6 +144,17 @@ describePostgres("a bot reaches the same person's other spaces (PostgreSQL)", ()
     expect(queued.userId).toBe(userId);
 
     expect(await ask(stranger.id)).toMatchObject({ ok: false });
+
+    // The owner's switch, and the sweep's stale write cannot put it back.
+    await patchTeamMeta(system, orgId, () => ({ agentloomCrossSpaceOff: [userId] }));
+    expect(await ask(watch.id)).toMatchObject({ ok: false });
+    await patchTeamMeta(system, orgId, () => ({ agentloomSeeded: ["fleet"] }));
+    const meta = JSON.parse(
+      (await system.organization.findUniqueOrThrow({ where: { id: orgId } })).metadata ?? "{}",
+    );
+    expect(meta).toMatchObject({ agentloomCrossSpaceOff: [userId], agentloomSeeded: ["fleet"] });
+    await patchTeamMeta(system, orgId, () => ({ agentloomCrossSpaceOff: [] }));
+    expect(await ask(watch.id)).toMatchObject({ ok: true });
 
     process.env.AGENTLOOM_REGISTRY = registry([email.toUpperCase()]);
     expect(await ask(watch.id)).toMatchObject({ ok: false });

@@ -51,6 +51,9 @@ const OnboardingPage = lazyComponent(() =>
 const WelcomePage = lazyComponent(() =>
   import("./pages/Welcome").then((module) => module.WelcomePage),
 );
+const PeoplePage = lazyComponent(() =>
+  import("./pages/People").then((module) => module.PeoplePage),
+);
 const RoutinesPage = lazyComponent(() =>
   import("./pages/Routines").then((module) => module.RoutinesPage),
 );
@@ -251,6 +254,7 @@ function SessionApp() {
                 <Route path="/app" element={<ShellPage />} />
                 <Route path="/app/g/:groupId" element={<ShellPage />} />
                 <Route path="/app/routines" element={<RoutinesPage />} />
+                <Route path="/app/people" element={<PeoplePage />} />
                 <Route path="/app/artifacts" element={<ArtifactsPage />} />
                 <Route path="/app/artifacts/:artifactId" element={<ArtifactsPage />} />
                 {ticketBoardEnabled ? <Route path="/app/board" element={<BoardPage />} /> : null}

@@ -1236,6 +1236,23 @@ export const appContract = {
       .output(z.object({ ok: z.literal(true) })),
   },
   // AgentLoom: what a new space can start from (packages/core agentloom-templates.ts).
+  people: {
+    list: oc.output(
+      z.array(
+        z.object({
+          userId: z.string(),
+          name: z.string(),
+          email: z.string(),
+          spaces: z.array(z.string()),
+          crossSpace: z.boolean(),
+          lockedOff: z.boolean(),
+        }),
+      ),
+    ),
+    setCrossSpace: oc
+      .input(z.object({ userId: z.string().min(1).max(200), enabled: z.boolean() }))
+      .output(z.object({ userId: z.string(), crossSpace: z.boolean() })),
+  },
   templates: {
     list: oc.output(
       z.array(

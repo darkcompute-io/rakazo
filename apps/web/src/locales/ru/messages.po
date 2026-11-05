@@ -482,6 +482,10 @@ msgstr "Ярлык аккаунта"
 msgid "Account menu for {name}"
 msgstr "Меню аккаунта {name}"
 
+#: src/pages/People.tsx
+msgid "Across spaces"
+msgstr ""
+
 #. placeholder {0}: bot.name
 #. placeholder {0}: group.spaceName
 #. placeholder {0}: section.name
@@ -1108,6 +1112,7 @@ msgid "Both"
 msgstr ""
 
 #: src/pages/Artifacts.tsx
+#: src/pages/People.tsx
 #: src/pages/Routines.tsx
 msgid "Bots"
 msgstr ""
@@ -3495,6 +3500,11 @@ msgstr ""
 msgid "Leave space"
 msgstr ""
 
+#. placeholder {0}: person.name
+#: src/pages/People.tsx
+msgid "Let {0}'s bots reach their other spaces"
+msgstr ""
+
 #: src/components/ComputerDeviceSettings.tsx
 msgid "Let bots use this computer"
 msgstr ""
@@ -4303,6 +4313,10 @@ msgstr "Соединение OAuth не удалось"
 msgid "OAuth expired"
 msgstr "Срок действия OAuth истек"
 
+#: src/pages/People.tsx
+msgid "Off in the registry, so this cannot be turned on"
+msgstr ""
+
 #: src/components/ComputerDeviceSettings.tsx
 msgid "Offline"
 msgstr ""
@@ -4334,6 +4348,10 @@ msgstr "{day}-го числа в {time}"
 msgid "on the 1st at {0}"
 msgstr "1-го числа в {0}"
 
+#: src/pages/People.tsx
+msgid "On: this person's bots can ask bots in their other spaces, which do the work with their own apps and approvals. Off: each of their spaces stands alone."
+msgstr ""
+
 #: src/components/integrations/RegistrySection.tsx
 msgid "Once it is added it shows here for everyone."
 msgstr ""
@@ -4344,6 +4362,10 @@ msgstr "Один раз"
 
 #: src/components/ModelCredits.tsx
 msgid "One-time purchase. Credits do not expire."
+msgstr ""
+
+#: src/pages/People.tsx
+msgid "Only the owner can see this page."
 msgstr ""
 
 #: src/components/markdown-link-prompt.tsx
@@ -4547,9 +4569,18 @@ msgstr "Приостановлено"
 msgid "Pending"
 msgstr ""
 
+#: src/components/SidebarFooter.tsx
+#: src/pages/People.tsx
+msgid "People"
+msgstr ""
+
 #: src/pages/shell/bot-panel.tsx
 msgid "Permissions"
 msgstr "Разрешения"
+
+#: src/pages/People.tsx
+msgid "Person"
+msgstr ""
 
 #: src/pages/shell/agent-import.tsx
 msgid "Persona"
@@ -5696,6 +5727,7 @@ msgstr "Пространство"
 msgid "Space default"
 msgstr "Пространство по умолчанию"
 
+#: src/pages/People.tsx
 #: src/pages/SettingsOverlay.tsx
 msgid "Spaces"
 msgstr "Пространства"
@@ -5931,6 +5963,10 @@ msgstr ""
 #: src/pages/McpServersOverlay.tsx
 msgid "Testing…"
 msgstr "Проверка…"
+
+#: src/pages/People.tsx
+msgid "That change did not save."
+msgstr ""
 
 #: src/pages/shell/composer-error.tsx
 msgid "The bot can use the file but won't see the picture."

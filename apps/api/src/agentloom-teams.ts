@@ -22,6 +22,29 @@ export type TeamMember = { userId: string; email: string; groups: string[] | nul
 
 type TeamMeta = { agentloomTeams?: Record<string, string> };
 
+/**
+ * Merge keys into the organization's metadata under a row lock, from what is there now. The sweep
+ * and the owner's switch both write here, so a stale copy must never put a switch back.
+ */
+export async function patchTeamMeta(
+  prisma: PrismaClient,
+  organizationId: string,
+  patch: (meta: Record<string, unknown>) => Record<string, unknown>,
+): Promise<void> {
+  await prisma.$transaction(async (tx) => {
+    await tx.$queryRaw`SELECT id FROM organization WHERE id = ${organizationId} FOR UPDATE`;
+    const row = await tx.organization.findUnique({
+      where: { id: organizationId },
+      select: { metadata: true },
+    });
+    const meta = readMeta(row?.metadata) as Record<string, unknown>;
+    await tx.organization.update({
+      where: { id: organizationId },
+      data: { metadata: JSON.stringify({ ...meta, ...patch(meta) }) },
+    });
+  });
+}
+
 function readMeta(raw: string | null | undefined): TeamMeta {
   try {
     const meta = raw ? (JSON.parse(raw) as unknown) : {};
@@ -136,10 +159,7 @@ export async function syncTeams(
       getLogger().info("teams: space made", { team: team.id, spaceId });
     }
     if (JSON.stringify(map) !== JSON.stringify(meta.agentloomTeams ?? {})) {
-      await prisma.organization.update({
-        where: { id: org.id },
-        data: { metadata: JSON.stringify({ ...meta, agentloomTeams: map }) },
-      });
+      await patchTeamMeta(prisma, org.id, () => ({ agentloomTeams: map }));
     }
 
     for (const person of members) {
@@ -275,17 +295,11 @@ export async function seedTeamSpaces(
   }
   if (changed) {
     await runAsSystem("teams: record seeded spaces", () =>
-      deps.prisma.organization.update({
-        where: { id: org.id },
-        data: {
-          metadata: JSON.stringify({
-            ...meta,
-            agentloomSeeded: [...seeded],
-            agentloomTemplateText: known,
-            agentloomGrouped: [...grouped],
-          }),
-        },
-      }),
+      patchTeamMeta(deps.prisma, org.id, () => ({
+        agentloomSeeded: [...seeded],
+        agentloomTemplateText: known,
+        agentloomGrouped: [...grouped],
+      })),
     );
   }
 }
