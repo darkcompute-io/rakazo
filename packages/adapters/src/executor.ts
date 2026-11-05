@@ -153,6 +153,7 @@ import {
   startNextWaitingRun,
   writeComputerRunRequeue,
 } from "./run-lifecycle.js";
+import { publishMessage } from "./run-messages.js";
 import {
   cloudflareRunFields,
   isTerminalModelSetupError,
@@ -208,7 +209,7 @@ import {
   recentThreadFilesInstruction,
 } from "./thread-artifacts.js";
 import { loadAgentTicketContext } from "./ticket-context.js";
-import { appendToolCompletionAudit } from "./tool-completion-audit.js";
+import { appendToolCompletionAudit, completionView } from "./tool-completion-audit.js";
 import { createWebProvider } from "./web-provider-factory.js";
 
 export function createRunExecutor(deps: ExecutorDeps) {
@@ -1674,6 +1675,18 @@ export function createRunExecutor(deps: ExecutorDeps) {
                   effects.restoredPending = undefined;
                 if (!completion.paused)
                   effects.pendingTurnCheckpoints.delete(completion.executionId);
+                // AgentLoom: images and links stay in the chat after the run; a live picture cannot.
+                const view = completionView(completion);
+                if (view && view.view !== "live") {
+                  void publishMessage(
+                    deps,
+                    run,
+                    "bot",
+                    [{ kind: "view", ...view }],
+                    undefined,
+                    `view:${completion.executionId}`,
+                  ).catch(() => undefined);
+                }
                 return appendToolCompletionAudit(
                   deps,
                   {

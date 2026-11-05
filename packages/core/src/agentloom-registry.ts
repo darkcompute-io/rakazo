@@ -21,6 +21,8 @@ export type RegistryEntry = {
   askWrites: boolean;
   /** Team spaces this app goes into, by team id; null = every space. */
   teams: string[] | null;
+  /** Other hosts this app's views may show, such as where it keeps its images. */
+  viewHosts: string[];
 };
 
 /** A space the instance keeps in step with an authentik group (CORP): who is in the
@@ -112,6 +114,9 @@ export function registryInfo(
         teams: Array.isArray(r.teams)
           ? r.teams.filter((t): t is string => typeof t === "string" && ID.test(t))
           : null,
+        viewHosts: Array.isArray(r.viewHosts)
+          ? r.viewHosts.filter((h): h is string => typeof h === "string" && /^[a-z0-9.-]+$/.test(h))
+          : [],
       },
     ];
   });

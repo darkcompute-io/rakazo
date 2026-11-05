@@ -92,7 +92,7 @@ CORP_SECRET = {"OIDC_CLIENT_ID", "OIDC_CLIENT_SECRET", "WATCH_DB_PASSWORD", "WAT
                "WATCH_OIDC_CLIENT_SECRET", "WATCH_COOKIE_SECRET",
                # the registry's authentik client (agentloom-mcp): a person's token for each app
                "AGENTLOOM_MCP_CLIENT_ID", "AGENTLOOM_MCP_CLIENT_SECRET"}
-REGISTRY_KEYS = {"id", "name", "description", "endpoint", "open", "icon", "askWrites", "teams"}
+REGISTRY_KEYS = {"id", "name", "description", "endpoint", "open", "icon", "askWrites", "teams", "viewHosts"}
 TEAM_KEYS = {"id", "name", "group", "default"}
 
 

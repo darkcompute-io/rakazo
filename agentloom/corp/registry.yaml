@@ -106,6 +106,7 @@ apps:
     name: Marketing
     endpoint: https://marketing.corp.darkcompute.io/api/mcp
     open: https://marketing.corp.darkcompute.io
+    viewHosts: [files.corp.darkcompute.io]
     description: "Scheduler, studio and library, per brand workspace."
   - id: viral
     name: Viral

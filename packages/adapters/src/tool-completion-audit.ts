@@ -58,6 +58,15 @@ export function toolCompletionFromResult(
   return { ...base, result, paused };
 }
 
+/** What this tool's answer asks the chat to show. Live rides the event; the rest is a message. */
+export function completionView(completion: AgentToolCompletion) {
+  const answer = completion.result as { content?: unknown; details?: unknown } | undefined;
+  return toolViewFrom(completion.name, [
+    ...(Array.isArray(answer?.content) ? answer.content : []),
+    { text: JSON.stringify(answer?.details ?? null) },
+  ]);
+}
+
 export function toolCompletionAuditPayload(
   completion: AgentToolCompletion,
   secrets: string[] = [],
@@ -77,12 +86,8 @@ export function toolCompletionAuditPayload(
     payload.error = sanitizeConnectorError(error, secrets);
   }
   // AgentLoom: before the check below, because a connector's answer is not an auditable result.
-  const answer = completion.result as { content?: unknown; details?: unknown } | undefined;
-  const view = toolViewFrom(completion.name, [
-    ...(Array.isArray(answer?.content) ? answer.content : []),
-    { text: JSON.stringify(answer?.details ?? null) },
-  ]);
-  if (view) payload.view = view;
+  const view = completionView(completion);
+  if (view?.view === "live") payload.view = view;
   if (!isAuditableToolResult(completion.result)) return payload;
 
   payload.contentTypes = completion.result.content.flatMap((part) => {

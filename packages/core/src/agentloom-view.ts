@@ -24,6 +24,7 @@ function hostsOf(entries: RegistryEntry[]): Set<string> {
         // A registry entry that does not parse grants nothing.
       }
     }
+    for (const host of entry.viewHosts ?? []) hosts.add(host);
   }
   return hosts;
 }

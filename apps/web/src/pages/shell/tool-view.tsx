@@ -26,7 +26,8 @@ const origin = (url: string) => new URL(url).origin;
 function LiveView({ block }: { block: ViewBlock }) {
   const [ended, setEnded] = useState(false);
   // A browser feeds one picture stream to one element, so each mount asks for its own.
-  const [src] = useState(() => `${block.url}?v=${Math.random().toString(36).slice(2)}`);
+  const [attempt, setAttempt] = useState(() => Math.random().toString(36).slice(2));
+  const src = `${block.url}?v=${attempt}`;
   if (!block.url) return null;
   return (
     <div data-testid="tool-view-live" className="w-full max-w-sm rounded-2xl border bg-card p-3">
@@ -36,6 +37,16 @@ function LiveView({ block }: { block: ViewBlock }) {
       {ended ? (
         <p className="py-6 text-center text-sm text-muted-foreground">
           <Trans>This view has ended, or the app needs you to sign in.</Trans>
+          <button
+            type="button"
+            className="ms-2 underline underline-offset-2"
+            onClick={() => {
+              setAttempt(Math.random().toString(36).slice(2));
+              setEnded(false);
+            }}
+          >
+            <Trans>Retry</Trans>
+          </button>
         </p>
       ) : (
         <img
