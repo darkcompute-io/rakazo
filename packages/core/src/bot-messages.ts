@@ -151,6 +151,8 @@ export function renderGroupMembersContext(
     ...formatBotRosterLines(members),
     "</group_members>",
     "Post in this shared thread. When another teammate is genuinely needed for a distinct next stage, use handoff_to_bot instead of telling the user to switch chats.",
+    // AgentLoom: measured - a bot wrote "Planner, it's ready" and the chain stopped there.
+    "Naming a teammate in your reply does not wake them. If the person's request still has a stage for another member, call handoff_to_bot for it after posting your result, even if that member handed you your stage.",
     "A handoff transfers ownership. Complete a stage handed to you yourself, then post its result here. Do not hand it back merely to report or ask the previous bot to do the same work. Never bounce a stage between members. One bot owns each stage.",
   ].join("\n");
 }
