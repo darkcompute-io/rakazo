@@ -3,11 +3,13 @@ import { setTimeout as sleep } from "node:timers/promises";
 import type { JobPublisher, JobWorkerHost } from "@rakazo/adapter-kit";
 import { ComposioConnector, IntegrationProviderSettings } from "@rakazo/adapters";
 import { phoneCallSettings } from "@rakazo/core";
+import { installNameCache } from "@rakazo/core/node/agentloom-dns-cache";
 import { loadRootEnv } from "@rakazo/core/node/load-root-env";
 import { startWorkerHealth } from "./health.js";
 import { createWorkerSecretStore } from "./secret-store.js";
 
 loadRootEnv();
+installNameCache();
 
 import {
   ChatSdkMessagingSurface,

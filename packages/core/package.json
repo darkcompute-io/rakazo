@@ -24,6 +24,11 @@
       "development": "./src/screen-reconnect.ts",
       "default": "./src/screen-reconnect.ts"
     },
+    "./node/agentloom-dns-cache": {
+      "types": "./src/node/agentloom-dns-cache.ts",
+      "development": "./src/node/agentloom-dns-cache.ts",
+      "default": "./src/node/agentloom-dns-cache.ts"
+    },
     "./node/load-root-env": {
       "types": "./src/node/load-root-env.ts",
       "development": "./src/node/load-root-env.ts",

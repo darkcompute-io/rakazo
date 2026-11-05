@@ -1,7 +1,9 @@
 import type { Socket } from "node:net";
+import { installNameCache } from "@rakazo/core/node/agentloom-dns-cache";
 import { loadRootEnv } from "@rakazo/core/node/load-root-env";
 
 loadRootEnv();
+installNameCache();
 
 import { serve } from "@hono/node-server";
 import { SERVICE_NAMES } from "@rakazo/logging";

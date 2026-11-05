@@ -226,8 +226,12 @@ export async function gateToolCall(
     requiresUnattendedApproval ||
     siteGate === "new" ||
     unidentifiedAction ||
-    approvalToolNames.some((toolName) =>
-      toolRequiresApproval(toolName, viaConnector, declaredReadOnlyFor(toolName)),
+    approvalToolNames.some(
+      (toolName) =>
+        // AgentLoom: names like node_status fail the read pattern; the registry's own declaration
+        // is believed, because those servers are ours.
+        !registryReadStaysInside(toolName, declaredReadOnlyFor(toolName)) &&
+        toolRequiresApproval(toolName, viaConnector, declaredReadOnlyFor(toolName)),
     );
   // A gated read still fails closed when its review errors, and keeps its approval key.
   const gated = requiresApprovalByDefault || connectorReadGated;
