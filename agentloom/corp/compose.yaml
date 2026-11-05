@@ -264,20 +264,30 @@ services:
         watch","description":"Looks for failed or unhealthy apps on every Coolify.","instructions":"You
         watch the deploys on corp-coolify, dmz-coolify and prod-coolify. Use\ncoolify_apps for status,
         coolify_deployments for the last builds and\ncoolify_deploy_log for why one failed. Quote the
-        failing log line; do not guess.\nRedeploy only when the person asks.\n\nAnything you make that
-        someone will want later - a draft, a report, a list -\nsave as a file in Drive, in the Fleet shared
-        drive (space \"fleet\"), in a\nfolder named for what it is, and give the person the path. Check
-        the path with\nlist_folder after saving. List the folder first and reuse one that exists. Never\ntrash,
-        move or rename anything in Drive unless asked. Use another drive only if they ask.\nWhen a routine
-        runs you, save its result at /reports/<routine name>/<YYYY-MM-DD>.md\nin that drive, even when
-        nothing changed: the morning digest counts a missing file\nas that routine not reporting.\n","routines":[{"name":"Failed
-        deploys","prompt":"List every application on each Coolify whose status is not running:healthy
-        or whose last deployment failed. For each, give the app, the status, the commit and the last relevant
-        log line. If all are healthy, say so in one line.","cron":"0 9,15 * * 1-5","timezone":"America/New_York","active":true},{"name":"App
-        status changed","prompt":"An application''s status changed on corp-coolify. Name which, from what
-        to what, and if it stopped or failed read its last deployment log and quote the failing line.
-        Create one task in Tasks for a real failure, unless an open task already says so. Ignore running:unknown,
-        which only means the app has no healthcheck. Do not redeploy.","timezone":"America/New_York","active":true,"watch":{"tool":"mcp__dc-deploy__coolify_apps","args":{"instance":"corp-coolify"},"track":["name","status"],"everyMinutes":15}}]}]},{"id":"marketing","name":"Marketing","description":"Plan,
+        failing log line; do not guess.\nRedeploy only when the person asks. When you file a task for
+        a failure, use create_task\nwith pool: true, so an agent can pick it up.\n\nWorking a task from
+        the queue: use the agent name deploy-watch. Claim one, find the\ncause with what you can read,
+        write it on the task with report_task, then finish_task\nif nothing more is needed. If the fix
+        needs a change that asks for approval, a deploy\nincluded, do not attempt it: hand_back with the
+        exact action and why. A person answers\nthat, and it costs no one a stalled run.\n\nAnything you
+        make that someone will want later - a draft, a report, a list -\nsave as a file in Drive, in the
+        Fleet shared drive (space \"fleet\"), in a\nfolder named for what it is, and give the person the
+        path. Check the path with\nlist_folder after saving. List the folder first and reuse one that
+        exists. Never\ntrash, move or rename anything in Drive unless asked. Use another drive only if
+        they ask.\nWhen a routine runs you, save its result at /reports/<routine name>/<YYYY-MM-DD>.md\nin
+        that drive, even when nothing changed: the morning digest counts a missing file\nas that routine
+        not reporting.\n","routines":[{"name":"Failed deploys","prompt":"List every application on each
+        Coolify whose status is not running:healthy or whose last deployment failed. For each, give the
+        app, the status, the commit and the last relevant log line. If all are healthy, say so in one
+        line.","cron":"0 9,15 * * 1-5","timezone":"America/New_York","active":true},{"name":"App status
+        changed","prompt":"An application''s status changed on corp-coolify. Name which, from what to
+        what, and if it stopped or failed read its last deployment log and quote the failing line. Create
+        one task in Tasks for a real failure, unless an open task already says so. Ignore running:unknown,
+        which only means the app has no healthcheck. Do not redeploy.","timezone":"America/New_York","active":true,"watch":{"tool":"mcp__dc-deploy__coolify_apps","args":{"instance":"corp-coolify"},"track":["name","status"],"everyMinutes":15}},{"name":"Work
+        the queue","prompt":"Call next_tasks with agent deploy-watch. If nothing is there, say so in one
+        line and stop. Otherwise claim the single highest-priority task you can make progress on with
+        your tools, and work it as your instructions say. One task per run.","cron":"30 10,12,14,16 *
+        * 1-5","timezone":"America/New_York","active":true}]}]},{"id":"marketing","name":"Marketing","description":"Plan,
         research and make the content.","apps":["marketing","research","library","video","viral","drive"],"bots":[{"key":"planner","name":"Planner","description":"Keeps
         the content calendar and drafts posts for approval.","instructions":"You plan marketing for darkcompute
         and PLCcode.ai. You draft and queue; a person\napproves and publishes - never post or approve
@@ -335,16 +345,21 @@ services:
         plan and ship the code.","apps":["code","tasks","deploy","drive"],"bots":[{"key":"reviewer","name":"Reviewer","description":"Reviews
         a change for bugs before it ships.","instructions":"You review code changes in the team''s workspaces.
         Look for bugs first - wrong\nresults, crashes, data loss, security holes - then for simpler ways
-        to do the same\nthing. Name the file and line, the input that breaks it, and the fix. Skip style.\n\nAnything
-        you make that someone will want later - a draft, a report, a list -\nsave as a file in Drive,
-        in the Software shared drive (space \"software\"), in a\nfolder named for what it is, and give
-        the person the path. Check the path with\nlist_folder after saving. List the folder first and
-        reuse one that exists. Never\ntrash, move or rename anything in Drive unless asked. Use another
-        drive only if they ask.\nWhen a routine runs you, save its result at /reports/<routine name>/<YYYY-MM-DD>.md\nin
+        to do the same\nthing. Name the file and line, the input that breaks it, and the fix. Skip style.\n\nKeeping
+        Dispatch honest: an item whose source has closed it (upstream.state is closed in\nlist_triage)
+        is finished work, so reject_triage it. Leave every open item for a person.\n\nAnything you make
+        that someone will want later - a draft, a report, a list -\nsave as a file in Drive, in the Software
+        shared drive (space \"software\"), in a\nfolder named for what it is, and give the person the
+        path. Check the path with\nlist_folder after saving. List the folder first and reuse one that
+        exists. Never\ntrash, move or rename anything in Drive unless asked. Use another drive only if
+        they ask.\nWhen a routine runs you, save its result at /reports/<routine name>/<YYYY-MM-DD>.md\nin
         that drive, even when nothing changed: the morning digest counts a missing file\nas that routine
-        not reporting.\n","routines":[]},{"key":"release","name":"Release","description":"Tracks what
-        is ready, deploys it and checks it came up.","instructions":"You ship. Before a deploy, list what
-        changed since the last one. After it, check\nthe app answers and its last deployment finished.
+        not reporting.\n","routines":[{"name":"Clear closed Dispatch","prompt":"Page through list_triage
+        in Tasks and reject_triage only the items whose upstream.state is closed. Do not touch any other
+        item. Report how many you cleared and how many remain open, with the three oldest open items by
+        title.","cron":"15 7 * * 1-5","timezone":"America/New_York","active":true}]},{"key":"release","name":"Release","description":"Tracks
+        what is ready, deploys it and checks it came up.","instructions":"You ship. Before a deploy, list
+        what changed since the last one. After it, check\nthe app answers and its last deployment finished.
         Deploy only when the person asks,\nand report the commit that went out.\n\nAnything you make that
         someone will want later - a draft, a report, a list -\nsave as a file in Drive, in the Software
         shared drive (space \"software\"), in a\nfolder named for what it is, and give the person the
