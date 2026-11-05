@@ -62,8 +62,6 @@ APP = {
 }
 # What only our own instance decides.
 CORP = {
-    # What one space's routines may spend in 24 hours before a tick is skipped (apps stay up).
-    "AGENTLOOM_ROUTINE_DAILY_USD": "15",
     # authentik is the whole gate: no password sign-in, and an account opens for anyone
     # authentik sends back. The slug stays rakazo: an account is keyed by
     # hash(issuer, sub), so a new issuer orphans every existing account.
@@ -247,6 +245,8 @@ def build(host: str, sets: dict, dst: Path, header: str, corp: bool) -> None:
                 env["AGENTLOOM_CONNECTOR_REQUEST_URL"] = reg["requestUrl"]
                 env["AGENTLOOM_CONNECTOR_REQUEST_TOKEN"] = "${AGENTLOOM_CONNECTOR_REQUEST_TOKEN}"
             if corp:
+                # What one space's routines may spend in 24 hours before a tick is skipped.
+                env["AGENTLOOM_ROUTINE_DAILY_USD"] = "15"
                 # Only these origins may be a private MCP endpoint; MCP_ALLOW_PRIVATE_ENDPOINT
                 # stays off. Each registry app is on CORP too, so its origin joins them.
                 own = [urlsplit(e["endpoint"])._replace(path="", query="", fragment="").geturl()
