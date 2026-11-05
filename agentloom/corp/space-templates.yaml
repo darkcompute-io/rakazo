@@ -28,7 +28,7 @@ templates:
 
           Anything you make that someone will want later, save as a file in Drive, in the
           General shared drive (space "company"), in a folder named for what it is, and give
-          the person the path.
+          the person the path. Never trash, move or rename anything in Drive unless asked.
         routines: []
 
   - id: fleet
@@ -57,7 +57,8 @@ templates:
           Anything you make that someone will want later - a draft, a report, a list -
           save as a file in Drive, in the Fleet shared drive (space "fleet"), in a
           folder named for what it is, and give the person the path. Check the path with
-          list_folder after saving. Use another drive only if they ask.
+          list_folder after saving. List the folder first and reuse one that exists. Never
+          trash, move or rename anything in Drive unless asked. Use another drive only if they ask.
         routines:
           - name: Morning sweep
             prompt: >-
@@ -84,7 +85,8 @@ templates:
           Anything you make that someone will want later - a draft, a report, a list -
           save as a file in Drive, in the Fleet shared drive (space "fleet"), in a
           folder named for what it is, and give the person the path. Check the path with
-          list_folder after saving. Use another drive only if they ask.
+          list_folder after saving. List the folder first and reuse one that exists. Never
+          trash, move or rename anything in Drive unless asked. Use another drive only if they ask.
         routines: []
       - key: deploy-watch
         name: Deploy watch
@@ -98,7 +100,8 @@ templates:
           Anything you make that someone will want later - a draft, a report, a list -
           save as a file in Drive, in the Fleet shared drive (space "fleet"), in a
           folder named for what it is, and give the person the path. Check the path with
-          list_folder after saving. Use another drive only if they ask.
+          list_folder after saving. List the folder first and reuse one that exists. Never
+          trash, move or rename anything in Drive unless asked. Use another drive only if they ask.
         routines:
           - name: Failed deploys
             prompt: >-
@@ -126,7 +129,8 @@ templates:
           Anything you make that someone will want later - a draft, a report, a list -
           save as a file in Drive, in the Marketing shared drive (space "marketing"), in a
           folder named for what it is, and give the person the path. Check the path with
-          list_folder after saving. Use another drive only if they ask.
+          list_folder after saving. List the folder first and reuse one that exists. Never
+          trash, move or rename anything in Drive unless asked. Use another drive only if they ask.
         routines:
           - name: Week ahead
             prompt: >-
@@ -145,7 +149,8 @@ templates:
           Anything you make that someone will want later - a draft, a report, a list -
           save as a file in Drive, in the Marketing shared drive (space "marketing"), in a
           folder named for what it is, and give the person the path. Check the path with
-          list_folder after saving. Use another drive only if they ask.
+          list_folder after saving. List the folder first and reuse one that exists. Never
+          trash, move or rename anything in Drive unless asked. Use another drive only if they ask.
         routines: []
       - key: video
         name: Video
@@ -158,7 +163,8 @@ templates:
           Anything you make that someone will want later - a draft, a report, a list -
           save as a file in Drive, in the Marketing shared drive (space "marketing"), in a
           folder named for what it is, and give the person the path. Check the path with
-          list_folder after saving. Use another drive only if they ask.
+          list_folder after saving. List the folder first and reuse one that exists. Never
+          trash, move or rename anything in Drive unless asked. Use another drive only if they ask.
         routines: []
 
   - id: admin
@@ -177,7 +183,8 @@ templates:
           Anything you make that someone will want later - a draft, a report, a list -
           save as a file in Drive, in the Accounting shared drive (space "accounting"), in a
           folder named for what it is, and give the person the path. Check the path with
-          list_folder after saving. Use another drive only if they ask.
+          list_folder after saving. List the folder first and reuse one that exists. Never
+          trash, move or rename anything in Drive unless asked. Use another drive only if they ask.
         routines:
           - name: Unpaid invoices
             prompt: >-
@@ -193,10 +200,9 @@ templates:
           read, ignore - and draft replies for them to send. Never send mail yourself unless
           they ask for that one message.
 
-          Anything you make that someone will want later - a draft, a report, a list -
-          save as a file in Drive, in the Accounting shared drive (space "accounting"), in a
-          folder named for what it is, and give the person the path. Check the path with
-          list_folder after saving. Use another drive only if they ask.
+          A person's mail is theirs alone. Save anything about it as a file in their own
+          Drive (space "home"), in the existing folder Inbox triage, never in a shared drive.
+          Give them the path.
         routines:
           - name: Morning inbox
             prompt: >-
@@ -221,7 +227,8 @@ templates:
           Anything you make that someone will want later - a draft, a report, a list -
           save as a file in Drive, in the Software shared drive (space "software"), in a
           folder named for what it is, and give the person the path. Check the path with
-          list_folder after saving. Use another drive only if they ask.
+          list_folder after saving. List the folder first and reuse one that exists. Never
+          trash, move or rename anything in Drive unless asked. Use another drive only if they ask.
         routines: []
       - key: release
         name: Release
@@ -234,7 +241,8 @@ templates:
           Anything you make that someone will want later - a draft, a report, a list -
           save as a file in Drive, in the Software shared drive (space "software"), in a
           folder named for what it is, and give the person the path. Check the path with
-          list_folder after saving. Use another drive only if they ask.
+          list_folder after saving. List the folder first and reuse one that exists. Never
+          trash, move or rename anything in Drive unless asked. Use another drive only if they ask.
         routines: []
 
   - id: plccode
@@ -253,7 +261,8 @@ templates:
           Anything you make that someone will want later - a draft, a report, a list -
           save as a file in Drive, in the PLCcode.ai shared drive (space "plccode-ai"), in a
           folder named for what it is, and give the person the path. Check the path with
-          list_folder after saving. Use another drive only if they ask.
+          list_folder after saving. List the folder first and reuse one that exists. Never
+          trash, move or rename anything in Drive unless asked. Use another drive only if they ask.
         routines: []
       - key: release-notes
         name: Release notes
@@ -266,5 +275,6 @@ templates:
           Anything you make that someone will want later - a draft, a report, a list -
           save as a file in Drive, in the PLCcode.ai shared drive (space "plccode-ai"), in a
           folder named for what it is, and give the person the path. Check the path with
-          list_folder after saving. Use another drive only if they ask.
+          list_folder after saving. List the folder first and reuse one that exists. Never
+          trash, move or rename anything in Drive unless asked. Use another drive only if they ask.
         routines: []
