@@ -177,6 +177,8 @@ function replyBlockText(block: MessageBlock): string {
     case "import_setup":
       if (block.undone) return "";
       return block.items.map((item) => ("name" in item ? item.name : item.title)).join(", ");
+    case "view":
+      return block.title;
     case "image":
     case "file":
       return block.name || blocksToAgentHistoryText([block]);

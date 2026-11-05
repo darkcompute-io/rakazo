@@ -4342,6 +4342,7 @@ msgstr "One-time purchase. Credits do not expire."
 #: src/pages/shell/computer-panel.tsx
 #: src/pages/shell/import-setup-card.tsx
 #: src/pages/shell/message-view.tsx
+#: src/pages/shell/tool-view.tsx
 msgid "Open"
 msgstr "Open"
 
@@ -4390,6 +4391,10 @@ msgstr "Open navigation"
 #: src/pages/Invite.tsx
 msgid "Open Rakazo"
 msgstr "Open Rakazo"
+
+#: src/pages/shell/tool-view.tsx
+msgid "Open the app"
+msgstr "Open the app"
 
 #: src/pages/ScratchpadSection.tsx
 msgid "Open work"
@@ -6123,6 +6128,10 @@ msgstr "This server is already connected. Disconnect it first to authorize again
 #: src/pages/model-settings/connection-controls.tsx
 msgid "This subscription sign-in is not available in Rakazo yet. Use a deployment credential or choose another provider."
 msgstr "This subscription sign-in is not available in Rakazo yet. Use a deployment credential or choose another provider."
+
+#: src/pages/shell/tool-view.tsx
+msgid "This view has ended, or the app needs you to sign in."
+msgstr "This view has ended, or the app needs you to sign in."
 
 #: src/pages/Artifacts.tsx
 msgid "This week"

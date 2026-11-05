@@ -1,5 +1,5 @@
 import type { AgentToolCompletion } from "@rakazo/adapter-kit";
-import { redactSecrets } from "@rakazo/core";
+import { redactSecrets, toolViewFrom } from "@rakazo/core";
 import type { ThreadEvents } from "@rakazo/db";
 import { RunHistoryWriteError } from "@rakazo/db";
 import { getLogger } from "@rakazo/logging";
@@ -83,6 +83,8 @@ export function toolCompletionAuditPayload(
     const type = (part as { type?: unknown }).type;
     return type === "text" || type === "image" ? [type] : [];
   });
+  const view = toolViewFrom(completion.name, completion.result.content);
+  if (view) payload.view = view;
   const details = completion.result.details;
   if (!details || typeof details !== "object" || Array.isArray(details)) {
     return payload;

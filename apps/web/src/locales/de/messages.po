@@ -4342,6 +4342,7 @@ msgstr ""
 #: src/pages/shell/computer-panel.tsx
 #: src/pages/shell/import-setup-card.tsx
 #: src/pages/shell/message-view.tsx
+#: src/pages/shell/tool-view.tsx
 msgid "Open"
 msgstr "Öffnen"
 
@@ -4389,6 +4390,10 @@ msgstr "Navigation öffnen"
 
 #: src/pages/Invite.tsx
 msgid "Open Rakazo"
+msgstr ""
+
+#: src/pages/shell/tool-view.tsx
+msgid "Open the app"
 msgstr ""
 
 #: src/pages/ScratchpadSection.tsx
@@ -6123,6 +6128,10 @@ msgstr "Dieser Server ist bereits verbunden. Trenne zuerst die Verbindung, um ih
 #: src/pages/model-settings/connection-controls.tsx
 msgid "This subscription sign-in is not available in Rakazo yet. Use a deployment credential or choose another provider."
 msgstr "Diese Abonnementanmeldung ist in Rakazo noch nicht verfügbar. Verwende Zugangsdaten der Bereitstellung oder wähle einen anderen Anbieter."
+
+#: src/pages/shell/tool-view.tsx
+msgid "This view has ended, or the app needs you to sign in."
+msgstr ""
 
 #: src/pages/Artifacts.tsx
 msgid "This week"

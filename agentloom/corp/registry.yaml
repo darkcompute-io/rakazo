@@ -67,6 +67,11 @@ apps:
     endpoint: https://drive.corp.darkcompute.io/api/mcp
     open: https://drive.corp.darkcompute.io
     description: "Files and folders, shared by space."
+  - id: phone
+    name: Phones
+    endpoint: https://phones.corp.darkcompute.io/api/mcp
+    open: https://phones.corp.darkcompute.io
+    description: "iPhones and Androids in the browser, to test our apps on, while you watch."
   - id: library
     name: Library
     endpoint: https://library.corp.darkcompute.io/api/mcp

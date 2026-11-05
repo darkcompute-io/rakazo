@@ -8,7 +8,7 @@ import type {
   ThreadMessagePage,
   ThreadSnapshot,
 } from "@rakazo/contracts";
-import { RUN_TRIGGERS } from "@rakazo/contracts";
+import { MessageBlock, RUN_TRIGGERS } from "@rakazo/contracts";
 import {
   isActive,
   isBackgroundRunTrigger,
@@ -509,7 +509,23 @@ export function reduceThreadSnapshot(
     return { ...prev, cursor: event.seq, messages: [...remaining, next] };
   }
   if (event.type === "agent.tool.completed") {
-    return { ...prev, cursor: event.seq };
+    // AgentLoom: an app asked to show something while this run works; it appears as a message.
+    const payload = event.payload as { executionId?: string; view?: Record<string, unknown> };
+    const parsed = payload.view ? MessageBlock.safeParse({ kind: "view", ...payload.view }) : null;
+    if (!parsed?.success) return { ...prev, cursor: event.seq };
+    const id = `view:${payload.executionId ?? event.seq}`;
+    if (prev.messages.some((message) => message.id === id)) return { ...prev, cursor: event.seq };
+    const next: ThreadMessage = {
+      id,
+      threadId: event.threadId,
+      seq: event.seq,
+      role: "bot",
+      blocks: [parsed.data],
+      botId: event.botId,
+      runId: event.runId,
+      createdAt: event.createdAt,
+    };
+    return { ...prev, cursor: event.seq, messages: [...prev.messages, next] };
   }
   if (event.type === "thread.subagent") {
     const block = subagentBlockFromPayload(event.payload);

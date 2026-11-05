@@ -49,6 +49,7 @@ import {
   McpApprovalCard,
 } from "./message-cards";
 import { MessageHoverActions } from "./message-hover-actions";
+import { ToolView } from "./tool-view";
 
 export const MessageView = memo(function MessageView({
   artifactTarget,
@@ -467,6 +468,13 @@ export const MessageView = memo(function MessageView({
             return (
               <div key={i} className="flex justify-start">
                 <McpApprovalCard botId={botId} threadId={message.threadId} block={block} />
+              </div>
+            );
+          }
+          if (block.kind === "view") {
+            return (
+              <div key={i} className="flex justify-start">
+                <ToolView block={block} />
               </div>
             );
           }

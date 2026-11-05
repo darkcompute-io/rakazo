@@ -278,6 +278,14 @@ export const MessageBlock = z.discriminatedUnion("kind", [
     undone: z.boolean().optional(),
   }),
   z.object({
+    /** AgentLoom: what a registry app asked the chat to show (core agentloom-view.ts). */
+    kind: z.literal("view"),
+    view: z.enum(["live", "media", "page"]),
+    title: z.string(),
+    url: z.string().optional(),
+    images: z.array(z.object({ url: z.string(), caption: z.string() })).optional(),
+  }),
+  z.object({
     kind: z.literal("image"),
     /** Explicit visual input requested by a confirmation-aware client. */
     imageHandling: z.literal("confirm").optional(),
