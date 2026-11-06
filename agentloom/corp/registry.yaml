@@ -272,13 +272,13 @@ apps:
     description: "Model endpoints, pools, keys and runs."
   - id: gpu
     name: GPU lab
-    endpoint: https://inference.corp.darkcompute.io/api/lab/mcp
-    open: https://inference.corp.darkcompute.io/lab
+    endpoint: https://inference-apps.corp.darkcompute.io/api/lab/mcp
+    open: https://inference-apps.corp.darkcompute.io/lab
     description: "GPU test runs - the card, the setup and the result - and the Hugging Face catalog."
   - id: training
     name: Training
-    endpoint: https://inference.corp.darkcompute.io/api/training/mcp
-    open: https://inference.corp.darkcompute.io/lab/training
+    endpoint: https://inference-apps.corp.darkcompute.io/api/training/mcp
+    open: https://inference-apps.corp.darkcompute.io/lab/training
     description: "Train and evaluate models."
   - id: flows
     name: Flows
