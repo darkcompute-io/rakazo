@@ -249,6 +249,10 @@ def build(host: str, sets: dict, dst: Path, header: str, corp: bool) -> None:
             if name == "api" and reg["requestUrl"]:
                 env["AGENTLOOM_CONNECTOR_REQUEST_URL"] = reg["requestUrl"]
                 env["AGENTLOOM_CONNECTOR_REQUEST_TOKEN"] = "${AGENTLOOM_CONNECTOR_REQUEST_TOKEN}"
+            if corp and reg["requestUrl"]:
+                # A routine that fails in a team space files itself here, from the worker.
+                env["AGENTLOOM_CONNECTOR_REQUEST_URL"] = reg["requestUrl"]
+                env["AGENTLOOM_CONNECTOR_REQUEST_TOKEN"] = "${AGENTLOOM_CONNECTOR_REQUEST_TOKEN}"
             if corp:
                 # What one space's routines may spend in 24 hours before a tick is skipped.
                 env["AGENTLOOM_ROUTINE_DAILY_USD"] = "15"

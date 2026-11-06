@@ -21,6 +21,7 @@ import { routineRunModelPin } from "./model-selection.js";
 import { findPendingRoutineTick, routineTimerNonce } from "./routine-coalescing.js";
 import { tickRoutineWatch } from "./routine-watch.js";
 import { isUniqueViolation } from "./run-messages.js";
+import { fileRoutineFailure } from "./agentloom-routine-failure.js";
 import { notifyRun } from "./run-notifications.js";
 import { listAgentSkillRecords } from "./skill-tools.js";
 
@@ -92,13 +93,18 @@ export async function scheduleRoutineRetry(
 
 async function notifyFailedRoutineRun(
   deps: ExecutorDeps,
-  failed: Parameters<typeof notifyRun>[1] & { error: string | null },
+  failed: Parameters<typeof notifyRun>[1] & {
+    error: string | null;
+    routineId: string | null;
+    spaceId: string;
+  },
   options: { retryOnFailure?: boolean } = {},
 ) {
   const bot = await deps.prisma.bot.findUniqueOrThrow({
     where: { id: failed.botId },
     select: { name: true },
   });
+  await fileRoutineFailure(deps.prisma, failed, displayName(bot.name, "Bot"));
   await notifyRun(
     deps,
     failed,
