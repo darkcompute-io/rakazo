@@ -198,6 +198,19 @@ export function registryAlwaysAsks(
 }
 
 /**
+ * A registry app's tool its own server calls destructive. It asks every time without being named
+ * in the policy, so a tool added to an app later cannot run unasked before the policy catches up.
+ */
+export function registryDestructiveAsks(
+  toolName: string,
+  destructive: boolean | undefined,
+  entries: RegistryEntry[] = registryEntries(),
+): boolean {
+  if (destructive !== true) return false;
+  return entries.some((entry) => toolName.startsWith(`mcp__${registrySlug(entry.id)}__`));
+}
+
+/**
  * One line for a bot's instructions naming the apps only some spaces have, so a bot without
  * them sends the person to the right space instead of offering to reconnect them.
  */

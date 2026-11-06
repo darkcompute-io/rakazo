@@ -17,7 +17,10 @@ export const MAX_APPROVAL_DETAIL_LENGTH = 4_000;
 /** Longer fetch URLs are refused, so an approval card always shows the whole URL it sends. */
 export const MAX_FETCH_URL_LENGTH = 2_048;
 /** These send data to the site their url names, so a site the run was not given is gated. */
-export const SITE_SENDING_TOOLS: ReadonlySet<string> = new Set(["web_fetch", "paid_request"]);
+export const SITE_SENDING_TOOLS: ReadonlySet<string> = new Set([
+  "web_fetch",
+  "paid_request",
+]);
 
 /** A fleet card built from the resolved request: a title and the lines under it. */
 export type FleetCardSummary = { title: string; lines: string[] };
@@ -37,14 +40,23 @@ export function buildApprovalAskBlock(
   toolName: string,
   args: Record<string, unknown>,
   secrets: string[],
-  options?: { reviewReason?: string; summary?: FleetCardSummary; batch?: ToolBatch },
+  options?: {
+    reviewReason?: string;
+    summary?: FleetCardSummary;
+    batch?: ToolBatch;
+    /** It asks every time, so a standing "always" would be a button that does nothing. */
+    onceOnly?: boolean;
+  },
 ): MessageBlock {
   if (options?.summary) {
     // Built from what was resolved before the effect was recorded, not from what the model typed.
     return {
       kind: "ask",
       approvalEffectId: effectId,
-      text: truncate(redactSecrets(options.summary.title, secrets), MAX_APPROVAL_SUMMARY_LENGTH),
+      text: truncate(
+        redactSecrets(options.summary.title, secrets),
+        MAX_APPROVAL_SUMMARY_LENGTH,
+      ),
       detail: truncate(
         redactSecrets(options.summary.lines.join("\n"), secrets),
         approvalDetailLength(toolName),
@@ -58,10 +70,9 @@ export function buildApprovalAskBlock(
     };
   }
   if (toolName === "respond_agent_connection") {
-    const name = sanitizeMessagingLabel(String(args.requester_name ?? "agent")).replace(
-      new RegExp(CARD_TITLE_ESCAPED_CHARACTERS, "g"),
-      "\\$&",
-    );
+    const name = sanitizeMessagingLabel(
+      String(args.requester_name ?? "agent"),
+    ).replace(new RegExp(CARD_TITLE_ESCAPED_CHARACTERS, "g"), "\\$&");
     return {
       kind: "ask",
       approvalEffectId: effectId,
@@ -82,7 +93,10 @@ export function buildApprovalAskBlock(
     };
   }
   if (toolName === "propose_instructions_update") {
-    const before = redactSecrets(String(args.previousInstructions ?? ""), secrets);
+    const before = redactSecrets(
+      String(args.previousInstructions ?? ""),
+      secrets,
+    );
     const after = redactSecrets(String(args.instructions ?? ""), secrets);
     const reason = redactSecrets(String(args.reason), secrets);
     return {
@@ -105,7 +119,10 @@ export function buildApprovalAskBlock(
     };
   }
   if (toolName === "user_computer_shell") {
-    const cwd = typeof args.cwd === "string" && args.cwd.trim() ? `cd ${args.cwd.trim()}\n` : "";
+    const cwd =
+      typeof args.cwd === "string" && args.cwd.trim()
+        ? `cd ${args.cwd.trim()}\n`
+        : "";
     return {
       kind: "ask",
       approvalEffectId: effectId,
@@ -124,19 +141,28 @@ export function buildApprovalAskBlock(
   }
   const fetchSite = webFetchSite(toolName, args);
   const summary = describeApprovalAction(toolName, args, options?.batch);
-  const detail = formatApprovalDetail(toolName, args, options?.reviewReason, options?.batch);
+  const detail = formatApprovalDetail(
+    toolName,
+    args,
+    options?.reviewReason,
+    options?.batch,
+  );
   const safeDetail = detail ? redactSecrets(detail, secrets) : undefined;
   return {
     kind: "ask",
     approvalEffectId: effectId,
     text: truncate(
       redactSecrets(
-        toolName === "create_space" ? `${summary}?` : `Review before ${summary}`,
+        toolName === "create_space"
+          ? `${summary}?`
+          : `Review before ${summary}`,
         secrets,
       ),
       MAX_APPROVAL_SUMMARY_LENGTH,
     ),
-    detail: safeDetail ? truncate(safeDetail, MAX_APPROVAL_DETAIL_LENGTH) : undefined,
+    detail: safeDetail
+      ? truncate(safeDetail, MAX_APPROVAL_DETAIL_LENGTH)
+      : undefined,
     ...(fetchSite ? { site: fetchSite } : {}),
     status: "pending",
     actions:
@@ -145,7 +171,7 @@ export function buildApprovalAskBlock(
             { id: "allow", label: "Create space", outcome: "created" },
             { id: "deny", label: "Cancel", outcome: "cancelled" },
           ]
-        : toolRequiresExplicitApproval(toolName)
+        : toolRequiresExplicitApproval(toolName) || options?.onceOnly
           ? [
               { id: "allow", label: "Allow once" },
               { id: "deny", label: "Deny" },
@@ -154,14 +180,19 @@ export function buildApprovalAskBlock(
               { id: "allow", label: "Allow once" },
               {
                 id: "always",
-                label: fetchSite ? `Always allow ${fetchSite}` : "Always allow this tool",
+                label: fetchSite
+                  ? `Always allow ${fetchSite}`
+                  : "Always allow this tool",
               },
               { id: "deny", label: "Deny" },
             ],
   };
 }
 
-function webFetchSite(toolName: string, args: Record<string, unknown>): string | undefined {
+function webFetchSite(
+  toolName: string,
+  args: Record<string, unknown>,
+): string | undefined {
   return SITE_SENDING_TOOLS.has(toolName) && typeof args.url === "string"
     ? urlSite(args.url)
     : undefined;
@@ -179,7 +210,9 @@ function describeApprovalAction(
   }
   if (toolName === "delete_bot" || toolName === "archive_bot") {
     const name = args.confirm_name ?? args.confirmName;
-    return name ? `${toolName.replace("_", " ")} (${String(name)})` : toolName.replace("_", " ");
+    return name
+      ? `${toolName.replace("_", " ")} (${String(name)})`
+      : toolName.replace("_", " ");
   }
   if (toolName === "create_space") {
     const name = args.name ? String(args.name) : "Untitled";
@@ -207,7 +240,17 @@ function formatApprovalDetail(
   // A fetch carries data in its path and query, so the card shows the whole URL.
   const keys = SITE_SENDING_TOOLS.has(toolName)
     ? ["url", "method", "body"]
-    : ["collection", "title", "to", "recipient_email", "cc", "bcc", "subject", "amount", "body"];
+    : [
+        "collection",
+        "title",
+        "to",
+        "recipient_email",
+        "cc",
+        "bcc",
+        "subject",
+        "amount",
+        "body",
+      ];
   const pushArgs = (values: Record<string, unknown>) => {
     for (const key of keys) {
       const value = values[key];
@@ -218,7 +261,10 @@ function formatApprovalDetail(
   const items = batch ? args[batch.items] : undefined;
   if (batch && Array.isArray(items)) {
     for (const item of items) {
-      const entry = item && typeof item === "object" ? (item as Record<string, unknown>) : {};
+      const entry =
+        item && typeof item === "object"
+          ? (item as Record<string, unknown>)
+          : {};
       const action = entry[batch.action];
       lines.push((typeof action === "string" && action.trim()) || "…");
       pushArgs(objectArguments(entry[batch.arguments]));

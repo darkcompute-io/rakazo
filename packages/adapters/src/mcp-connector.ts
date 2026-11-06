@@ -484,6 +484,7 @@ export class McpConnector implements ConnectorProvider {
               description: tool.description ?? tool.name,
               inputSchema: tool.inputSchema as Record<string, unknown>,
               readOnly: tool.annotations?.readOnlyHint,
+              destructive: tool.annotations?.destructiveHint === true,
               batch: composioToolBatch(tool.name),
               route: {
                 connectorId: "mcp",

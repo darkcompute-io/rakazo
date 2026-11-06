@@ -45,6 +45,9 @@ policy:
     - mcp__dc-books__approve_payroll
     - mcp__dc-books__void_*
     - mcp__dc-books__match_bill_payments
+    - mcp__dc-books__match_deposits
+    - mcp__dc-timesheets__void_invoice
+    - mcp__dc-timesheets__mark_invoice_paid
     - mcp__dc-books__approve_person_invoice
     - mcp__dc-timesheets__issue_invoice*
     - mcp__dc-timesheets__discard_invoice_draft
@@ -56,6 +59,9 @@ policy:
     - mcp__dc-inbox__trash_message
     - mcp__dc-books__remove_*
     - mcp__dc-test__set_irreversible
+    - mcp__dc-tasks__remove_*
+    - mcp__dc-marketing__remove_series
+    - mcp__dc-calendar__archive_calendar
     # granting access
     - mcp__dc-drive__set_space_access
     - mcp__dc-identity__ak_create_user
@@ -77,6 +83,12 @@ policy:
     - mcp__dc-tasks__make_token
     - mcp__dc-code__mint_cli_token
     - mcp__dc-test__share_sign_in
+    - mcp__dc-spaces__remove_member
+    - mcp__dc-tasks__revoke_token
+    - mcp__dc-code__revoke_cli_token
+    - mcp__dc-inbox__connect_mailbox
+    - mcp__dc-inbox__disconnect_mailbox
+    - mcp__dc-inbox__enable_sending
     # powering a node off or on
     - mcp__dc-fleet__queue_destructive_action
   ask:
@@ -103,6 +115,51 @@ policy:
     - mcp__dc-books__issue_document
     - mcp__dc-books__approve_week
     - mcp__dc-timesheets__approve_sheet
+    # books and pay that a person signs off, and who gets paid
+    - mcp__dc-books__add_book
+    - mcp__dc-books__set_book
+    - mcp__dc-books__apply_rules
+    - mcp__dc-books__import_statement
+    - mcp__dc-timesheets__add_person
+    - mcp__dc-timesheets__set_person
+    - mcp__dc-timesheets__set_payer
+    - mcp__dc-timesheets__lock_invoice
+    - mcp__dc-timesheets__unlock_invoice
+    - mcp__dc-timesheets__mark_billed
+    - mcp__dc-timesheets__unmark_billed
+    # what goes out, when, from which account, and how much the nightly engine makes
+    - mcp__dc-marketing__autoschedule_on_deck
+    - mcp__dc-marketing__set_post_times
+    - mcp__dc-marketing__set_post_accounts
+    - mcp__dc-marketing__use_postiz_channel
+    - mcp__dc-marketing__replace_posts
+    - mcp__dc-marketing__skip_posts
+    - mcp__dc-marketing__create_share_link
+    - mcp__dc-marketing__evolution_reject
+    - mcp__dc-marketing__set_weekly_plan
+    - mcp__dc-marketing__update_agent_settings
+    - mcp__dc-marketing__update_autopilot_settings
+    # a deploy, lost work, and commands a guest will run
+    - mcp__dc-code__deploy
+    - mcp__dc-code__discard_file
+    - mcp__dc-code__remove_worktree
+    - mcp__dc-code__set_app_command
+    - mcp__dc-code__set_setup_script
+    # other people's calendars, sign-ins and shared work
+    - mcp__dc-calendar__rsvp
+    - mcp__dc-calendar__rotate_feed
+    - mcp__dc-viral__sign_in_account
+    - mcp__dc-viral__archive_account
+    - mcp__dc-viral__archive_source
+    - mcp__dc-spaces__accept_all_sources
+    - mcp__dc-spaces__chats_bulk
+    - mcp__dc-spaces__unshare_chat
+    - mcp__dc-flows__save_account
+    - mcp__dc-flows__save_env
+    - mcp__dc-flows__save_schedule
+    - mcp__dc-tasks__confirm_all_p3
+    - mcp__dc-inbox__mark_folder_read
+    - mcp__dc-recorder__set_archived
 # Not listed yet, though their MCP takes a person's token: scan (DMZ Coolify still builds
 # the archived darkcompute-scan repo, so the code is not deployed) and computers (no
 # published name; corp-caddy needs a computers.corp site first).
@@ -221,8 +278,8 @@ apps:
     description: "GPU tests - the card, the setup and the result."
   - id: training
     name: Training
-    endpoint: https://training.corp.darkcompute.io/api/mcp
-    open: https://training.corp.darkcompute.io
+    endpoint: https://inference.corp.darkcompute.io/api/training/mcp
+    open: https://inference.corp.darkcompute.io/lab/training
     description: "Train and evaluate models."
   - id: spaces
     name: Spaces

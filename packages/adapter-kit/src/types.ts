@@ -264,6 +264,8 @@ export interface ConnectorTool {
   inputSchema: Record<string, unknown>;
   /** Declared effect. `false` forces approval; `true` never relaxes the name-based gate. */
   readOnly?: boolean;
+  /** The server declared it destructive. On a registry app that asks a person every time. */
+  destructive?: boolean;
   /** Set when the tool runs other actions named in its arguments; see ToolBatch. */
   batch?: ToolBatch;
   /** In-process routing metadata. It is never exposed to the model. */
