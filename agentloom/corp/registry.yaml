@@ -160,9 +160,8 @@ policy:
     - mcp__dc-tasks__confirm_all_p3
     - mcp__dc-inbox__mark_folder_read
     - mcp__dc-recorder__set_archived
-# Not listed yet, though their MCP takes a person's token: scan (DMZ Coolify still builds
-# the archived darkcompute-scan repo, so the code is not deployed) and computers (no
-# published name; corp-caddy needs a computers.corp site first).
+# Not listed yet, though its MCP takes a person's token: scan (DMZ Coolify still builds the
+# archived darkcompute-scan repo, so the code is not deployed).
 apps:
   - id: agents
     name: Agents hub
@@ -272,15 +271,27 @@ apps:
     open: https://inference.corp.darkcompute.io
     description: "Model endpoints, pools, keys and runs."
   - id: gpu
-    name: GPU tests
-    endpoint: https://gpu.corp.darkcompute.io/api/mcp
-    open: https://gpu.corp.darkcompute.io
-    description: "GPU tests - the card, the setup and the result."
+    name: GPU lab
+    endpoint: https://inference.corp.darkcompute.io/api/lab/mcp
+    open: https://inference.corp.darkcompute.io/lab
+    description: "GPU test runs - the card, the setup and the result - and the Hugging Face catalog."
   - id: training
     name: Training
     endpoint: https://inference.corp.darkcompute.io/api/training/mcp
     open: https://inference.corp.darkcompute.io/lab/training
     description: "Train and evaluate models."
+  - id: flows
+    name: Flows
+    endpoint: https://flows.corp.darkcompute.io/api/mcp
+    open: https://flows.corp.darkcompute.io
+    teams: [plccode, development, fleet]
+    description: "Customer flow tests - sign up, reset, sign in and chat, every run filmed."
+  - id: computers
+    name: Computers
+    endpoint: https://computers.corp.darkcompute.io/api/mcp
+    open: https://computers.corp.darkcompute.io
+    teams: [development, fleet]
+    description: "Every app's browser computers, read only: which are running and how to view them."
   - id: spaces
     name: Spaces
     endpoint: https://spaces.darkcompute.io/api/mcp
