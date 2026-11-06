@@ -47,9 +47,7 @@ describe("buildApprovalAskBlock", () => {
 
     expect(block.kind).toBe("ask");
     if (block.kind !== "ask") throw new Error("expected ask block");
-    expect(
-      block.detail?.startsWith("Sends email outside the draft-only task."),
-    ).toBe(true);
+    expect(block.detail?.startsWith("Sends email outside the draft-only task.")).toBe(true);
     expect(block.detail).toContain("to: person@example.test");
   });
 
@@ -88,8 +86,7 @@ it("shows the full instruction replacement as a diff with Apply and Dismiss", ()
   );
   expect(block).toMatchObject({
     kind: "ask",
-    detail:
-      "Learned preference\n\n- Draft only\n+ Draft only\n+ Ask before sending",
+    detail: "Learned preference\n\n- Draft only\n+ Draft only\n+ Ask before sending",
     instructionUpdate: {
       botId: "bot-1",
       before: "Draft only",
@@ -124,107 +121,79 @@ describe("bot management approval cards", () => {
     "set_child_instructions",
     "set_child_bot_model",
     "create_child_routine",
-  ])(
-    "builds the %s card from the resolved summary with allow and deny only",
-    (toolName) => {
-      const block = buildApprovalAskBlock(
-        "effect-1",
-        toolName,
-        { name: "model typed this" },
-        ["fake-token"],
-        {
-          summary: {
-            title: "Create group “Launch”?",
-            lines: ["Members: Scout, Writer", "Prompt: use fake-token"],
-          },
+  ])("builds the %s card from the resolved summary with allow and deny only", (toolName) => {
+    const block = buildApprovalAskBlock(
+      "effect-1",
+      toolName,
+      { name: "model typed this" },
+      ["fake-token"],
+      {
+        summary: {
+          title: "Create group “Launch”?",
+          lines: ["Members: Scout, Writer", "Prompt: use fake-token"],
         },
-      );
-      expect(block).toEqual({
-        kind: "ask",
-        approvalEffectId: "effect-1",
-        text: "Create group “Launch”?",
-        detail: "Members: Scout, Writer\nPrompt: use [redacted]",
-        detailFormat: toolName === "set_child_instructions" ? "code" : "text",
-        status: "pending",
-        actions: [
-          { id: "allow", label: "Allow once" },
-          { id: "deny", label: "Deny" },
-        ],
-      });
-    },
-  );
+      },
+    );
+    expect(block).toEqual({
+      kind: "ask",
+      approvalEffectId: "effect-1",
+      text: "Create group “Launch”?",
+      detail: "Members: Scout, Writer\nPrompt: use [redacted]",
+      detailFormat: toolName === "set_child_instructions" ? "code" : "text",
+      status: "pending",
+      actions: [
+        { id: "allow", label: "Allow once" },
+        { id: "deny", label: "Deny" },
+      ],
+    });
+  });
 
   it("shows the longest allowed instructions whole on the instruction card", () => {
     const instructions = "i".repeat(20_000);
-    const lines = [
-      "Old length: 0 characters",
-      "New length: 20000 characters",
-      "",
-      instructions,
-    ];
-    const block = buildApprovalAskBlock(
-      "effect-1",
-      "set_child_instructions",
-      {},
-      [],
-      {
-        summary: { title: "Replace the instructions of Scout?", lines },
-      },
-    );
+    const lines = ["Old length: 0 characters", "New length: 20000 characters", "", instructions];
+    const block = buildApprovalAskBlock("effect-1", "set_child_instructions", {}, [], {
+      summary: { title: "Replace the instructions of Scout?", lines },
+    });
     if (block.kind !== "ask") throw new Error("expected ask block");
     expect(block.detail).toBe(lines.join("\n"));
-    expect(block.actions?.map((action) => action.id)).toEqual([
-      "allow",
-      "deny",
-    ]);
-    expect(
-      approvalDetailLength("set_child_instructions"),
-    ).toBeGreaterThanOrEqual(lines.join("\n").length);
+    expect(block.actions?.map((action) => action.id)).toEqual(["allow", "deny"]);
+    expect(approvalDetailLength("set_child_instructions")).toBeGreaterThanOrEqual(
+      lines.join("\n").length,
+    );
   });
 
   it("never offers always allow on a tool that needs explicit approval", () => {
-    const block = buildApprovalAskBlock(
-      "effect-1",
-      "create_group",
-      { name: "Launch" },
-      [],
-    );
+    const block = buildApprovalAskBlock("effect-1", "create_group", { name: "Launch" }, []);
     if (block.kind !== "ask") throw new Error("expected ask block");
-    expect(block.actions?.map((action) => action.id)).toEqual([
-      "allow",
-      "deny",
-    ]);
+    expect(block.actions?.map((action) => action.id)).toEqual(["allow", "deny"]);
   });
 });
 
 describe("agent connection response cards", () => {
-  it.each([true, false])(
-    "shows the captured requester and decision (accept: %s)",
-    (accept) => {
-      const block = buildApprovalAskBlock(
-        "effect-1",
-        "respond_agent_connection",
-        {
-          accept,
-          connection_id: "request-1",
-          connection_version: 2,
-          requester_name: "Helper",
-          requester_address: "+15551234567",
-          requester_provider: "sendblue",
-        },
-        [],
-      );
-      expect(block).toMatchObject({
-        kind: "ask",
-        text: `${accept ? "Approve" : "Decline"} connection with “Helper”?`,
-        detail: "iMessage: +15551234567",
-        actions: [
-          { id: "allow", label: "Allow once" },
-          { id: "deny", label: "Deny" },
-        ],
-      });
-    },
-  );
+  it.each([true, false])("shows the captured requester and decision (accept: %s)", (accept) => {
+    const block = buildApprovalAskBlock(
+      "effect-1",
+      "respond_agent_connection",
+      {
+        accept,
+        connection_id: "request-1",
+        connection_version: 2,
+        requester_name: "Helper",
+        requester_address: "+15551234567",
+        requester_provider: "sendblue",
+      },
+      [],
+    );
+    expect(block).toMatchObject({
+      kind: "ask",
+      text: `${accept ? "Approve" : "Decline"} connection with “Helper”?`,
+      detail: "iMessage: +15551234567",
+      actions: [
+        { id: "allow", label: "Allow once" },
+        { id: "deny", label: "Deny" },
+      ],
+    });
+  });
   it("escapes requester formatting and redacts secrets", () => {
     const block = buildApprovalAskBlock(
       "effect-1",
@@ -246,16 +215,8 @@ describe("agent connection response cards", () => {
 
   it("offers no standing allow on a tool that asks every time", () => {
     const ids = (onceOnly: boolean) => {
-      const block = buildApprovalAskBlock(
-        "e",
-        "mcp__dc-inbox__send_mail",
-        {},
-        [],
-        { onceOnly },
-      );
-      return (block as { actions?: { id: string }[] }).actions?.map(
-        (action) => action.id,
-      );
+      const block = buildApprovalAskBlock("e", "mcp__dc-inbox__send_mail", {}, [], { onceOnly });
+      return (block as { actions?: { id: string }[] }).actions?.map((action) => action.id);
     };
     expect(ids(false)).toEqual(["allow", "always", "deny"]);
     expect(ids(true)).toEqual(["allow", "deny"]);

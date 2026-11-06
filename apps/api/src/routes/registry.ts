@@ -25,12 +25,7 @@ import {
 } from "@rakazo/core";
 import { runAsSystem, runAsTenant } from "@rakazo/db";
 import { getLogger } from "@rakazo/logging";
-import {
-  seedTeamSpaces,
-  syncTeams,
-  teamSpaces,
-  tokenGroups,
-} from "../agentloom-teams.js";
+import { seedTeamSpaces, syncTeams, teamSpaces, tokenGroups } from "../agentloom-teams.js";
 import type { RouterContext } from "./context.js";
 
 const SCOPE = "openid profile email offline_access";
@@ -143,14 +138,10 @@ export function registryRoutes(ctx: RouterContext) {
     tokenEndpoint ??= (async () => {
       const issuer = process.env.OIDC_ISSUER?.trim().replace(/\/$/, "");
       if (!issuer) throw new Error("OIDC_ISSUER is unset");
-      const response = await fetch(
-        `${issuer}/.well-known/openid-configuration`,
-        {
-          signal: AbortSignal.timeout(10_000),
-        },
-      );
-      const url = ((await response.json()) as { token_endpoint?: unknown })
-        .token_endpoint;
+      const response = await fetch(`${issuer}/.well-known/openid-configuration`, {
+        signal: AbortSignal.timeout(10_000),
+      });
+      const url = ((await response.json()) as { token_endpoint?: unknown }).token_endpoint;
       if (typeof url !== "string" || !url.startsWith("https://"))
         throw new Error("login issuer names no token endpoint");
       return url;
@@ -174,12 +165,10 @@ export function registryRoutes(ctx: RouterContext) {
     if (!account) return null;
     // Better Auth refreshes the login when it has lapsed, and stores the new one. Its
     // accountId is the account row's id, not the provider's subject.
-    const login = await runAsSystem(
-      "registry: renew the member's SSO login",
-      () =>
-        deps.auth.api.getAccessToken({
-          body: { accountId: account.id, userId },
-        }),
+    const login = await runAsSystem("registry: renew the member's SSO login", () =>
+      deps.auth.api.getAccessToken({
+        body: { accountId: account.id, userId },
+      }),
     ).catch((error) => {
       getLogger().warn("registry: SSO login could not be renewed", {
         userId,
@@ -189,19 +178,11 @@ export function registryRoutes(ctx: RouterContext) {
     });
     // With no refresh token (the login provider must issue offline_access) an old login
     // comes back as it was stored, and authentik has forgotten it.
-    const expiresAt = login?.accessTokenExpiresAt
-      ? new Date(login.accessTokenExpiresAt)
-      : null;
-    if (
-      !login?.accessToken ||
-      (expiresAt && expiresAt.getTime() <= Date.now() + 60_000)
-    ) {
-      getLogger().warn(
-        "registry: no live SSO login to exchange; the member signs in again",
-        {
-          userId,
-        },
-      );
+    const expiresAt = login?.accessTokenExpiresAt ? new Date(login.accessTokenExpiresAt) : null;
+    if (!login?.accessToken || (expiresAt && expiresAt.getTime() <= Date.now() + 60_000)) {
+      getLogger().warn("registry: no live SSO login to exchange; the member signs in again", {
+        userId,
+      });
       return null;
     }
     const response = await fetch(await tokenUrl(), {
@@ -210,8 +191,7 @@ export function registryRoutes(ctx: RouterContext) {
       body: new URLSearchParams({
         grant_type: "client_credentials",
         client_id: client.clientId,
-        client_assertion_type:
-          "urn:ietf:params:oauth:client-assertion-type:jwt-bearer",
+        client_assertion_type: "urn:ietf:params:oauth:client-assertion-type:jwt-bearer",
         client_assertion: login.accessToken,
         scope: "openid profile email",
       }),
@@ -233,11 +213,8 @@ export function registryRoutes(ctx: RouterContext) {
     if (typeof body.access_token !== "string") return null;
     return {
       access_token: body.access_token,
-      token_type:
-        typeof body.token_type === "string" ? body.token_type : "Bearer",
-      ...(typeof body.expires_in === "number"
-        ? { expires_in: body.expires_in }
-        : {}),
+      token_type: typeof body.token_type === "string" ? body.token_type : "Bearer",
+      ...(typeof body.expires_in === "number" ? { expires_in: body.expires_in } : {}),
       ...(typeof body.scope === "string" ? { scope: body.scope } : {}),
     };
   }
@@ -314,31 +291,27 @@ export function registryRoutes(ctx: RouterContext) {
     if (sweeping || !registryEntries().length) return;
     sweeping = true;
     try {
-      const members = await runAsSystem(
-        "registry: every SSO member's spaces",
-        () =>
-          deps.prisma.spaceMember.findMany({
-            where: {
-              member: { user: { accounts: { some: { providerId: "oidc" } } } },
-            },
-            select: {
-              spaceId: true,
-              userId: true,
-              member: { select: { user: { select: { email: true } } } },
-            },
-          }),
+      const members = await runAsSystem("registry: every SSO member's spaces", () =>
+        deps.prisma.spaceMember.findMany({
+          where: {
+            member: { user: { accounts: { some: { providerId: "oidc" } } } },
+          },
+          select: {
+            spaceId: true,
+            userId: true,
+            member: { select: { user: { select: { email: true } } } },
+          },
+        }),
       );
       const grants = new Map<string, () => ReturnType<typeof exchange>>();
       for (const row of members) {
-        if (!grants.has(row.userId))
-          grants.set(row.userId, grantFor(row.userId));
+        if (!grants.has(row.userId)) grants.set(row.userId, grantFor(row.userId));
       }
       const teams = registryInfo().teams;
       let rows = members;
       if (teams) {
         const people = new Map<string, string>();
-        for (const row of members)
-          people.set(row.userId, row.member.user.email);
+        for (const row of members) people.set(row.userId, row.member.user.email);
         const withGroups = await Promise.all(
           [...people].map(async ([userId, email]) => ({
             userId,
@@ -353,9 +326,7 @@ export function registryRoutes(ctx: RouterContext) {
           { prisma: deps.prisma, repos: ctx.repos },
           teams,
           spaceTemplates(),
-        ).catch((error) =>
-          getLogger().warn("teams: seeding failed", { error: String(error) }),
-        );
+        ).catch((error) => getLogger().warn("teams: seeding failed", { error: String(error) }));
         // Joining a team space adds rows; read them again so the new space gets its apps.
         rows = await runAsSystem("registry: every SSO member's spaces", () =>
           deps.prisma.spaceMember.findMany({
@@ -373,16 +344,14 @@ export function registryRoutes(ctx: RouterContext) {
       // An app taken out of the registry: every connection made to it is switched off, not
       // removed, so its bots stop calling a server that is going away.
       const offered = registryEntries().map((entry) => registrySlug(entry.id));
-      const retired = await runAsSystem(
-        "registry: switch off apps no longer offered",
-        () =>
-          deps.prisma.mcpServer.updateMany({
-            where: {
-              slug: { startsWith: registrySlug(""), notIn: offered },
-              enabled: true,
-            },
-            data: { enabled: false },
-          }),
+      const retired = await runAsSystem("registry: switch off apps no longer offered", () =>
+        deps.prisma.mcpServer.updateMany({
+          where: {
+            slug: { startsWith: registrySlug(""), notIn: offered },
+            enabled: true,
+          },
+          data: { enabled: false },
+        }),
       );
       if (retired.count)
         getLogger().info("registry: retired connections off", {
@@ -396,15 +365,13 @@ export function registryRoutes(ctx: RouterContext) {
           email: row.member.user.email,
           isDeploymentOwner: false,
         };
-        if (!grants.has(row.userId))
-          grants.set(row.userId, grantFor(row.userId));
+        if (!grants.has(row.userId)) grants.set(row.userId, grantFor(row.userId));
         const team = spaceTeam.get(row.spaceId) ?? null;
-        await runAsTenant(actor, () =>
-          connectAll(actor, grants.get(row.userId)!, team),
-        ).catch((error) =>
-          getLogger().warn("registry auto-connect failed", {
-            error: String(error),
-          }),
+        await runAsTenant(actor, () => connectAll(actor, grants.get(row.userId)!, team)).catch(
+          (error) =>
+            getLogger().warn("registry auto-connect failed", {
+              error: String(error),
+            }),
         );
       }
     } finally {
@@ -412,10 +379,7 @@ export function registryRoutes(ctx: RouterContext) {
     }
   }
 
-  if (
-    autoEnabled() &&
-    !(globalThis as { agentloomSweep?: boolean }).agentloomSweep
-  ) {
+  if (autoEnabled() && !(globalThis as { agentloomSweep?: boolean }).agentloomSweep) {
     (globalThis as { agentloomSweep?: boolean }).agentloomSweep = true;
     setTimeout(() => void sweep().catch(() => undefined), 30_000).unref?.();
     setInterval(() => void sweep().catch(() => undefined), SWEEP_MS).unref?.();
@@ -425,20 +389,11 @@ export function registryRoutes(ctx: RouterContext) {
     registry: {
       list: authed.registry.list.handler(async ({ context }) => {
         const info = registryInfo();
-        const team =
-          (await teamSpaces(deps.prisma, info.teams)).get(
-            context.actor.spaceId,
-          ) ?? null;
+        const team = (await teamSpaces(deps.prisma, info.teams)).get(context.actor.spaceId) ?? null;
         const title = info.title;
-        const entries = info.entries.filter((entry) =>
-          registryAppAllowed(entry, team),
-        );
+        const entries = info.entries.filter((entry) => registryAppAllowed(entry, team));
         if (autoEnabled() && mcpClient()) {
-          await connectAll(
-            context.actor,
-            grantFor(context.actor.userId),
-            team,
-          ).catch((error) =>
+          await connectAll(context.actor, grantFor(context.actor.userId), team).catch((error) =>
             getLogger().warn("registry auto-connect failed", {
               error: String(error),
             }),
@@ -452,9 +407,7 @@ export function registryRoutes(ctx: RouterContext) {
           },
           select: { id: true, slug: true },
         });
-        const bySlug = new Map(
-          servers.map((server) => [server.slug, server.id]),
-        );
+        const bySlug = new Map(servers.map((server) => [server.slug, server.id]));
         return {
           title,
           requestable: requestSink() !== null,
@@ -471,13 +424,8 @@ export function registryRoutes(ctx: RouterContext) {
       }),
       add: authed.registry.add.handler(async ({ context, input }) => {
         const info = registryInfo();
-        const team =
-          (await teamSpaces(deps.prisma, info.teams)).get(
-            context.actor.spaceId,
-          ) ?? null;
-        const entry = info.entries.find(
-          (e) => e.id === input.id && registryAppAllowed(e, team),
-        );
+        const team = (await teamSpaces(deps.prisma, info.teams)).get(context.actor.spaceId) ?? null;
+        const entry = info.entries.find((e) => e.id === input.id && registryAppAllowed(e, team));
         if (!entry) {
           throw new ORPCError("NOT_FOUND", {
             message: "That app is not offered here.",

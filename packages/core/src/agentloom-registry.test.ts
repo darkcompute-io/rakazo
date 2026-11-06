@@ -1,8 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  type ActionApprovalResolved,
-  planActionGate,
-} from "./action-approval.js";
+import { type ActionApprovalResolved, planActionGate } from "./action-approval.js";
 import {
   registryAlwaysAsks,
   registryDestructiveAsks,
@@ -48,10 +45,7 @@ describe("AgentLoom registry", () => {
       apps: JSON.parse(RAW),
     });
     expect(registryInfo(doc).title).toBe("Darkcompute apps");
-    expect(registryInfo(doc).entries.map((e) => e.id)).toEqual([
-      "tasks",
-      "proxmox",
-    ]);
+    expect(registryInfo(doc).entries.map((e) => e.id)).toEqual(["tasks", "proxmox"]);
     expect(registryInfo("[]")).toMatchObject({ title: "Apps", entries: [] });
   });
 
@@ -61,18 +55,10 @@ describe("AgentLoom registry", () => {
 
   it("asks for an askWrites app's writes and nothing else", () => {
     const entries = registryEntries(RAW);
-    expect(registryAlwaysAsks("mcp__dc-proxmox__vm_stop", false, entries)).toBe(
-      true,
-    );
-    expect(
-      registryAlwaysAsks("mcp__dc-proxmox__vm_stop", undefined, entries),
-    ).toBe(true);
-    expect(registryAlwaysAsks("mcp__dc-proxmox__vm_list", true, entries)).toBe(
-      false,
-    );
-    expect(registryAlwaysAsks("mcp__dc-tasks__add_task", false, entries)).toBe(
-      false,
-    );
+    expect(registryAlwaysAsks("mcp__dc-proxmox__vm_stop", false, entries)).toBe(true);
+    expect(registryAlwaysAsks("mcp__dc-proxmox__vm_stop", undefined, entries)).toBe(true);
+    expect(registryAlwaysAsks("mcp__dc-proxmox__vm_list", true, entries)).toBe(false);
+    expect(registryAlwaysAsks("mcp__dc-tasks__add_task", false, entries)).toBe(false);
     expect(registryAlwaysAsks("mcp__other__x", false, entries)).toBe(false);
   });
 
@@ -92,9 +78,7 @@ describe("AgentLoom registry", () => {
         alwaysAsk: true,
       }),
     ).toBe("ask");
-    expect(planActionGate({ ...base, resolved: allow, mode: "never" })).toBe(
-      "allow",
-    );
+    expect(planActionGate({ ...base, resolved: allow, mode: "never" })).toBe("allow");
     const deny: ActionApprovalResolved = {
       ...allow,
       decision: "deny",
@@ -154,24 +138,17 @@ describe("registry teams", () => {
   it("names the apps only some spaces have, for a bot that lacks them", () => {
     const note = registryElsewhereNote(
       JSON.stringify({
-        apps: [
-          app({ name: "Fleet tools", teams: ["fleet"] }),
-          app({ id: "mail" }),
-        ],
+        apps: [app({ name: "Fleet tools", teams: ["fleet"] }), app({ id: "mail" })],
         teams,
       }),
     );
     expect(note).toContain("Fleet tools only in the");
     expect(note).toContain("Do not offer to add or reconnect");
-    expect(
-      registryElsewhereNote(JSON.stringify({ apps: [app({ id: "mail" })] })),
-    ).toBeUndefined();
+    expect(registryElsewhereNote(JSON.stringify({ apps: [app({ id: "mail" })] }))).toBeUndefined();
   });
 
   it("lets only a declared read on a registry app skip the taint review", () => {
-    const entries = [app({ id: "fleet" })] as ReturnType<
-      typeof registryEntries
-    >;
+    const entries = [app({ id: "fleet" })] as ReturnType<typeof registryEntries>;
     const inside = (name: string, readOnly?: boolean) =>
       registryReadStaysInside(name, readOnly, entries);
     expect(inside("mcp__dc-fleet__node_status", true)).toBe(true);
@@ -185,18 +162,13 @@ describe("registry teams", () => {
       JSON.stringify({
         apps: [],
         policy: {
-          never: [
-            "mcp__dc-books__record_payment",
-            "mcp__dc-*__*delete*",
-            "not-a-tool",
-          ],
+          never: ["mcp__dc-books__record_payment", "mcp__dc-*__*delete*", "not-a-tool"],
           ask: ["mcp__dc-inbox__send_mail", "mcp__dc-books__*"],
         },
       }),
     );
     expect(policy.never).toHaveLength(2);
-    const level = (name: string, readOnly?: boolean) =>
-      registryToolPolicy(name, readOnly, policy);
+    const level = (name: string, readOnly?: boolean) => registryToolPolicy(name, readOnly, policy);
     expect(level("mcp__dc-books__record_payment")).toBe("never");
     expect(level("mcp__dc-tasks__delete_task")).toBe("never");
     expect(level("mcp__dc-inbox__send_mail")).toBe("ask");
@@ -214,22 +186,12 @@ describe("registry teams", () => {
 
   it("asks for a registry app's destructive tool unnamed, and only a registry app's", () => {
     const entries = registryEntries(
-      JSON.stringify([
-        { id: "tasks", name: "Tasks", endpoint: "https://t.example/mcp" },
-      ]),
+      JSON.stringify([{ id: "tasks", name: "Tasks", endpoint: "https://t.example/mcp" }]),
     );
-    expect(
-      registryDestructiveAsks("mcp__dc-tasks__remove_goal", true, entries),
-    ).toBe(true);
-    expect(
-      registryDestructiveAsks("mcp__dc-tasks__add_goal", false, entries),
-    ).toBe(false);
-    expect(
-      registryDestructiveAsks("mcp__dc-tasks__add_goal", undefined, entries),
-    ).toBe(false);
-    expect(
-      registryDestructiveAsks("mcp__mine__remove_goal", true, entries),
-    ).toBe(false);
+    expect(registryDestructiveAsks("mcp__dc-tasks__remove_goal", true, entries)).toBe(true);
+    expect(registryDestructiveAsks("mcp__dc-tasks__add_goal", false, entries)).toBe(false);
+    expect(registryDestructiveAsks("mcp__dc-tasks__add_goal", undefined, entries)).toBe(false);
+    expect(registryDestructiveAsks("mcp__mine__remove_goal", true, entries)).toBe(false);
   });
 
   it("drops a teams block it cannot trust whole", () => {
@@ -237,13 +199,9 @@ describe("registry teams", () => {
       ...teams,
       spaces: teams.spaces.map((s) => ({ ...s, default: true })),
     };
+    expect(registryInfo(JSON.stringify({ apps: [], teams: two })).teams).toBeNull();
     expect(
-      registryInfo(JSON.stringify({ apps: [], teams: two })).teams,
-    ).toBeNull();
-    expect(
-      registryInfo(
-        JSON.stringify({ apps: [], teams: { ...teams, owner: "nobody" } }),
-      ).teams,
+      registryInfo(JSON.stringify({ apps: [], teams: { ...teams, owner: "nobody" } })).teams,
     ).toBeNull();
     expect(registryInfo(JSON.stringify({ apps: [] })).teams).toBeNull();
   });
