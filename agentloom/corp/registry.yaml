@@ -339,3 +339,12 @@ apps:
     open: https://coolify.corp.darkcompute.io
     description: "Coolify on CORP, DMZ and PROD - apps, deploys, restarts, env and build logs."
     askWrites: true
+  # power.corp (darkcompute apps/power): reads every node's power and draw, and queues power
+  # actions that fleet-agent runs on fleet-jump. Admins only, in the Fleet team space.
+  - id: power
+    name: Power
+    endpoint: https://power.corp.darkcompute.io/api/mcp
+    teams: [fleet]
+    open: https://power.corp.darkcompute.io
+    description: "Every node's power state, draw and energy use; power nodes and guests on, off and around through the queue."
+    askWrites: true
