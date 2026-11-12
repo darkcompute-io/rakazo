@@ -93,6 +93,8 @@ policy:
     - mcp__dc-fleet__queue_destructive_action
   ask:
     # what others feel: mail, posts and merges (DNS and deploys are askWrites already)
+    # a merge is a person's call: the bot asks every time, whatever its run mode (code.corp merge_pr, 2026-11-12)
+    - mcp__dc-code__merge_pr
     - mcp__dc-inbox__send_mail
     - mcp__dc-inbox__reply
     - mcp__dc-inbox__forward_message
