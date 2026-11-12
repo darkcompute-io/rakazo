@@ -298,9 +298,9 @@ apps:
     open: https://spaces.darkcompute.io
     description: "Chats kept by topic."
   - id: flow
-    name: Flow
-    endpoint: https://flow.corp.darkcompute.io/api/mcp
-    open: https://flow.corp.darkcompute.io
+    name: Map
+    endpoint: https://map.corp.darkcompute.io/api/mcp
+    open: https://map.corp.darkcompute.io
     description: "The map of every app, its agents and how they connect."
   - id: alerts
     name: Alerts
